@@ -37,6 +37,8 @@ typedef struct MxcAppState {
     VkPipeline graphicsPipeline;
 
     VkCommandPool commandPool;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
     VkCommandBuffer commandBuffer;
 
     VkSemaphore imageAvailableSemaphore;

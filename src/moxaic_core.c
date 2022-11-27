@@ -1,4 +1,5 @@
 #include "moxaic_core.h"
+#include "mxc_mesh.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -545,10 +546,16 @@ static void createGraphicsPipeline(MxcAppState* pState) {
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+    VkVertexInputBindingDescription bindingDescription = getBindingDescription();
+    VkVertexInputAttributeDescription attributeDescriptions[attributeDescriptionCount];
+    getAttributeDescriptions(attributeDescriptions);
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount = 0,
-            .vertexAttributeDescriptionCount = 0,
+            .vertexBindingDescriptionCount = 1,
+            .vertexAttributeDescriptionCount = attributeDescriptionCount,
+            .pVertexBindingDescriptions = &bindingDescription,
+            .pVertexAttributeDescriptions = attributeDescriptions
     };
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
@@ -679,6 +686,52 @@ static void createCommandPool(MxcAppState* pState) {
     }
 }
 
+uint32_t findMemoryType(MxcAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(pState->physicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            return i;
+        }
+    }
+
+    printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
+}
+
+static void createVertexBuffer(MxcAppState* pState) {
+    VkBufferCreateInfo bufferInfo = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = (sizeof(Vertex) * verticesCount),
+            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    if (vkCreateBuffer(pState->device, &bufferInfo, NULL, &pState->vertexBuffer) != VK_SUCCESS) {
+        printf("%s - failed to create vertex buffer\n", __FUNCTION__);
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(pState->device, pState->vertexBuffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = findMemoryType(pState, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) // ovr has VK_MEMORY_PROPERTY_HOST_CACHED_BIT too
+    };
+
+    if (vkAllocateMemory(pState->device, &allocInfo, NULL, &pState->vertexBufferMemory) != VK_SUCCESS) {
+        printf("%s - failed to allocate vertex buffer memory!\n", __FUNCTION__);
+    }
+
+    vkBindBufferMemory(pState->device, pState->vertexBuffer, pState->vertexBufferMemory, 0);
+
+    void* data;
+    vkMapMemory(pState->device, pState->vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+    memcpy(data, vertices,bufferInfo.size);
+    vkUnmapMemory(pState->device, pState->vertexBufferMemory);
+}
+
 static void createCommandBuffer(MxcAppState* pState) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -722,6 +775,7 @@ void mxcInitVulkan(MxcAppState* pState) {
     createGraphicsPipeline(pState);
     createFramebuffers(pState);
     createCommandPool(pState);
+    createVertexBuffer(pState);
     createCommandBuffer(pState);
     createSyncObjects(pState);
 }
@@ -748,27 +802,31 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
     renderPassInfo.pClearValues = &clearColor;
 
     vkCmdBeginRenderPass(pState->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    {
+        vkCmdBindPipeline(pState->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pState->graphicsPipeline);
 
-    vkCmdBindPipeline(pState->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pState->graphicsPipeline);
+        VkViewport viewport = {
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = (float) pState->swapChainExtent.width,
+                .height = (float) pState->swapChainExtent.height,
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f,
+        };
+        vkCmdSetViewport(pState->commandBuffer, 0, 1, &viewport);
 
-    VkViewport viewport = {
-            .x = 0.0f,
-            .y = 0.0f,
-            .width = (float) pState->swapChainExtent.width,
-            .height = (float) pState->swapChainExtent.height,
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f,
-    };
-    vkCmdSetViewport(pState->commandBuffer, 0, 1, &viewport);
+        VkRect2D scissor = {
+                .offset = {0, 0},
+                .extent = pState->swapChainExtent,
+        };
+        vkCmdSetScissor(pState->commandBuffer, 0, 1, &scissor);
 
-    VkRect2D scissor = {
-            .offset = {0, 0},
-            .extent = pState->swapChainExtent,
-    };
-    vkCmdSetScissor(pState->commandBuffer, 0, 1, &scissor);
+        VkBuffer vertexBuffers[] = {pState->vertexBuffer};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(pState->commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdDraw(pState->commandBuffer, 3, 1, 0, 0);
-
+        vkCmdDraw(pState->commandBuffer, 3, 1, 0, 0);
+    }
     vkCmdEndRenderPass(pState->commandBuffer);
 
     if (vkEndCommandBuffer(pState->commandBuffer) != VK_SUCCESS) {
@@ -841,8 +899,31 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
+void mxcCleanupSwapChain(MxcAppState* pState) {
+    printf("%s - cleaning up swapchain!\n", __FUNCTION__);
+
+    for (int i = 0; i < pState->swapChainImageCount; ++i) {
+        vkDestroyFramebuffer(pState->device, pState->pSwapChainFramebuffers[i], NULL);
+    }
+
+    for (int i = 0; i < pState->swapChainImageCount; ++i) {
+        vkDestroyImageView(pState->device, pState->pSwapChainImageViews[i], NULL);
+    }
+
+    vkDestroySwapchainKHR(pState->device, pState->swapChain, NULL);
+}
+
 void mxcCleanup(MxcAppState* pState) {
     printf("%s - cleaning up moxaic!\n", __FUNCTION__);
+
+    mxcCleanupSwapChain(pState);
+
+    vkDestroyPipeline(pState->device, pState->graphicsPipeline, NULL);
+    vkDestroyPipelineLayout(pState->device, pState->pipelineLayout, NULL);
+    vkDestroyRenderPass(pState->device, pState->renderPass, NULL);
+
+    vkDestroyBuffer(pState->device, pState->vertexBuffer, NULL);
+    vkFreeMemory(pState->device, pState->vertexBufferMemory, NULL);
 
     vkDestroySemaphore(pState->device, pState->renderFinishedSemaphore, NULL);
     vkDestroySemaphore(pState->device, pState->imageAvailableSemaphore, NULL);
@@ -850,19 +931,6 @@ void mxcCleanup(MxcAppState* pState) {
 
     vkDestroyCommandPool(pState->device, pState->commandPool, NULL);
 
-    for (int i = 0; i < pState->swapChainImageCount; ++i) {
-        vkDestroyFramebuffer(pState->device, pState->pSwapChainFramebuffers[i], NULL);
-    }
-
-    vkDestroyPipeline(pState->device, pState->graphicsPipeline, NULL);
-    vkDestroyPipelineLayout(pState->device, pState->pipelineLayout, NULL);
-    vkDestroyRenderPass(pState->device, pState->renderPass, NULL);
-
-    for (int i = 0; i < pState->swapChainImageCount; ++i) {
-        vkDestroyImageView(pState->device, pState->pSwapChainImageViews[i], NULL);
-    }
-
-    vkDestroySwapchainKHR(pState->device, pState->swapChain, NULL);
     vkDestroyDevice(pState->device, NULL);
 
     if (pState->enableValidationLayers) {
