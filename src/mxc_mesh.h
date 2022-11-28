@@ -13,11 +13,17 @@ typedef struct Vertex {
     vec3 color;
 } Vertex;
 
-const uint32_t verticesCount = 3;
+const uint32_t verticesCount = 4;
 const Vertex vertices[] = {
-        {{0.0f,  -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f},  {1.0f, 1.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const uint32_t indicesCount = 6;
+const uint16_t indices[] = {
+        0, 1, 2, 2, 3, 0
 };
 
 const int attributeDescriptionCount = 2;

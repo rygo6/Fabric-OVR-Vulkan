@@ -686,7 +686,7 @@ static void createCommandPool(MxcAppState* pState) {
     }
 }
 
-uint32_t findMemoryType(MxcAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+static uint32_t findMemoryType(MxcAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(pState->physicalDevice, &memProperties);
 
@@ -699,37 +699,62 @@ uint32_t findMemoryType(MxcAppState* pState, uint32_t typeFilter, VkMemoryProper
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
 }
 
-static void createVertexBuffer(MxcAppState* pState) {
+static void createBuffer(MxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
     VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = (sizeof(Vertex) * verticesCount),
-            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            .size = size,
+            .usage = usage,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    if (vkCreateBuffer(pState->device, &bufferInfo, NULL, &pState->vertexBuffer) != VK_SUCCESS) {
-        printf("%s - failed to create vertex buffer\n", __FUNCTION__);
+    if (vkCreateBuffer(pState->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+        printf("%s - failed to create buffer!\n", __FUNCTION__);
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(pState->device, pState->vertexBuffer, &memRequirements);
+    vkGetBufferMemoryRequirements(pState->device, *buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = findMemoryType(pState, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) // ovr has VK_MEMORY_PROPERTY_HOST_CACHED_BIT too
+            .memoryTypeIndex = findMemoryType(pState, memRequirements.memoryTypeBits, properties),
     };
 
-    if (vkAllocateMemory(pState->device, &allocInfo, NULL, &pState->vertexBufferMemory) != VK_SUCCESS) {
-        printf("%s - failed to allocate vertex buffer memory!\n", __FUNCTION__);
+    if (vkAllocateMemory(pState->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
+        printf("%s - failed to allocate buffer memory!\n", __FUNCTION__);
     }
 
-    vkBindBufferMemory(pState->device, pState->vertexBuffer, pState->vertexBufferMemory, 0);
+    vkBindBufferMemory(pState->device, *buffer, *bufferMemory, 0);
+}
+
+static void createVertexBuffer(MxcAppState* pState) {
+    VkDeviceSize bufferSize = (sizeof(Vertex) * verticesCount);
+    createBuffer(pState,
+                 bufferSize,
+                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 &pState->vertexBuffer,
+                 &pState->vertexBufferMemory);
 
     void* data;
-    vkMapMemory(pState->device, pState->vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-    memcpy(data, vertices,bufferInfo.size);
+    vkMapMemory(pState->device, pState->vertexBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, vertices,bufferSize);
     vkUnmapMemory(pState->device, pState->vertexBufferMemory);
+}
+
+void createIndexBuffer(MxcAppState* pState) {
+    VkDeviceSize bufferSize = (sizeof(uint16_t) * indicesCount);
+    createBuffer(pState,
+                 bufferSize,
+                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 &pState->indexBuffer,
+                 &pState->indexBufferMemory);
+
+    void* data;
+    vkMapMemory(pState->device, pState->indexBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, indices,bufferSize);
+    vkUnmapMemory(pState->device, pState->indexBufferMemory);
 }
 
 static void createCommandBuffer(MxcAppState* pState) {
@@ -776,6 +801,7 @@ void mxcInitVulkan(MxcAppState* pState) {
     createFramebuffers(pState);
     createCommandPool(pState);
     createVertexBuffer(pState);
+    createIndexBuffer(pState);
     createCommandBuffer(pState);
     createSyncObjects(pState);
 }
@@ -824,8 +850,9 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
         VkBuffer vertexBuffers[] = {pState->vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(pState->commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(pState->commandBuffer, pState->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-        vkCmdDraw(pState->commandBuffer, 3, 1, 0, 0);
+        vkCmdDrawIndexed(pState->commandBuffer, indicesCount, 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(pState->commandBuffer);
 
@@ -899,7 +926,7 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
-void mxcCleanupSwapChain(MxcAppState* pState) {
+static void mxcCleanupSwapChain(MxcAppState* pState) {
     printf("%s - cleaning up swapchain!\n", __FUNCTION__);
 
     for (int i = 0; i < pState->swapChainImageCount; ++i) {
@@ -921,6 +948,9 @@ void mxcCleanup(MxcAppState* pState) {
     vkDestroyPipeline(pState->device, pState->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pState->device, pState->pipelineLayout, NULL);
     vkDestroyRenderPass(pState->device, pState->renderPass, NULL);
+
+    vkDestroyBuffer(pState->device, pState->indexBuffer, NULL);
+    vkFreeMemory(pState->device, pState->indexBufferMemory, NULL);
 
     vkDestroyBuffer(pState->device, pState->vertexBuffer, NULL);
     vkFreeMemory(pState->device, pState->vertexBufferMemory, NULL);
