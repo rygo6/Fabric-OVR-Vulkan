@@ -954,19 +954,42 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
     }
 }
 
+double lastXPos;
+double lastYPos;
+bool inited = false;
+
 static void updateUniformBuffer(MxcAppState* pState) {
-    UniformBufferObject ubo;
 
-    glm_mat4_identity(ubo.model);
+    double xpos, ypos;
+    glfwGetCursorPos(pState->pWindow, &xpos, &ypos);
 
-    vec3 eye = {0,0,-1};
-    vec3 dir = {0, 0, 1};
-    vec3 up = {0,1,0};
-    glm_look(eye, dir, up, ubo.view);
+    if (!inited){
+        inited = true;
+        lastXPos = xpos;
+        lastYPos = ypos;
 
-    glm_perspective(90, 1, .01f, 10, ubo.proj);
 
-    memcpy(pState->uniformBufferMapped, &ubo, sizeof(UniformBufferObject));
+//        vec3 eye = {0,0,-1};
+//        dir = {0, 0, 1};
+//        glm_look(eye, dir, up, view);
+    }
+
+    float deltaXPos = (float)(xpos - lastXPos);
+    float deltaYPos = (float)(ypos - lastYPos);
+    lastXPos = xpos;
+    lastYPos = ypos;
+
+    printf("%f %f\n", deltaXPos, deltaYPos);
+
+    float yRot = deltaXPos / 100.0f;
+
+    versor rotQ;
+    glm_quatv(rotQ, yRot, GLM_YUP);
+    glm_quat_mul(pState->CameraState.transformState.rot, rotQ, pState->CameraState.transformState.rot);
+
+    mxcUpdateCameraUBO(&pState->CameraState);
+
+    memcpy(pState->uniformBufferMapped, &pState->CameraState.ubo, sizeof(UniformBufferObject));
 }
 
 static void drawFrame(MxcAppState* pState) {

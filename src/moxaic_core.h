@@ -1,17 +1,26 @@
 #ifndef MOXAIC_CORE_H
 #define MOXAIC_CORE_H
 
+#include "mxc_camera.h"
+
+#include "cglm/cglm.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
 typedef struct MxcAppState {
+
+    CameraState CameraState;
+
+    // GFLW
     int screenWidth;
     int screenHeight;
 
-    bool enableValidationLayers;
-
     GLFWwindow *pWindow;
+
+    // Vulkan
+    bool enableValidationLayers;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;

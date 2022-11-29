@@ -1,4 +1,5 @@
 #include "moxaic_core.h"
+#include "mxc_camera.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,8 @@ int main(int argc, char *argv[])
     pState->screenWidth = 800;
     pState->screenHeight = 600;
     pState->enableValidationLayers = true;
+
+    mxcInitCamera(&pState->CameraState);
 
     mxcInitWindow(pState);
     mxcInitVulkan(pState);

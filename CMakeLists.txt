@@ -15,7 +15,7 @@ file(GLOB SRC_FILES
 
 add_executable(${TARGET_NAME}
         ${SRC_FILES}
-        )
+        src/mxc_camera.h src/mxc_input.h src/mxc_transform.h src/mxc_camera.c)
 
 target_link_directories(${TARGET_NAME} PUBLIC
         lib
