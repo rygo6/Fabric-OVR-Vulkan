@@ -1,6 +1,8 @@
 #include "moxaic_core.h"
 #include "mxc_mesh.h"
 
+#include "cglm/cglm.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -437,7 +439,6 @@ static void createImageViews(MxcAppState* pState) {
     }
 }
 
-
 static void createRenderPass(MxcAppState* pState) {
     VkAttachmentDescription colorAttachment = {
             .format = pState->swapChainImageFormat,
@@ -521,6 +522,25 @@ static VkShaderModule createShaderModule(MxcAppState* pState, const char* code, 
     return shaderModule;
 }
 
+static void createDescriptorSetLayout(MxcAppState* pState) {
+    VkDescriptorSetLayoutBinding uboLayoutBinding = {
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+    };
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = 1,
+            .pBindings = &uboLayoutBinding,
+    };
+
+    if (vkCreateDescriptorSetLayout(pState->device, &layoutInfo, NULL, &pState->descriptorSetLayout) != VK_SUCCESS) {
+        printf("%s - failed to create descriptor set layout!\n", __FUNCTION__);
+    }
+}
+
 static void createGraphicsPipeline(MxcAppState* pState) {
     uint32_t vertLength;
     const char* vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
@@ -576,7 +596,7 @@ static void createGraphicsPipeline(MxcAppState* pState) {
             .rasterizerDiscardEnable = VK_FALSE,
             .polygonMode = VK_POLYGON_MODE_FILL,
             .lineWidth = 1.0f,
-            .cullMode = VK_CULL_MODE_BACK_BIT,
+            .cullMode = VK_CULL_MODE_NONE,
             .frontFace = VK_FRONT_FACE_CLOCKWISE,
             .depthBiasEnable = VK_FALSE,
     };
@@ -617,8 +637,8 @@ static void createGraphicsPipeline(MxcAppState* pState) {
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 0,
-            .pushConstantRangeCount = 0,
+            .setLayoutCount = 1,
+            .pSetLayouts = &pState->descriptorSetLayout,
     };
 
     if (vkCreatePipelineLayout(pState->device, &pipelineLayoutInfo, NULL, &pState->pipelineLayout) != VK_SUCCESS) {
@@ -742,7 +762,7 @@ static void createVertexBuffer(MxcAppState* pState) {
     vkUnmapMemory(pState->device, pState->vertexBufferMemory);
 }
 
-void createIndexBuffer(MxcAppState* pState) {
+static void createIndexBuffer(MxcAppState* pState) {
     VkDeviceSize bufferSize = (sizeof(uint16_t) * indicesCount);
     createBuffer(pState,
                  bufferSize,
@@ -755,6 +775,66 @@ void createIndexBuffer(MxcAppState* pState) {
     vkMapMemory(pState->device, pState->indexBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, indices,bufferSize);
     vkUnmapMemory(pState->device, pState->indexBufferMemory);
+}
+
+static void createUniformBuffers(MxcAppState* pState) {
+    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    createBuffer(pState, bufferSize,
+                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 &pState->uniformBuffer,
+                 &pState->uniformBufferMemory);
+
+    vkMapMemory(pState->device, pState->uniformBufferMemory, 0, bufferSize, 0, &pState->uniformBufferMapped);
+}
+
+static void createDescriptorPool(MxcAppState* pState) {
+    VkDescriptorPoolSize poolSize = {
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+    };
+
+    VkDescriptorPoolCreateInfo poolInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .poolSizeCount = 1,
+            .pPoolSizes = &poolSize,
+            .maxSets = 1,
+    };
+
+    if (vkCreateDescriptorPool(pState->device, &poolInfo, NULL, &pState->descriptorPool) != VK_SUCCESS) {
+        printf("%s - failed to create descriptor pool!\n", __FUNCTION__);
+    }
+}
+
+static void createDescriptorSets(MxcAppState* pState) {
+    VkDescriptorSetAllocateInfo allocInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = pState->descriptorPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = &pState->descriptorSetLayout,
+    };
+
+    if (vkAllocateDescriptorSets(pState->device, &allocInfo, &pState->descriptorSet) != VK_SUCCESS) {
+        printf("%s - failed to allocate descriptor sets!\n", __FUNCTION__);
+    }
+
+    VkDescriptorBufferInfo bufferInfo = {
+            .buffer = pState->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(UniformBufferObject),
+    };
+
+    VkWriteDescriptorSet descriptorWrite = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = pState->descriptorSet,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .pBufferInfo = &bufferInfo
+    };
+
+    vkUpdateDescriptorSets(pState->device, 1, &descriptorWrite, 0, NULL);
 }
 
 static void createCommandBuffer(MxcAppState* pState) {
@@ -797,11 +877,15 @@ void mxcInitVulkan(MxcAppState* pState) {
     createSwapChain(pState);
     createImageViews(pState);
     createRenderPass(pState);
+    createDescriptorSetLayout(pState);
     createGraphicsPipeline(pState);
     createFramebuffers(pState);
     createCommandPool(pState);
     createVertexBuffer(pState);
     createIndexBuffer(pState);
+    createUniformBuffers(pState);
+    createDescriptorPool(pState);
+    createDescriptorSets(pState);
     createCommandBuffer(pState);
     createSyncObjects(pState);
 }
@@ -852,6 +936,15 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
         vkCmdBindVertexBuffers(pState->commandBuffer, 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(pState->commandBuffer, pState->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+        vkCmdBindDescriptorSets(pState->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pState->pipelineLayout,
+                                0,
+                                1,
+                                &pState->descriptorSet,
+                                0,
+                                NULL);
+
         vkCmdDrawIndexed(pState->commandBuffer, indicesCount, 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(pState->commandBuffer);
@@ -861,8 +954,26 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
     }
 }
 
+static void updateUniformBuffer(MxcAppState* pState) {
+    UniformBufferObject ubo;
+
+    glm_mat4_identity(ubo.model);
+
+    vec3 eye = {0,0,-1};
+    vec3 dir = {0, 0, 1};
+    vec3 up = {0,1,0};
+    glm_look(eye, dir, up, ubo.view);
+
+    glm_perspective(90, 1, .01f, 10, ubo.proj);
+
+    memcpy(pState->uniformBufferMapped, &ubo, sizeof(UniformBufferObject));
+}
+
 static void drawFrame(MxcAppState* pState) {
     vkWaitForFences(pState->device, 1, &pState->inFlightFence, VK_TRUE, UINT64_MAX);
+
+    updateUniformBuffer(pState);
+
     vkResetFences(pState->device, 1, &pState->inFlightFence);
 
     uint32_t imageIndex;
@@ -944,6 +1055,12 @@ void mxcCleanup(MxcAppState* pState) {
     printf("%s - cleaning up moxaic!\n", __FUNCTION__);
 
     mxcCleanupSwapChain(pState);
+
+    vkDestroyBuffer(pState->device, pState->uniformBuffer, NULL);
+    vkFreeMemory(pState->device, pState->uniformBufferMemory, NULL);
+
+    vkDestroyDescriptorPool(pState->device, pState->descriptorPool, NULL);
+    vkDestroyDescriptorSetLayout(pState->device, pState->descriptorSetLayout, NULL);
 
     vkDestroyPipeline(pState->device, pState->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pState->device, pState->pipelineLayout, NULL);

@@ -8,6 +8,12 @@
 #include <vulkan/vulkan.h>
 #include "cglm/cglm.h"
 
+typedef struct UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} UniformBufferObject;
+
 typedef struct Vertex {
     vec2 pos;
     vec3 color;
