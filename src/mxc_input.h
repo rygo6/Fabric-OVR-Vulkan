@@ -10,24 +10,24 @@
 #define mxcInputEventBufferCount 32
 #define MXC_HELD 3
 
-struct mxcKeyInputEvent {
+struct MxcKeyInputEvent {
     int key;
     int action;
 };
 
-struct mxcMousePosInputEvent {
+struct MxcMousePosInputEvent {
     double xPos;
     double yPos;
     double xDelta;
     double yDelta;
 };
 
-struct mxcMouseButtonInputEvent {
+struct MxcMouseButtonInputEvent {
     int button;
     int action;
 };
 
-typedef struct mxcInputEvent {
+typedef struct MxcInputEvent {
     enum {
         MXC_NO_INPUT,
         MXC_KEY_INPUT,
@@ -35,17 +35,17 @@ typedef struct mxcInputEvent {
         MXC_MOUSE_BUTTON_INPUT,
     } type;
     union {
-        struct mxcKeyInputEvent keyInput;
-        struct mxcMousePosInputEvent mousePosInput;
-        struct mxcMouseButtonInputEvent mouseButtonInput;
+        struct MxcKeyInputEvent keyInput;
+        struct MxcMousePosInputEvent mousePosInput;
+        struct MxcMouseButtonInputEvent mouseButtonInput;
     };
-} mxcInputEvent;
+} MxcInputEvent;
 
 int mxcInputEventCount();
 
-mxcInputEvent mxcGetKeyEvent(int index);
+MxcInputEvent mxcGetKeyEvent(int index);
 
-void mxcInitInput(mxcAppState *pAppState);
+void mxcInitInput(MxcAppState *pAppState);
 
 void mxcProcessInput();
 

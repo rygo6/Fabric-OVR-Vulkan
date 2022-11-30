@@ -1,7 +1,7 @@
 #include "mxc_buffer.h"
 #include <stdio.h>
 
-static uint32_t findMemoryType(mxcAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+static uint32_t findMemoryType(MxcAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(pState->physicalDevice, &memProperties);
 
@@ -14,7 +14,7 @@ static uint32_t findMemoryType(mxcAppState* pState, uint32_t typeFilter, VkMemor
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
 }
 
-void createBuffer(mxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
+void createBuffer(MxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
     VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size = size,

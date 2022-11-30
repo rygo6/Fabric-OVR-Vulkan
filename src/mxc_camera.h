@@ -9,24 +9,24 @@
 #include "mxc_input.h"
 #include "mxc_transform.h"
 
-typedef struct mxcCameraUBO {
+typedef struct MxcCameraUBO {
     mat4 model;
     mat4 view;
     mat4 proj;
-} mxcCameraUBO;
+} MxcCameraUBO;
 
-typedef struct mxcCameraState {
-    mxcTransformState transformState;
-    mxcCameraUBO ubo;
+typedef struct MxcCameraState {
+    MxcTransformState transformState;
+    MxcCameraUBO ubo;
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
     void* pUniformBufferMapped;
-} mxcCameraState;
+} MxcCameraState;
 
-void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent, double deltaFrameTime);
+void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, double deltaFrameTime);
 
-void mxcInitCamera(mxcAppState* pAppState);
+void mxcInitCamera(MxcAppState* pAppState);
 
-void mxcCleanupCamera(mxcAppState* pAppState);
+void mxcCleanupCamera(MxcAppState* pAppState);
 
 #endif //MOXAIC_MXC_CAMERA_H

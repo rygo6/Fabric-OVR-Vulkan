@@ -1,4 +1,4 @@
-#include "moxaic_core.h"
+#include "mxc_core.h"
 #include "mxc_mesh.h"
 #include "mxc_buffer.h"
 
@@ -19,7 +19,7 @@ const char* pRequiredExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-void mxcInitWindow(mxcAppState* pState) {
+void mxcInitWindow(MxcAppState* pState) {
     printf( "%s - initializing moxaic window!\n", __FUNCTION__ );
 
     glfwInit();
@@ -48,7 +48,7 @@ static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT*
     pCreateInfo->pfnUserCallback = debugCallback;
 }
 
-static void getRequiredExtensions(mxcAppState *pState, uint32_t* extensionCount, const char** pExtensions) {
+static void getRequiredExtensions(MxcAppState *pState, uint32_t* extensionCount, const char** pExtensions) {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -91,7 +91,7 @@ static bool checkValidationLayerSupport() {
     return true;
 }
 
-static void createInstance(mxcAppState* pState) {
+static void createInstance(MxcAppState* pState) {
     if (pState->enableValidationLayers && !checkValidationLayerSupport()) {
         printf( "%s - validation layers requested, but not available!\n", __FUNCTION__ );
     }
@@ -146,7 +146,7 @@ static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugU
     }
 }
 
-static void setupDebugMessenger(mxcAppState * pState) {
+static void setupDebugMessenger(MxcAppState * pState) {
     if (!pState->enableValidationLayers)
         return;
 
@@ -158,7 +158,7 @@ static void setupDebugMessenger(mxcAppState * pState) {
     }
 }
 
-static bool createSurface(mxcAppState* pState) {
+static bool createSurface(MxcAppState* pState) {
     if (glfwCreateWindowSurface(pState->instance, pState->pWindow, NULL, &pState->surface) != VK_SUCCESS) {
         printf( "%s - failed to create window surface!\n", __FUNCTION__ );
         return false;
@@ -167,7 +167,7 @@ static bool createSurface(mxcAppState* pState) {
     return true;
 }
 
-static void pickPhysicalDevice(mxcAppState* pState) {
+static void pickPhysicalDevice(MxcAppState* pState) {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(pState->instance, &deviceCount, NULL);
 
@@ -183,7 +183,7 @@ static void pickPhysicalDevice(mxcAppState* pState) {
     pState->physicalDevice = devices[0];
 }
 
-static bool findQueueFamilies(mxcAppState* pState) {
+static bool findQueueFamilies(MxcAppState* pState) {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(pState->physicalDevice, &queueFamilyCount, NULL);
     VkQueueFamilyProperties queueFamilies[queueFamilyCount];
@@ -211,7 +211,7 @@ static bool findQueueFamilies(mxcAppState* pState) {
     return false;
 }
 
-static bool createLogicalDevice(mxcAppState* pState) {
+static bool createLogicalDevice(MxcAppState* pState) {
     if (!findQueueFamilies(pState)){
         return false;
     }
@@ -305,7 +305,7 @@ static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availableP
     return swapChainPresentMode;
 }
 
-static VkExtent2D chooseSwapExtent(mxcAppState* pState, const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D chooseSwapExtent(MxcAppState* pState, const VkSurfaceCapabilitiesKHR capabilities) {
     // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
     VkExtent2D extents;
     if ( capabilities.currentExtent.width == -1 )
@@ -323,7 +323,7 @@ static VkExtent2D chooseSwapExtent(mxcAppState* pState, const VkSurfaceCapabilit
     return extents;
 }
 
-static void createSwapChain(mxcAppState* pState) {
+static void createSwapChain(MxcAppState* pState) {
     // Logic from OVR Vulkan example
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pState->physicalDevice, pState->surface, &capabilities);
@@ -415,7 +415,7 @@ static void createSwapChain(mxcAppState* pState) {
     pState->swapChainExtent = extent;
 }
 
-static void createImageViews(mxcAppState* pState) {
+static void createImageViews(MxcAppState* pState) {
     pState->pSwapChainImageViews =  malloc(sizeof(VkImageView) * pState->swapChainImageCount);
 
     for (size_t i = 0; i < pState->swapChainImageCount; i++) {
@@ -441,7 +441,7 @@ static void createImageViews(mxcAppState* pState) {
     }
 }
 
-static void createRenderPass(mxcAppState* pState) {
+static void createRenderPass(MxcAppState* pState) {
     VkAttachmentDescription colorAttachment = {
             .format = pState->swapChainImageFormat,
             .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -509,7 +509,7 @@ static char* readBinaryFile(const char* filename, uint32_t *length) {
     return contents;
 }
 
-static VkShaderModule createShaderModule(mxcAppState* pState, const char* code, const uint32_t codeLength) {
+static VkShaderModule createShaderModule(MxcAppState* pState, const char* code, const uint32_t codeLength) {
     VkShaderModuleCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = codeLength,
@@ -524,7 +524,7 @@ static VkShaderModule createShaderModule(mxcAppState* pState, const char* code, 
     return shaderModule;
 }
 
-static void createDescriptorSetLayout(mxcAppState* pState) {
+static void createDescriptorSetLayout(MxcAppState* pState) {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -543,7 +543,7 @@ static void createDescriptorSetLayout(mxcAppState* pState) {
     }
 }
 
-static void createGraphicsPipeline(mxcAppState* pState) {
+static void createGraphicsPipeline(MxcAppState* pState) {
     uint32_t vertLength;
     const char* vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
     uint32_t fragLength;
@@ -672,7 +672,7 @@ static void createGraphicsPipeline(mxcAppState* pState) {
     vkDestroyShaderModule(pState->device, vertShaderModule, NULL);
 }
 
-static void createFramebuffers(mxcAppState* pState) {
+static void createFramebuffers(MxcAppState* pState) {
     pState->pSwapChainFramebuffers = malloc(sizeof(VkFramebuffer) * pState->swapChainImageCount);
 
     for (size_t i = 0; i < pState->swapChainImageCount; i++) {
@@ -696,7 +696,7 @@ static void createFramebuffers(mxcAppState* pState) {
     }
 }
 
-static void createCommandPool(mxcAppState* pState) {
+static void createCommandPool(MxcAppState* pState) {
     VkCommandPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -708,7 +708,7 @@ static void createCommandPool(mxcAppState* pState) {
     }
 }
 
-static void createVertexBuffer(mxcAppState* pState) {
+static void createVertexBuffer(MxcAppState* pState) {
     VkDeviceSize bufferSize = (sizeof(Vertex) * verticesCount);
     createBuffer(pState,
                  bufferSize,
@@ -723,7 +723,7 @@ static void createVertexBuffer(mxcAppState* pState) {
     vkUnmapMemory(pState->device, pState->vertexBufferMemory);
 }
 
-static void createIndexBuffer(mxcAppState* pState) {
+static void createIndexBuffer(MxcAppState* pState) {
     VkDeviceSize bufferSize = (sizeof(uint16_t) * indicesCount);
     createBuffer(pState,
                  bufferSize,
@@ -738,7 +738,7 @@ static void createIndexBuffer(mxcAppState* pState) {
     vkUnmapMemory(pState->device, pState->indexBufferMemory);
 }
 
-static void createDescriptorPool(mxcAppState* pState) {
+static void createDescriptorPool(MxcAppState* pState) {
     VkDescriptorPoolSize poolSize = {
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
@@ -756,7 +756,7 @@ static void createDescriptorPool(mxcAppState* pState) {
     }
 }
 
-static void createDescriptorSets(mxcAppState* pState) {
+static void createDescriptorSets(MxcAppState* pState) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pState->descriptorPool,
@@ -771,7 +771,7 @@ static void createDescriptorSets(mxcAppState* pState) {
     VkDescriptorBufferInfo bufferInfo = {
             .buffer = pState->pCameraState->uniformBuffer,
             .offset = 0,
-            .range = sizeof(mxcCameraUBO),
+            .range = sizeof(MxcCameraUBO),
     };
 
     VkWriteDescriptorSet descriptorWrite = {
@@ -787,7 +787,7 @@ static void createDescriptorSets(mxcAppState* pState) {
     vkUpdateDescriptorSets(pState->device, 1, &descriptorWrite, 0, NULL);
 }
 
-static void createCommandBuffer(mxcAppState* pState) {
+static void createCommandBuffer(MxcAppState* pState) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool = pState->commandPool,
@@ -800,7 +800,7 @@ static void createCommandBuffer(mxcAppState* pState) {
     }
 }
 
-static void createSyncObjects(mxcAppState* pState) {
+static void createSyncObjects(MxcAppState* pState) {
     VkSemaphoreCreateInfo semaphoreInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
@@ -817,7 +817,7 @@ static void createSyncObjects(mxcAppState* pState) {
     }
 }
 
-void mxcInitVulkan(mxcAppState* pState) {
+void mxcInitVulkan(MxcAppState* pState) {
     printf( "%s - initializing vulkan!\n", __FUNCTION__ );
     createInstance(pState);
     setupDebugMessenger(pState);
@@ -840,7 +840,7 @@ void mxcInitVulkan(mxcAppState* pState) {
     createSyncObjects(pState);
 }
 
-static void recordCommandBuffer(mxcAppState* pState, uint32_t imageIndex) {
+static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo = {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
@@ -904,19 +904,19 @@ static void recordCommandBuffer(mxcAppState* pState, uint32_t imageIndex) {
     }
 }
 
-static void waitForLastFrame(mxcAppState* pState) {
+static void waitForLastFrame(MxcAppState* pState) {
     vkWaitForFences(pState->device, 1, &pState->inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(pState->device, 1, &pState->inFlightFence);
 }
 
-static void processInputFrame(mxcAppState* pState) {
+static void processInputFrame(MxcAppState* pState) {
     mxcProcessInput();
     for (int i = 0; i < mxcInputEventCount(); ++i){
         mxcUpdateCamera(pState->pCameraState,mxcGetKeyEvent(i), pState->deltaFrameTime);
     }
 }
 
-static void drawFrame(mxcAppState* pState) {
+static void drawFrame(MxcAppState* pState) {
     uint32_t imageIndex;
     vkAcquireNextImageKHR(pState->device, pState->swapChain, UINT64_MAX, pState->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
@@ -960,7 +960,7 @@ static void drawFrame(mxcAppState* pState) {
     vkQueuePresentKHR(pState->queue, &presentInfo);
 }
 
-void mxcMainLoop(mxcAppState* pState) {
+void mxcMainLoop(MxcAppState* pState) {
     printf( "%s - moxaic mainloop starting!\n", __FUNCTION__ );
 
     double lastFrameTime = glfwGetTime();
@@ -987,7 +987,7 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
-static void mxcCleanupSwapChain(mxcAppState* pState) {
+static void mxcCleanupSwapChain(MxcAppState* pState) {
     printf("%s - cleaning up swapchain!\n", __FUNCTION__);
 
     for (int i = 0; i < pState->swapChainImageCount; ++i) {
@@ -1001,7 +1001,7 @@ static void mxcCleanupSwapChain(mxcAppState* pState) {
     vkDestroySwapchainKHR(pState->device, pState->swapChain, NULL);
 }
 
-void mxcCleanup(mxcAppState* pAppState) {
+void mxcCleanup(MxcAppState* pAppState) {
     printf("%s - cleaning up moxaic!\n", __FUNCTION__);
 
     mxcCleanupSwapChain(pAppState);

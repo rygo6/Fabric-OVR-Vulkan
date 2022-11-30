@@ -7,6 +7,6 @@
 
 #include "mxc_app.h"
 
-void createBuffer(mxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
+void createBuffer(MxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
 
 #endif //MOXAIC_MXC_BUFFER_H

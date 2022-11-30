@@ -7,11 +7,11 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-typedef struct mxcCameraState mxcCameraState;
+typedef struct MxcCameraState MxcCameraState;
 
 typedef struct MxcAppState {
 
-    mxcCameraState *pCameraState;
+    MxcCameraState *pCameraState;
 
     // GFLW
     int screenWidth;
@@ -66,6 +66,6 @@ typedef struct MxcAppState {
     VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
 
-} mxcAppState;
+} MxcAppState;
 
 #endif //MOXAIC_MXC_APP_H

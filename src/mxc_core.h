@@ -10,9 +10,9 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-void mxcInitWindow(mxcAppState* pState);
-void mxcInitVulkan(mxcAppState* pState);
-void mxcMainLoop(mxcAppState* pState);
-void mxcCleanup(mxcAppState* pAppState);
+void mxcInitWindow(MxcAppState* pState);
+void mxcInitVulkan(MxcAppState* pState);
+void mxcMainLoop(MxcAppState* pState);
+void mxcCleanup(MxcAppState* pAppState);
 
 #endif //MOXAIC_CORE_H

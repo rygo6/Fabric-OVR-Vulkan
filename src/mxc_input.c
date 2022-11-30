@@ -4,7 +4,7 @@
 #define STB_DS_IMPLEMENTATION
 #include "stb_ds.h"
 
-mxcInputEvent inputEvents[mxcInputEventBufferCount];
+MxcInputEvent inputEvents[mxcInputEventBufferCount];
 int currentEventIndex;
 
 struct { int key; bool value; } *heldKeyMap = NULL;
@@ -62,11 +62,11 @@ int mxcInputEventCount() {
     return currentEventIndex;
 }
 
-mxcInputEvent mxcGetKeyEvent(int index){
+MxcInputEvent mxcGetKeyEvent(int index){
     return inputEvents[index];
 }
 
-void mxcInitInput(mxcAppState *pAppState) {
+void mxcInitInput(MxcAppState *pAppState) {
     glfwSetKeyCallback(pAppState->pWindow, key_callback);
     glfwSetCursorPosCallback(pAppState->pWindow, cursor_position_callback);
     glfwSetMouseButtonCallback(pAppState->pWindow, mouse_button_callback);

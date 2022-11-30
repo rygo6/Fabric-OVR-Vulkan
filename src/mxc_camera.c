@@ -4,14 +4,14 @@
 
 #include <memory.h>
 
-static inline void mxcUpdateCameraUBO(mxcCameraState *pCameraState) {
+static inline void mxcUpdateCameraUBO(MxcCameraState *pCameraState) {
     glm_mat4_identity(pCameraState->ubo.model);
     glm_quat_look(pCameraState->transformState.pos, pCameraState->transformState.rot, pCameraState->ubo.view);
     glm_perspective(90, 1, .01f, 10, pCameraState->ubo.proj);
-    memcpy(pCameraState->pUniformBufferMapped, &pCameraState->ubo, sizeof(mxcCameraUBO));
+    memcpy(pCameraState->pUniformBufferMapped, &pCameraState->ubo, sizeof(MxcCameraUBO));
 }
 
-void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent, double deltaFrameTime) {
+void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, double deltaFrameTime) {
     switch (inputEvent.type) {
         case MXC_NO_INPUT:
             break;
@@ -20,7 +20,7 @@ void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent, dou
                 break;
 
             const float moveAmount = (float) deltaFrameTime;
-            vec3 deltaPos;
+            vec3 deltaPos = GLM_VEC3_ZERO_INIT;
             if (inputEvent.keyInput.key == GLFW_KEY_W) {
                 deltaPos[2] = -moveAmount;
             } else if (inputEvent.keyInput.key == GLFW_KEY_S) {
@@ -55,18 +55,18 @@ void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent, dou
     }
 }
 
-static void createUniformBuffers(mxcAppState *pAppState, mxcCameraState *pCameraState) {
-    VkDeviceSize bufferSize = sizeof(mxcCameraUBO);
+static void createUniformBuffers(MxcAppState *pAppState, MxcCameraState *pCameraState) {
+    VkDeviceSize bufferSize = sizeof(MxcCameraUBO);
     createBuffer(pAppState, bufferSize,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  &pCameraState->uniformBuffer,
                  &pCameraState->uniformBufferMemory);
-    vkMapMemory(pAppState->device, pCameraState->uniformBufferMemory, 0, bufferSize, 0,                &pCameraState->pUniformBufferMapped);
+    vkMapMemory(pAppState->device, pCameraState->uniformBufferMemory, 0, bufferSize, 0,&pCameraState->pUniformBufferMapped);
 }
 
-void mxcInitCamera(mxcAppState *pAppState) {
-    pAppState->pCameraState = malloc(sizeof(mxcCameraState));
+void mxcInitCamera(MxcAppState *pAppState) {
+    pAppState->pCameraState = malloc(sizeof(MxcCameraState));
     createUniformBuffers(pAppState, pAppState->pCameraState);
     vec3 pos = {0, 0, -1};
     glm_vec3_copy(pos, pAppState->pCameraState->transformState.pos);
@@ -74,7 +74,7 @@ void mxcInitCamera(mxcAppState *pAppState) {
     mxcUpdateCameraUBO(pAppState->pCameraState);
 }
 
-void mxcCleanupCamera(mxcAppState *pAppState) {
+void mxcCleanupCamera(MxcAppState *pAppState) {
     vkDestroyBuffer(pAppState->device, pAppState->pCameraState->uniformBuffer, NULL);
     vkFreeMemory(pAppState->device, pAppState->pCameraState->uniformBufferMemory, NULL);
     free(pAppState->pCameraState);

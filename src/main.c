@@ -1,4 +1,4 @@
-#include "moxaic_core.h"
+#include "mxc_core.h"
 #include "mxc_input.h"
 
 #include <stdio.h>
@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 {
     printf( "%s - starting up moxaic!\n", __FUNCTION__ );
 
-    mxcAppState *pState;
+    MxcAppState *pState;
     pState = malloc(sizeof(*pState));
     memset(pState, 0, sizeof( *pState ) );
     pState->screenWidth = 800;

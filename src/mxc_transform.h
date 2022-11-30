@@ -10,7 +10,7 @@
 typedef struct MxcTransformState {
     vec3 pos;
     versor rot;
-} mxcTransformState;
+} MxcTransformState;
 
 //void Rotate(TransformState *state){
 //
