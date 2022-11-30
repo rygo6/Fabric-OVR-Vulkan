@@ -5,26 +5,28 @@
 #ifndef MOXAIC_MXC_CAMERA_H
 #define MOXAIC_MXC_CAMERA_H
 
-#include "cglm/cglm.h"
+#include "mxc_app.h"
+#include "mxc_input.h"
 #include "mxc_transform.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-typedef struct CameraUniformBufferObject {
+typedef struct mxcCameraUBO {
     mat4 model;
     mat4 view;
     mat4 proj;
-} CameraUniformBufferObject;
+} mxcCameraUBO;
 
-typedef struct CameraState {
-    TransformState transformState;
-    CameraUniformBufferObject ubo;
-} CameraState;
+typedef struct mxcCameraState {
+    mxcTransformState transformState;
+    mxcCameraUBO ubo;
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformBufferMemory;
+    void* pUniformBufferMapped;
+} mxcCameraState;
 
-void mxcUpdateCameraUBO(CameraState *pCameraState);
+void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent);
 
-void mxcInitCamera(CameraState *pCameraState);
+void mxcInitCamera(mxcAppState* pAppState);
+
+void mxcCleanupCamera(mxcAppState* pAppState);
 
 #endif //MOXAIC_MXC_CAMERA_H

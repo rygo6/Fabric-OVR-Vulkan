@@ -1,5 +1,5 @@
 #include "moxaic_core.h"
-#include "mxc_camera.h"
+#include "mxc_input.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,16 +9,15 @@ int main(int argc, char *argv[])
 {
     printf( "%s - starting up moxaic!\n", __FUNCTION__ );
 
-    MxcAppState *pState;
+    mxcAppState *pState;
     pState = malloc(sizeof(*pState));
     memset(pState, 0, sizeof( *pState ) );
     pState->screenWidth = 800;
     pState->screenHeight = 600;
     pState->enableValidationLayers = true;
 
-    mxcInitCamera(&pState->CameraState);
-
     mxcInitWindow(pState);
+    mxcInitInput(pState);
     mxcInitVulkan(pState);
     mxcMainLoop(pState);
     mxcCleanup(pState);

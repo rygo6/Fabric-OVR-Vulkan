@@ -7,10 +7,10 @@
 
 #include "cglm/cglm.h"
 
-typedef struct TransformState {
+typedef struct MxcTransformState {
     vec3 pos;
     versor rot;
-} TransformState;
+} mxcTransformState;
 
 //void Rotate(TransformState *state){
 //

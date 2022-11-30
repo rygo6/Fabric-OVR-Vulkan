@@ -5,22 +5,46 @@
 #ifndef MOXAIC_MXC_INPUT_H
 #define MOXAIC_MXC_INPUT_H
 
-#include <GLFW/glfw3.h>
+#include "mxc_app.h"
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-//    if (key == GLFW_KEY_W && action == GLFW_PRESS)
-//        activate_airship();
-}
+#define mxcInputEventBufferCount 32
 
-static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
-{
+struct mxcKeyInputEvent {
+    int key;
+    int action;
+};
 
-}
+struct mxcMousePosInputEvent {
+    double xPos;
+    double yPos;
+    double xDelta;
+    double yDelta;
+};
 
-void initInput(GLFWwindow *pWindow) {
-    glfwSetKeyCallback(pWindow, key_callback);
-    glfwSetCursorPosCallback(pWindow, cursor_position_callback);
-}
+struct mxcMouseButtonInputEvent {
+    int button;
+    int action;
+};
+
+typedef struct mxcInputEvent {
+    enum {
+        MXC_KEY_INPUT,
+        MXC_MOUSE_POS_INPUT,
+        MXC_MOUSE_BUTTON_INPUT,
+    } type;
+    union {
+        struct mxcKeyInputEvent keyInput;
+        struct mxcMousePosInputEvent mousePosInput;
+        struct mxcMouseButtonInputEvent mouseButtonInput;
+    };
+} mxcInputEvent;
+
+int mxcInputEventCount();
+
+mxcInputEvent mxcGetKeyEvent(int index);
+
+void mxcInitInput(mxcAppState *pAppState);
+
+void mxcProcessInput();
 
 #endif //MOXAIC_MXC_INPUT_H
