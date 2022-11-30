@@ -1,50 +1,69 @@
 #include "mxc_input.h"
 #include "mxc_log.h"
 
-mxcInputEvent keyEvents[mxcInputEventBufferCount];
-mxcInputEvent heldEvents[mxcInputEventBufferCount];
-int currentEvent;
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
+
+mxcInputEvent inputEvents[mxcInputEventBufferCount];
+int currentEventIndex;
+
+struct { int key; bool value; } *heldKeyMap = NULL;
+struct { int key; bool value; } *heldMouseButtonMap = NULL;
 
 double lastXPos;
 double lastYPos;
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    if (action == GLFW_REPEAT)
+        return;
+
     mxcLogDebugInfo2("mxcKeyEvent", %d, key, %d, action);
-    keyEvents[currentEvent].type = MXC_KEY_INPUT;
-    keyEvents[currentEvent].keyInput.key = key;
-    keyEvents[currentEvent].keyInput.action = action;
-    currentEvent++;
+    inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
+    inputEvents[currentEventIndex].keyInput.key = key;
+    inputEvents[currentEventIndex].keyInput.action = action;
+    currentEventIndex++;
+
+    if (action == GLFW_RELEASE) {
+        hmdel(heldKeyMap, key);
+    }
 }
 
 static void cursor_position_callback(GLFWwindow* window, double xPos, double yPos)
 {
 //    mxcLogDebugInfo2("mxcMouseEvent position", %f, xPos, %f, yPos);
-    keyEvents[currentEvent].type = MXC_MOUSE_POS_INPUT;
-    keyEvents[currentEvent].mousePosInput.xPos = xPos;
-    keyEvents[currentEvent].mousePosInput.yPos = yPos;
-    keyEvents[currentEvent].mousePosInput.xDelta = xPos - lastXPos;
-    keyEvents[currentEvent].mousePosInput.yDelta = yPos - lastYPos;
+    inputEvents[currentEventIndex].type = MXC_MOUSE_POS_INPUT;
+    inputEvents[currentEventIndex].mousePosInput.xPos = xPos;
+    inputEvents[currentEventIndex].mousePosInput.yPos = yPos;
+    inputEvents[currentEventIndex].mousePosInput.xDelta = xPos - lastXPos;
+    inputEvents[currentEventIndex].mousePosInput.yDelta = yPos - lastYPos;
     lastXPos = xPos;
     lastYPos = yPos;
-    currentEvent++;
+    currentEventIndex++;
 }
 
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
+    if (action == GLFW_REPEAT)
+        return;
+
     mxcLogDebugInfo2("mxcMouseEvent button", %d, button, %d, action);
-    keyEvents[currentEvent].type = MXC_MOUSE_BUTTON_INPUT;
-    keyEvents[currentEvent].mouseButtonInput.button = button;
-    keyEvents[currentEvent].mouseButtonInput.action = action;
-    currentEvent++;
+    inputEvents[currentEventIndex].type = MXC_MOUSE_BUTTON_INPUT;
+    inputEvents[currentEventIndex].mouseButtonInput.button = button;
+    inputEvents[currentEventIndex].mouseButtonInput.action = action;
+    currentEventIndex++;
+
+    if (action == GLFW_RELEASE) {
+        hmdel(heldMouseButtonMap, button);
+    }
 }
 
 int mxcInputEventCount() {
-    return currentEvent;
+    return currentEventIndex;
 }
 
 mxcInputEvent mxcGetKeyEvent(int index){
-    return keyEvents[index];
+    return inputEvents[index];
 }
 
 void mxcInitInput(mxcAppState *pAppState) {
@@ -56,9 +75,47 @@ void mxcInitInput(mxcAppState *pAppState) {
     glfwGetCursorPos(pAppState->pWindow, &lastXPos, &lastYPos);
 
     glfwSetInputMode(pAppState->pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    hmdefault(heldKeyMap, false);
+    hmdefault(heldMouseButtonMap, false);
 }
 
 void mxcProcessInput(){
-    currentEvent = 0;
+    for (int i = 0; i < currentEventIndex; ++i) {
+        switch (inputEvents[i].type) {
+            case MXC_NO_INPUT:
+                break;
+            case MXC_KEY_INPUT:{
+                if (inputEvents[i].keyInput.action == GLFW_PRESS) {
+                    hmput(heldKeyMap, inputEvents[i].keyInput.key, true);
+                }
+                break;
+            }
+            case MXC_MOUSE_POS_INPUT:
+                break;
+            case MXC_MOUSE_BUTTON_INPUT: {
+                if (inputEvents[i].mouseButtonInput.action == GLFW_PRESS){
+                    hmput(heldMouseButtonMap, inputEvents[i].mouseButtonInput.button, true);
+                }
+                break;
+            }
+        }
+    }
+
+    currentEventIndex = 0;
     glfwPollEvents();
+
+    for (int i = 0; i < hmlen(heldKeyMap); ++i){
+        inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
+        inputEvents[currentEventIndex].keyInput.key = heldKeyMap[i].key;
+        inputEvents[currentEventIndex].keyInput.action = MXC_HELD;
+        currentEventIndex++;
+    }
+
+    for (int i = 0; i < hmlen(heldMouseButtonMap); ++i){
+        inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
+        inputEvents[currentEventIndex].mouseButtonInput.button = heldMouseButtonMap[i].key;
+        inputEvents[currentEventIndex].mouseButtonInput.action = MXC_HELD;
+        currentEventIndex++;
+    }
 }

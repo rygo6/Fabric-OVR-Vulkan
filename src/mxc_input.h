@@ -8,6 +8,7 @@
 #include "mxc_app.h"
 
 #define mxcInputEventBufferCount 32
+#define MXC_HELD 3
 
 struct mxcKeyInputEvent {
     int key;
@@ -28,6 +29,7 @@ struct mxcMouseButtonInputEvent {
 
 typedef struct mxcInputEvent {
     enum {
+        MXC_NO_INPUT,
         MXC_KEY_INPUT,
         MXC_MOUSE_POS_INPUT,
         MXC_MOUSE_BUTTON_INPUT,
