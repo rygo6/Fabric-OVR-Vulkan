@@ -18,7 +18,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (action == GLFW_REPEAT)
         return;
 
-    mxcLogDebugInfo2("mxcKeyEvent", %d, key, %d, action);
+//    mxcLogDebugInfo2("mxcKeyEvent", %d, key, %d, action);
     inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
     inputEvents[currentEventIndex].keyInput.key = key;
     inputEvents[currentEventIndex].keyInput.action = action;
@@ -47,7 +47,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     if (action == GLFW_REPEAT)
         return;
 
-    mxcLogDebugInfo2("mxcMouseEvent button", %d, button, %d, action);
+//    mxcLogDebugInfo2("mxcMouseEvent button", %d, button, %d, action);
     inputEvents[currentEventIndex].type = MXC_MOUSE_BUTTON_INPUT;
     inputEvents[currentEventIndex].mouseButtonInput.button = button;
     inputEvents[currentEventIndex].mouseButtonInput.action = action;
@@ -81,6 +81,7 @@ void mxcInitInput(mxcAppState *pAppState) {
 }
 
 void mxcProcessInput(){
+    // Get key presses from last frame and store them in hashmap to add to event buffer as held events
     for (int i = 0; i < currentEventIndex; ++i) {
         switch (inputEvents[i].type) {
             case MXC_NO_INPUT:
@@ -113,7 +114,7 @@ void mxcProcessInput(){
     }
 
     for (int i = 0; i < hmlen(heldMouseButtonMap); ++i){
-        inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
+        inputEvents[currentEventIndex].type = MXC_MOUSE_BUTTON_INPUT;
         inputEvents[currentEventIndex].mouseButtonInput.button = heldMouseButtonMap[i].key;
         inputEvents[currentEventIndex].mouseButtonInput.action = MXC_HELD;
         currentEventIndex++;

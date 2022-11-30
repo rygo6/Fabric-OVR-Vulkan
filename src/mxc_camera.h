@@ -23,7 +23,7 @@ typedef struct mxcCameraState {
     void* pUniformBufferMapped;
 } mxcCameraState;
 
-void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent);
+void mxcUpdateCamera(mxcCameraState *pCameraState, mxcInputEvent inputEvent, double deltaFrameTime);
 
 void mxcInitCamera(mxcAppState* pAppState);
 

@@ -17,6 +17,8 @@ typedef struct MxcAppState {
     int screenWidth;
     int screenHeight;
 
+    double deltaFrameTime;
+
     GLFWwindow *pWindow;
 
     // Vulkan
