@@ -9,15 +9,20 @@
 
 typedef struct MxcCameraState MxcCameraState;
 
+typedef struct MxcTimeState{
+    double currentTime;
+    double deltaTime;
+} MxcTimeState;
+
 typedef struct MxcAppState {
 
     MxcCameraState *pCameraState;
 
+    MxcTimeState *pTimeState;
+
     // GFLW
     int screenWidth;
     int screenHeight;
-
-    double deltaFrameTime;
 
     GLFWwindow *pWindow;
 

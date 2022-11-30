@@ -11,7 +11,7 @@ static inline void mxcUpdateCameraUBO(MxcCameraState *pCameraState) {
     memcpy(pCameraState->pUniformBufferMapped, &pCameraState->ubo, sizeof(MxcCameraUBO));
 }
 
-void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, double deltaFrameTime) {
+void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, const MxcTimeState *pTimeState) {
     switch (inputEvent.type) {
         case MXC_NO_INPUT:
             break;
@@ -19,7 +19,7 @@ void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, dou
             if (inputEvent.keyInput.action != GLFW_PRESS && inputEvent.keyInput.action != MXC_HELD)
                 break;
 
-            const float moveAmount = (float) deltaFrameTime;
+            const float moveAmount = (float) pTimeState->deltaTime;
             vec3 deltaPos = GLM_VEC3_ZERO_INIT;
             if (inputEvent.keyInput.key == GLFW_KEY_W) {
                 deltaPos[2] = -moveAmount;

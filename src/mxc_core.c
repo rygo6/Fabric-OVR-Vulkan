@@ -912,7 +912,7 @@ static void waitForLastFrame(MxcAppState* pState) {
 static void processInputFrame(MxcAppState* pState) {
     mxcProcessInput();
     for (int i = 0; i < mxcInputEventCount(); ++i){
-        mxcUpdateCamera(pState->pCameraState,mxcGetKeyEvent(i), pState->deltaFrameTime);
+        mxcUpdateCamera(pState->pCameraState,mxcGetKeyEvent(i), pState->pTimeState);
     }
 }
 
@@ -964,13 +964,12 @@ void mxcMainLoop(MxcAppState* pState) {
     printf( "%s - moxaic mainloop starting!\n", __FUNCTION__ );
 
     double lastFrameTime = glfwGetTime();
-    double currentFrameTime = lastFrameTime;
 
     while (!glfwWindowShouldClose(pState->pWindow)) {
 
-        currentFrameTime = glfwGetTime();
-        pState->deltaFrameTime = currentFrameTime - lastFrameTime;
-        lastFrameTime = currentFrameTime;
+        pState->pTimeState->currentTime = glfwGetTime();
+        pState->pTimeState->deltaTime = pState->pTimeState->currentTime - lastFrameTime;
+        lastFrameTime = pState->pTimeState->currentTime;
 
         waitForLastFrame(pState);
         processInputFrame(pState);
