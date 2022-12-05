@@ -1,11 +1,10 @@
-//
-// Created by rygo6 on 11/28/2022.
-//
-
-#ifndef MOXAIC_MXC_TRANSFORM_H
-#define MOXAIC_MXC_TRANSFORM_H
+#ifndef MOXAIC_TRANSFORM_H
+#define MOXAIC_TRANSFORM_H
 
 #include "cglm/cglm.h"
+
+typedef struct MxcComponent {
+} MxcComponent;
 
 typedef struct MxcTransformState {
     vec3 pos;
@@ -13,8 +12,12 @@ typedef struct MxcTransformState {
     mat4 matrix;
 } MxcTransformState;
 
+typedef struct MxcEntityState {
+    int entityId;
+} MxcEntityState;
+
 void mxcInitTransform(MxcTransformState *transformState);
 
 void mxcUpdateTransformMatrix(MxcTransformState *transformState);
 
-#endif //MOXAIC_MXC_TRANSFORM_H
+#endif //MOXAIC_TRANSFORM_H

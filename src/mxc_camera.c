@@ -15,23 +15,23 @@ static inline void mxcUpdateCameraUBO(MxcCameraState *pCameraState) {
     memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(MxcMVP));
 }
 
-void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, const MxcTimeState *pTimeState) {
-    switch (inputEvent.type) {
+void mxcUpdateCamera(MxcCameraState *pCameraState, const MxcInputEvent *pInputEvent, const MxcTimeState *pTimeState) {
+    switch (pInputEvent->type) {
         case MXC_NO_INPUT:
             break;
         case MXC_KEY_INPUT: {
-            if (inputEvent.keyInput.action != GLFW_PRESS && inputEvent.keyInput.action != MXC_HELD)
+            if (pInputEvent->keyInput.action != GLFW_PRESS && pInputEvent->keyInput.action != MXC_HELD)
                 break;
 
             const float moveAmount = (float) pTimeState->deltaTime;
             vec3 deltaPos = GLM_VEC3_ZERO_INIT;
-            if (inputEvent.keyInput.key == GLFW_KEY_W) {
+            if (pInputEvent->keyInput.key == GLFW_KEY_W) {
                 deltaPos[2] = -moveAmount;
-            } else if (inputEvent.keyInput.key == GLFW_KEY_S) {
+            } else if (pInputEvent->keyInput.key == GLFW_KEY_S) {
                 deltaPos[2] = moveAmount;
-            } else if (inputEvent.keyInput.key == GLFW_KEY_D) {
+            } else if (pInputEvent->keyInput.key == GLFW_KEY_D) {
                 deltaPos[0] = moveAmount;
-            } else if (inputEvent.keyInput.key == GLFW_KEY_A) {
+            } else if (pInputEvent->keyInput.key == GLFW_KEY_A) {
                 deltaPos[0] = -moveAmount;
             }
 
@@ -43,7 +43,7 @@ void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, con
             break;
         }
         case MXC_MOUSE_POS_INPUT: {
-            float yRot = (float) -inputEvent.mousePosInput.xDelta / 100.0f;
+            float yRot = (float) -pInputEvent->mousePosInput.xDelta / 100.0f;
             versor rotQ;
             glm_quatv(rotQ, yRot, GLM_YUP);
             glm_quat_mul(pCameraState->transformState.rot, rotQ, pCameraState->transformState.rot);
@@ -58,19 +58,20 @@ void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, con
     }
 }
 
-void mxcInitCamera(MxcAppState *pAppState) {
-    pAppState->pCameraState = malloc(sizeof(MxcCameraState));
-    memset(pAppState->pCameraState, 0, sizeof(MxcCameraState));
+void mxcAllocCamera(const MxcAppState *pAppState, MxcCameraState **ppAllocCameraState) {
+    *ppAllocCameraState = malloc(sizeof(MxcCameraState));
+    MxcCameraState* pCameraState = *ppAllocCameraState;
+    memset(pCameraState, 0, sizeof(MxcCameraState));
 
-    mxcInitTransform(&pAppState->pCameraState->transformState);
+    mxcInitTransform(&pCameraState->transformState);
     vec3 pos = {0, 0, -1};
-    glm_vec3_copy(pos, pAppState->pCameraState->transformState.pos);
+    glm_vec3_copy(pos, pCameraState->transformState.pos);
 
     createUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(MxcMVP));
     mxcUpdateCameraUBO(pAppState->pCameraState);
 }
 
-void mxcCleanupCamera(MxcAppState *pAppState, MxcCameraState *pCameraState) {
+void mxcFreeCamera(const MxcAppState *pAppState, MxcCameraState *pCameraState) {
     mxcCleanupBuffers(pAppState, &pCameraState->mvpUBO);
     free(pCameraState);
 }

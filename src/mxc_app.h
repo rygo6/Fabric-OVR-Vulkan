@@ -8,6 +8,7 @@
 #include <stdbool.h>
 
 typedef struct MxcCameraState MxcCameraState;
+typedef struct MxcMeshState MxcMeshState;
 
 typedef struct MxcTimeState{
     double currentTime;
@@ -17,7 +18,6 @@ typedef struct MxcTimeState{
 typedef struct MxcAppState {
 
     MxcCameraState *pCameraState;
-
     MxcTimeState *pTimeState;
 
     // GFLW
@@ -52,20 +52,14 @@ typedef struct MxcAppState {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
 
-//    VkBuffer uniformBuffer;
-//    VkDeviceMemory uniformBufferMemory;
-//    void* uniformBufferMapped;
-
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
 
     VkCommandPool commandPool;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
     VkCommandBuffer commandBuffer;
+
+    MxcMeshState *pMeshState;
 
     VkSemaphore imageAvailableSemaphore;
     VkSemaphore renderFinishedSemaphore;

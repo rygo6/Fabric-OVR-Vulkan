@@ -62,8 +62,8 @@ int mxcInputEventCount() {
     return currentEventIndex;
 }
 
-MxcInputEvent mxcGetKeyEvent(int index){
-    return inputEvents[index];
+const MxcInputEvent* mxcGetKeyEvent(int index){
+    return &inputEvents[index];
 }
 
 void mxcInitInput(MxcAppState *pAppState) {

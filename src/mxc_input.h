@@ -43,7 +43,7 @@ typedef struct MxcInputEvent {
 
 int mxcInputEventCount();
 
-MxcInputEvent mxcGetKeyEvent(int index);
+const MxcInputEvent* mxcGetKeyEvent(int index);
 
 void mxcInitInput(MxcAppState *pAppState);
 

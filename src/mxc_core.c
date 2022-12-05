@@ -342,6 +342,9 @@ static void createSwapChain(MxcAppState* pState) {
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
     VkExtent2D extent = chooseSwapExtent(pState, capabilities);
 
+    printf( "%s - min swap count %d\n", __FUNCTION__, capabilities.minImageCount );
+    printf( "%s - max swap count %d\n", __FUNCTION__, capabilities.maxImageCount );
+
     // Have a swap queue depth of at least three frames
     pState->swapChainImageCount = capabilities.minImageCount;
     if ( pState->swapChainImageCount < 2 )
@@ -569,13 +572,13 @@ static void createGraphicsPipeline(MxcAppState* pState) {
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
     VkVertexInputBindingDescription bindingDescription = getBindingDescription();
-    VkVertexInputAttributeDescription attributeDescriptions[attributeDescriptionCount];
+    VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT];
     getAttributeDescriptions(attributeDescriptions);
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount = 1,
-            .vertexAttributeDescriptionCount = attributeDescriptionCount,
+            .vertexAttributeDescriptionCount = MXC_ATTRIBUTE_DESCRIPTION_COUNT,
             .pVertexBindingDescriptions = &bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
@@ -708,36 +711,6 @@ static void createCommandPool(MxcAppState* pState) {
     }
 }
 
-static void createVertexBuffer(MxcAppState* pState) {
-    VkDeviceSize bufferSize = (sizeof(Vertex) * verticesCount);
-    createBuffer(pState,
-                 bufferSize,
-                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 &pState->vertexBuffer,
-                 &pState->vertexBufferMemory);
-
-    void* data;
-    vkMapMemory(pState->device, pState->vertexBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices,bufferSize);
-    vkUnmapMemory(pState->device, pState->vertexBufferMemory);
-}
-
-static void createIndexBuffer(MxcAppState* pState) {
-    VkDeviceSize bufferSize = (sizeof(uint16_t) * indicesCount);
-    createBuffer(pState,
-                 bufferSize,
-                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 &pState->indexBuffer,
-                 &pState->indexBufferMemory);
-
-    void* data;
-    vkMapMemory(pState->device, pState->indexBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices,bufferSize);
-    vkUnmapMemory(pState->device, pState->indexBufferMemory);
-}
-
 static void createDescriptorPool(MxcAppState* pState) {
     VkDescriptorPoolSize poolSize = {
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -831,9 +804,8 @@ void mxcInitVulkan(MxcAppState* pState) {
     createGraphicsPipeline(pState);
     createFramebuffers(pState);
     createCommandPool(pState);
-    createVertexBuffer(pState);
-    createIndexBuffer(pState);
-    mxcInitCamera(pState);
+    mxcAllocMesh(pState, &pState->pMeshState);
+    mxcAllocCamera(pState, &pState->pCameraState);
     createDescriptorPool(pState);
     createDescriptorSets(pState);
     createCommandBuffer(pState);
@@ -881,10 +853,10 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
         };
         vkCmdSetScissor(pState->commandBuffer, 0, 1, &scissor);
 
-        VkBuffer vertexBuffers[] = {pState->vertexBuffer};
+        VkBuffer vertexBuffers[] = {pState->pMeshState->vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(pState->commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(pState->commandBuffer, pState->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(pState->commandBuffer, pState->pMeshState->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(pState->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -895,7 +867,7 @@ static void recordCommandBuffer(MxcAppState* pState, uint32_t imageIndex) {
                                 0,
                                 NULL);
 
-        vkCmdDrawIndexed(pState->commandBuffer, indicesCount, 1, 0, 0, 0);
+        vkCmdDrawIndexed(pState->commandBuffer, MXC_TEST_INDICES_COUNT, 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(pState->commandBuffer);
 
@@ -1005,7 +977,7 @@ void mxcCleanup(MxcAppState* pAppState) {
 
     mxcCleanupSwapChain(pAppState);
 
-    mxcCleanupCamera(pAppState, pAppState->pCameraState);
+    mxcFreeCamera(pAppState, pAppState->pCameraState);
 
     vkDestroyDescriptorPool(pAppState->device, pAppState->descriptorPool, NULL);
     vkDestroyDescriptorSetLayout(pAppState->device, pAppState->descriptorSetLayout, NULL);
@@ -1014,11 +986,7 @@ void mxcCleanup(MxcAppState* pAppState) {
     vkDestroyPipelineLayout(pAppState->device, pAppState->pipelineLayout, NULL);
     vkDestroyRenderPass(pAppState->device, pAppState->renderPass, NULL);
 
-    vkDestroyBuffer(pAppState->device, pAppState->indexBuffer, NULL);
-    vkFreeMemory(pAppState->device, pAppState->indexBufferMemory, NULL);
-
-    vkDestroyBuffer(pAppState->device, pAppState->vertexBuffer, NULL);
-    vkFreeMemory(pAppState->device, pAppState->vertexBufferMemory, NULL);
+    mxcFreeMesh((const MxcAppState *) pAppState->device, pAppState->pMeshState);
 
     vkDestroySemaphore(pAppState->device, pAppState->renderFinishedSemaphore, NULL);
     vkDestroySemaphore(pAppState->device, pAppState->imageAvailableSemaphore, NULL);

@@ -17,15 +17,16 @@ typedef struct MxcMVP {
 } MxcMVP;
 
 typedef struct MxcCameraState {
+    MxcEntityState entityState;
     MxcTransformState transformState;
     MxcMVP mvp;
     UniformBufferObject mvpUBO;
 } MxcCameraState;
 
-void mxcUpdateCamera(MxcCameraState *pCameraState, MxcInputEvent inputEvent, const MxcTimeState *pTimeState);
+void mxcUpdateCamera(MxcCameraState *pCameraState, const MxcInputEvent *pInputEvent, const MxcTimeState *pTimeState);
 
-void mxcInitCamera(MxcAppState* pAppState);
+void mxcAllocCamera(const MxcAppState* pAppState, MxcCameraState **ppAllocCameraState);
 
-void mxcCleanupCamera(MxcAppState *pAppState, MxcCameraState *pCameraState);
+void mxcFreeCamera(const MxcAppState *pAppState, MxcCameraState *pCameraState);
 
 #endif //MOXAIC_MXC_CAMERA_H

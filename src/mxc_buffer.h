@@ -13,10 +13,10 @@ typedef struct UniformBufferObject {
     void* pUniformBufferMapped;
 } UniformBufferObject;
 
-void createBuffer(MxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
+void createBuffer(const MxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
 
-void createUniformBuffers(MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+void createUniformBuffers(const MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
 
-void mxcCleanupBuffers(MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject);
+void mxcCleanupBuffers(const MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject);
 
 #endif //MOXAIC_MXC_BUFFER_H

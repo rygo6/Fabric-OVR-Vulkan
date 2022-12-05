@@ -1,53 +1,39 @@
-//
-// Created by rygo6 on 11/21/2022.
-//
-
 #ifndef MOXAIC_MESH_H
 #define MOXAIC_MESH_H
 
 #include <vulkan/vulkan.h>
 #include "cglm/cglm.h"
 
+#include "mxc_transform.h"
+#include "mxc_app.h"
+
 typedef struct Vertex {
     vec2 pos;
     vec3 color;
 } Vertex;
 
-const uint32_t verticesCount = 4;
-const Vertex vertices[] = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
-};
+typedef struct MxcMeshState {
+    MxcEntityState entityState;
+    MxcTransformState transformState;
 
-const uint32_t indicesCount = 6;
-const uint16_t indices[] = {
-        0, 1, 2, 2, 3, 0
-};
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
 
-const int attributeDescriptionCount = 2;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
-VkVertexInputBindingDescription getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-    };
+} MxcMeshState;
 
-    return bindingDescription;
-}
+#define MXC_ATTRIBUTE_DESCRIPTION_COUNT 2
+#define MXC_TEST_INDICES_COUNT 6
+#define MXC_TEST_VERTICES_COUNT 4
 
-void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[attributeDescriptionCount]) {
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+VkVertexInputBindingDescription getBindingDescription();
 
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-}
+void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT]);
 
-#endif //MOXAIC_MXC_MESH_H
+void mxcAllocMesh(const MxcAppState* pAppState, MxcMeshState **ppAllocMeshState);
+
+void mxcFreeMesh(const MxcAppState* pAppState, MxcMeshState *pMeshState);
+
+#endif //MOXAIC_MESH_H
