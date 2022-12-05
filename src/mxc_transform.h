@@ -10,14 +10,11 @@
 typedef struct MxcTransformState {
     vec3 pos;
     versor rot;
+    mat4 matrix;
 } MxcTransformState;
 
-//void Rotate(TransformState *state){
-//
-//}
-//
-//void Translate(TransformState *state){
-//
-//}
+void mxcInitTransform(MxcTransformState *transformState);
+
+void mxcUpdateTransformMatrix(MxcTransformState *transformState);
 
 #endif //MOXAIC_MXC_TRANSFORM_H

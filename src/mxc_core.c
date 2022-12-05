@@ -769,9 +769,9 @@ static void createDescriptorSets(MxcAppState* pState) {
     }
 
     VkDescriptorBufferInfo bufferInfo = {
-            .buffer = pState->pCameraState->uniformBuffer,
+            .buffer = pState->pCameraState->mvpUBO.uniformBuffer,
             .offset = 0,
-            .range = sizeof(MxcCameraUBO),
+            .range = sizeof(MxcMVP),
     };
 
     VkWriteDescriptorSet descriptorWrite = {
@@ -1005,7 +1005,7 @@ void mxcCleanup(MxcAppState* pAppState) {
 
     mxcCleanupSwapChain(pAppState);
 
-    mxcCleanupCamera(pAppState);
+    mxcCleanupCamera(pAppState, pAppState->pCameraState);
 
     vkDestroyDescriptorPool(pAppState->device, pAppState->descriptorPool, NULL);
     vkDestroyDescriptorSetLayout(pAppState->device, pAppState->descriptorSetLayout, NULL);
