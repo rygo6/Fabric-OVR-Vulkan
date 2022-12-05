@@ -5,8 +5,6 @@
 #include <memory.h>
 
 static inline void mxcUpdateCameraUBO(MxcCameraState *pCameraState) {
-    glm_mat4_identity(pCameraState->mvp.model);
-
     mxcUpdateTransformMatrix(&pCameraState->transformState);
     glm_mat4_copy(pCameraState->transformState.matrix, pCameraState->mvp.view);
 

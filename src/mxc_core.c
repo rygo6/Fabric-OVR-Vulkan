@@ -945,20 +945,21 @@ void mxcMainLoop(MxcAppState* pState) {
 
         waitForLastFrame(pState);
         processInputFrame(pState);
+        mxcMeshUpdateCameraUBO(pState->pMeshState, pState->pCameraState); //todo I dont like this
         drawFrame(pState);
     }
 
     vkDeviceWaitIdle(pState->device);
 }
 
-static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
     PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != NULL) {
         func(instance, debugMessenger, pAllocator);
     }
 }
 
-static void mxcCleanupSwapChain(MxcAppState* pState) {
+static void cleanupSwapChain(MxcAppState* pState) {
     printf("%s - cleaning up swapchain!\n", __FUNCTION__);
 
     for (int i = 0; i < pState->swapChainImageCount; ++i) {
@@ -975,7 +976,7 @@ static void mxcCleanupSwapChain(MxcAppState* pState) {
 void mxcCleanup(MxcAppState* pAppState) {
     printf("%s - cleaning up moxaic!\n", __FUNCTION__);
 
-    mxcCleanupSwapChain(pAppState);
+    cleanupSwapChain(pAppState);
 
     mxcFreeCamera(pAppState, pAppState->pCameraState);
 
@@ -997,7 +998,7 @@ void mxcCleanup(MxcAppState* pAppState) {
     vkDestroyDevice(pAppState->device, NULL);
 
     if (pAppState->enableValidationLayers) {
-        DestroyDebugUtilsMessengerEXT(pAppState->instance, pAppState->debugMessenger, NULL);
+        destroyDebugUtilsMessengerEXT(pAppState->instance, pAppState->debugMessenger, NULL);
     }
 
     vkDestroySurfaceKHR(pAppState->instance, pAppState->surface, NULL);

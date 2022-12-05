@@ -1,6 +1,7 @@
 #include "mxc_mesh.h"
 #include "mxc_app.h"
 #include "mxc_buffer.h"
+#include "mxc_camera.h"
 
 #include <memory.h>
 
@@ -65,6 +66,17 @@ void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescrip
     attributeDescriptions[1].location = 1;
     attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescriptions[1].offset = offsetof(Vertex, color);
+}
+
+void mxcMeshUpdateCameraUBO(MxcMeshState *pMeshState, MxcCameraState *pCameraState ) {
+//    vec3 add = {.0001f,0,0,};
+//    glm_vec3_add(pMeshState->transformState.pos, add, pMeshState->transformState.pos);
+
+    mxcUpdateTransformMatrix(&pMeshState->transformState);
+    glm_mat4_copy(pMeshState->transformState.matrix, pCameraState->mvp.model);
+
+    // TODO this is getting copied multiple places.. in mxc_camera.c too
+    memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(MxcMVP));
 }
 
 

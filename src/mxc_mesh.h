@@ -32,6 +32,8 @@ VkVertexInputBindingDescription getBindingDescription();
 
 void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT]);
 
+void mxcMeshUpdateCameraUBO(MxcMeshState *pMeshState, MxcCameraState *pCameraState);
+
 void mxcAllocMesh(const MxcAppState* pAppState, MxcMeshState **ppAllocMeshState);
 
 void mxcFreeMesh(const MxcAppState* pAppState, MxcMeshState *pMeshState);

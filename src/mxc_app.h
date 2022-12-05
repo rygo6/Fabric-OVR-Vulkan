@@ -19,6 +19,7 @@ typedef struct MxcAppState {
 
     MxcCameraState *pCameraState;
     MxcTimeState *pTimeState;
+    MxcMeshState *pMeshState;
 
     // GFLW
     int screenWidth;
@@ -58,8 +59,6 @@ typedef struct MxcAppState {
 
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
-
-    MxcMeshState *pMeshState;
 
     VkSemaphore imageAvailableSemaphore;
     VkSemaphore renderFinishedSemaphore;
