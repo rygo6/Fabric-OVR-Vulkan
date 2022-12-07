@@ -1,20 +1,20 @@
-#ifndef MOXAIC_MESH_H
-#define MOXAIC_MESH_H
+#ifndef FABRIC_MESH_H
+#define FABRIC_MESH_H
 
 #include <vulkan/vulkan.h>
 #include "cglm/cglm.h"
 
-#include "mxc_transform.h"
-#include "mxc_app.h"
+#include "fbr_transform.h"
+#include "fbr_app.h"
 
 typedef struct Vertex {
     vec2 pos;
     vec3 color;
 } Vertex;
 
-typedef struct MxcMeshState {
-    MxcEntityState entityState;
-    MxcTransformState transformState;
+typedef struct FbrMeshState {
+    FbrEntityState entityState;
+    FbrTransformState transformState;
 
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
@@ -22,7 +22,7 @@ typedef struct MxcMeshState {
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
 
-} MxcMeshState;
+} FbrMeshState;
 
 #define MXC_ATTRIBUTE_DESCRIPTION_COUNT 2
 #define MXC_TEST_INDICES_COUNT 6
@@ -32,10 +32,10 @@ VkVertexInputBindingDescription getBindingDescription();
 
 void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT]);
 
-void mxcMeshUpdateCameraUBO(MxcMeshState *pMeshState, MxcCameraState *pCameraState);
+void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState);
 
-void mxcAllocMesh(const MxcAppState* pAppState, MxcMeshState **ppAllocMeshState);
+void fbrAllocMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState);
 
-void mxcFreeMesh(const MxcAppState* pAppState, MxcMeshState *pMeshState);
+void fbrFreeMesh(const FbrAppState* pAppState, FbrMeshState *pMeshState);
 
-#endif //MOXAIC_MESH_H
+#endif //FABRIC_MESH_H

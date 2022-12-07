@@ -1,5 +1,5 @@
-#ifndef MOXAIC_MXC_APP_H
-#define MOXAIC_MXC_APP_H
+#ifndef FABRIC_MXC_APP_H
+#define FABRIC_MXC_APP_H
 
 #include "cglm/cglm.h"
 
@@ -7,19 +7,19 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-typedef struct MxcCameraState MxcCameraState;
-typedef struct MxcMeshState MxcMeshState;
+typedef struct FbrCameraState FbrCameraState;
+typedef struct FbrMeshState FbrMeshState;
 
-typedef struct MxcTimeState{
+typedef struct FbrTimeState{
     double currentTime;
     double deltaTime;
-} MxcTimeState;
+} FbrTimeState;
 
-typedef struct MxcAppState {
+typedef struct FbrAppState {
 
-    MxcCameraState *pCameraState;
-    MxcTimeState *pTimeState;
-    MxcMeshState *pMeshState;
+    FbrCameraState *pCameraState;
+    FbrTimeState *pTimeState;
+    FbrMeshState *pMeshState;
 
     // GFLW
     int screenWidth;
@@ -64,6 +64,6 @@ typedef struct MxcAppState {
     VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
 
-} MxcAppState;
+} FbrAppState;
 
-#endif //MOXAIC_MXC_APP_H
+#endif //FABRIC_MXC_APP_H

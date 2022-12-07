@@ -1,6 +1,6 @@
-project(Moxaic)
+project(Fabric)
 
-set(TARGET_NAME moxaic)
+set(TARGET_NAME fabric)
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_C_STANDARD 17)
 

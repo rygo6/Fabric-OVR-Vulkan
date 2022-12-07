@@ -1,7 +1,7 @@
-#include "mxc_mesh.h"
-#include "mxc_app.h"
-#include "mxc_buffer.h"
-#include "mxc_camera.h"
+#include "fbr_mesh.h"
+#include "fbr_app.h"
+#include "fbr_buffer.h"
+#include "fbr_camera.h"
 
 #include <memory.h>
 
@@ -16,7 +16,7 @@ const uint16_t indices[] = {
         0, 1, 2, 2, 3, 0
 };
 
-static void createVertexBuffer(const MxcAppState* pState, MxcMeshState *pMeshState) {
+static void createVertexBuffer(const FbrAppState* pState, FbrMeshState *pMeshState) {
     VkDeviceSize bufferSize = (sizeof(Vertex) * MXC_TEST_VERTICES_COUNT);
     createBuffer(pState,
                  bufferSize,
@@ -31,7 +31,7 @@ static void createVertexBuffer(const MxcAppState* pState, MxcMeshState *pMeshSta
     vkUnmapMemory(pState->device, pMeshState->vertexBufferMemory);
 }
 
-static void createIndexBuffer(const MxcAppState* pState, MxcMeshState *pMeshState) {
+static void createIndexBuffer(const FbrAppState* pState, FbrMeshState *pMeshState) {
     VkDeviceSize bufferSize = (sizeof(uint16_t) * MXC_TEST_INDICES_COUNT);
     createBuffer(pState,
                  bufferSize,
@@ -68,27 +68,27 @@ void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescrip
     attributeDescriptions[1].offset = offsetof(Vertex, color);
 }
 
-void mxcMeshUpdateCameraUBO(MxcMeshState *pMeshState, MxcCameraState *pCameraState ) {
+void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState ) {
 //    vec3 add = {.0001f,0,0,};
 //    glm_vec3_add(pMeshState->transformState.pos, add, pMeshState->transformState.pos);
 
-    mxcUpdateTransformMatrix(&pMeshState->transformState);
+    fbrUpdateTransformMatrix(&pMeshState->transformState);
     glm_mat4_copy(pMeshState->transformState.matrix, pCameraState->mvp.model);
 
-    // TODO this is getting copied multiple places.. in mxc_camera.c too
-    memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(MxcMVP));
+    // TODO this is getting copied multiple places.. in fbr_camera.c too
+    memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(FbrMVP));
 }
 
 
-void mxcAllocMesh(const MxcAppState* pAppState, MxcMeshState **ppAllocMeshState) {
-    *ppAllocMeshState = malloc(sizeof(MxcMeshState));
-    MxcMeshState* pMeshState = *ppAllocMeshState;
+void fbrAllocMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState) {
+    *ppAllocMeshState = malloc(sizeof(FbrMeshState));
+    FbrMeshState* pMeshState = *ppAllocMeshState;
 
     createVertexBuffer(pAppState, pMeshState);
     createIndexBuffer(pAppState, pMeshState);
 }
 
-void mxcFreeMesh(const MxcAppState* pAppState, MxcMeshState *pMeshState) {
+void fbrFreeMesh(const FbrAppState* pAppState, FbrMeshState *pMeshState) {
     vkDestroyBuffer(pAppState->device, pMeshState->indexBuffer, NULL);
     vkFreeMemory(pAppState->device, pMeshState->indexBufferMemory, NULL);
 

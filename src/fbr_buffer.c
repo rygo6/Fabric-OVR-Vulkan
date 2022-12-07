@@ -1,8 +1,8 @@
-#include "mxc_buffer.h"
+#include "fbr_buffer.h"
 #include <stdio.h>
 #include <memory.h>
 
-static uint32_t findMemoryType(const MxcAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+static uint32_t findMemoryType(const FbrAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(pState->physicalDevice, &memProperties);
 
@@ -15,7 +15,7 @@ static uint32_t findMemoryType(const MxcAppState* pState, uint32_t typeFilter, V
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
 }
 
-void createBuffer(const MxcAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
+void createBuffer(const FbrAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
     VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size = size,
@@ -43,7 +43,7 @@ void createBuffer(const MxcAppState* pState, VkDeviceSize size, VkBufferUsageFla
     vkBindBufferMemory(pState->device, *buffer, *bufferMemory, 0);
 }
 
-void createUniformBuffers(const MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize) {
+void createUniformBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize) {
     createBuffer(pAppState, bufferSize,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -52,12 +52,12 @@ void createUniformBuffers(const MxcAppState *pAppState, UniformBufferObject *pUn
     vkMapMemory(pAppState->device, pUniformBufferObject->uniformBufferMemory, 0, bufferSize, 0,&pUniformBufferObject->pUniformBufferMapped);
 }
 
-void mxcCleanupBuffers(const MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject) {
+void fbrCleanupBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject) {
     vkUnmapMemory(pAppState->device, pUniformBufferObject->uniformBufferMemory);
     vkDestroyBuffer(pAppState->device, pUniformBufferObject->uniformBuffer, NULL);
     vkFreeMemory(pAppState->device, pUniformBufferObject->uniformBufferMemory, NULL);
 }
 
-void updateUniformBuffer(const MxcAppState *pAppState, UniformBufferObject *pUniformBufferObject, void *data, int dataSize) {
+void updateUniformBuffer(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject, void *data, int dataSize) {
     memcpy(pUniformBufferObject->pUniformBufferMapped, data, dataSize);
 }

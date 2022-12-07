@@ -1,10 +1,10 @@
-#include "mxc_input.h"
-#include "mxc_log.h"
+#include "fbr_input.h"
+#include "fbr_log.h"
 
 #define STB_DS_IMPLEMENTATION
 #include "stb_ds.h"
 
-MxcInputEvent inputEvents[mxcInputEventBufferCount];
+FbrInputEvent inputEvents[fbrInputEventBufferCount];
 int currentEventIndex;
 
 struct { int key; bool value; } *heldKeyMap = NULL;
@@ -18,7 +18,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (action == GLFW_REPEAT)
         return;
 
-//    mxcLogDebugInfo2("mxcKeyEvent", %d, key, %d, action);
+//    fbrLogDebugInfo2("fbrKeyEvent", %d, key, %d, action);
     inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
     inputEvents[currentEventIndex].keyInput.key = key;
     inputEvents[currentEventIndex].keyInput.action = action;
@@ -31,7 +31,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
 static void cursor_position_callback(GLFWwindow* window, double xPos, double yPos)
 {
-//    mxcLogDebugInfo2("mxcMouseEvent position", %f, xPos, %f, yPos);
+//    fbrLogDebugInfo2("fbrMouseEvent position", %f, xPos, %f, yPos);
     inputEvents[currentEventIndex].type = MXC_MOUSE_POS_INPUT;
     inputEvents[currentEventIndex].mousePosInput.xPos = xPos;
     inputEvents[currentEventIndex].mousePosInput.yPos = yPos;
@@ -47,7 +47,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     if (action == GLFW_REPEAT)
         return;
 
-//    mxcLogDebugInfo2("mxcMouseEvent button", %d, button, %d, action);
+//    fbrLogDebugInfo2("fbrMouseEvent button", %d, button, %d, action);
     inputEvents[currentEventIndex].type = MXC_MOUSE_BUTTON_INPUT;
     inputEvents[currentEventIndex].mouseButtonInput.button = button;
     inputEvents[currentEventIndex].mouseButtonInput.action = action;
@@ -58,15 +58,15 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     }
 }
 
-int mxcInputEventCount() {
+int fbrInputEventCount() {
     return currentEventIndex;
 }
 
-const MxcInputEvent* mxcGetKeyEvent(int index){
+const FbrInputEvent* fbrGetKeyEvent(int index){
     return &inputEvents[index];
 }
 
-void mxcInitInput(MxcAppState *pAppState) {
+void fbrInitInput(FbrAppState *pAppState) {
     glfwSetKeyCallback(pAppState->pWindow, key_callback);
     glfwSetCursorPosCallback(pAppState->pWindow, cursor_position_callback);
     glfwSetMouseButtonCallback(pAppState->pWindow, mouse_button_callback);
@@ -80,7 +80,7 @@ void mxcInitInput(MxcAppState *pAppState) {
     hmdefault(heldMouseButtonMap, false);
 }
 
-void mxcProcessInput(){
+void fbrProcessInput(){
     // Get key presses from last frame and store them in hashmap to add to event buffer as held events
     for (int i = 0; i < currentEventIndex; ++i) {
         switch (inputEvents[i].type) {

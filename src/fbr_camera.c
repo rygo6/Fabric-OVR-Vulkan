@@ -1,19 +1,19 @@
-#include "mxc_camera.h"
-#include "mxc_buffer.h"
-#include "mxc_log.h"
+#include "fbr_camera.h"
+#include "fbr_buffer.h"
+#include "fbr_log.h"
 
 #include <memory.h>
 
-static inline void mxcUpdateCameraUBO(MxcCameraState *pCameraState) {
-    mxcUpdateTransformMatrix(&pCameraState->transformState);
+static inline void fbrUpdateCameraUBO(FbrCameraState *pCameraState) {
+    fbrUpdateTransformMatrix(&pCameraState->transformState);
     glm_mat4_copy(pCameraState->transformState.matrix, pCameraState->mvp.view);
 
     glm_perspective(90, 1, .01f, 10, pCameraState->mvp.proj);
 
-    memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(MxcMVP));
+    memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(FbrMVP));
 }
 
-void mxcUpdateCamera(MxcCameraState *pCameraState, const MxcInputEvent *pInputEvent, const MxcTimeState *pTimeState) {
+void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEvent, const FbrTimeState *pTimeState) {
     switch (pInputEvent->type) {
         case MXC_NO_INPUT:
             break;
@@ -36,8 +36,8 @@ void mxcUpdateCamera(MxcCameraState *pCameraState, const MxcInputEvent *pInputEv
             glm_quat_rotatev(pCameraState->transformState.rot, deltaPos, deltaPos);
             glm_vec3_add(pCameraState->transformState.pos, deltaPos, pCameraState->transformState.pos);
 
-            mxcUpdateCameraUBO(pCameraState);
-//            mxcLogDebugInfo3("MXC_KEY_INPUT", %f, deltaPos[0], %f, deltaPos[1], %f, deltaPos[2]);
+            fbrUpdateCameraUBO(pCameraState);
+//            fbrLogDebugInfo3("MXC_KEY_INPUT", %f, deltaPos[0], %f, deltaPos[1], %f, deltaPos[2]);
             break;
         }
         case MXC_MOUSE_POS_INPUT: {
@@ -46,7 +46,7 @@ void mxcUpdateCamera(MxcCameraState *pCameraState, const MxcInputEvent *pInputEv
             glm_quatv(rotQ, yRot, GLM_YUP);
             glm_quat_mul(pCameraState->transformState.rot, rotQ, pCameraState->transformState.rot);
 
-            mxcUpdateCameraUBO(pCameraState);
+            fbrUpdateCameraUBO(pCameraState);
             break;
         }
         case MXC_MOUSE_BUTTON_INPUT: {
@@ -56,20 +56,20 @@ void mxcUpdateCamera(MxcCameraState *pCameraState, const MxcInputEvent *pInputEv
     }
 }
 
-void mxcAllocCamera(const MxcAppState *pAppState, MxcCameraState **ppAllocCameraState) {
-    *ppAllocCameraState = malloc(sizeof(MxcCameraState));
-    MxcCameraState* pCameraState = *ppAllocCameraState;
-    memset(pCameraState, 0, sizeof(MxcCameraState));
+void fbrAllocCamera(const FbrAppState *pAppState, FbrCameraState **ppAllocCameraState) {
+    *ppAllocCameraState = malloc(sizeof(FbrCameraState));
+    FbrCameraState* pCameraState = *ppAllocCameraState;
+    memset(pCameraState, 0, sizeof(FbrCameraState));
 
-    mxcInitTransform(&pCameraState->transformState);
+    fbrInitTransform(&pCameraState->transformState);
     vec3 pos = {0, 0, -1};
     glm_vec3_copy(pos, pCameraState->transformState.pos);
 
-    createUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(MxcMVP));
-    mxcUpdateCameraUBO(pAppState->pCameraState);
+    createUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(FbrMVP));
+    fbrUpdateCameraUBO(pAppState->pCameraState);
 }
 
-void mxcFreeCamera(const MxcAppState *pAppState, MxcCameraState *pCameraState) {
-    mxcCleanupBuffers(pAppState, &pCameraState->mvpUBO);
+void fbrFreeCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
+    fbrCleanupBuffers(pAppState, &pCameraState->mvpUBO);
     free(pCameraState);
 }
