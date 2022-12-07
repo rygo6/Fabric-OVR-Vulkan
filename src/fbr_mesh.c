@@ -17,7 +17,7 @@ const uint16_t indices[] = {
 };
 
 static void createVertexBuffer(const FbrAppState* pState, FbrMeshState *pMeshState) {
-    VkDeviceSize bufferSize = (sizeof(Vertex) * MXC_TEST_VERTICES_COUNT);
+    VkDeviceSize bufferSize = (sizeof(Vertex) * FBR_TEST_VERTICES_COUNT);
     createBuffer(pState,
                  bufferSize,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -32,7 +32,7 @@ static void createVertexBuffer(const FbrAppState* pState, FbrMeshState *pMeshSta
 }
 
 static void createIndexBuffer(const FbrAppState* pState, FbrMeshState *pMeshState) {
-    VkDeviceSize bufferSize = (sizeof(uint16_t) * MXC_TEST_INDICES_COUNT);
+    VkDeviceSize bufferSize = (sizeof(uint16_t) * FBR_TEST_INDICES_COUNT);
     createBuffer(pState,
                  bufferSize,
                  VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
@@ -56,7 +56,7 @@ VkVertexInputBindingDescription getBindingDescription() {
     return bindingDescription;
 }
 
-void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT]) {
+void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTION_COUNT]) {
     attributeDescriptions[0].binding = 0;
     attributeDescriptions[0].location = 0;
     attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;

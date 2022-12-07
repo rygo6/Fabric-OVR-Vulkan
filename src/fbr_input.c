@@ -19,7 +19,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         return;
 
 //    fbrLogDebugInfo2("fbrKeyEvent", %d, key, %d, action);
-    inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
+    inputEvents[currentEventIndex].type = FBR_KEY_INPUT;
     inputEvents[currentEventIndex].keyInput.key = key;
     inputEvents[currentEventIndex].keyInput.action = action;
     currentEventIndex++;
@@ -32,7 +32,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 static void cursor_position_callback(GLFWwindow* window, double xPos, double yPos)
 {
 //    fbrLogDebugInfo2("fbrMouseEvent position", %f, xPos, %f, yPos);
-    inputEvents[currentEventIndex].type = MXC_MOUSE_POS_INPUT;
+    inputEvents[currentEventIndex].type = FBR_MOUSE_POS_INPUT;
     inputEvents[currentEventIndex].mousePosInput.xPos = xPos;
     inputEvents[currentEventIndex].mousePosInput.yPos = yPos;
     inputEvents[currentEventIndex].mousePosInput.xDelta = xPos - lastXPos;
@@ -48,7 +48,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         return;
 
 //    fbrLogDebugInfo2("fbrMouseEvent button", %d, button, %d, action);
-    inputEvents[currentEventIndex].type = MXC_MOUSE_BUTTON_INPUT;
+    inputEvents[currentEventIndex].type = FBR_MOUSE_BUTTON_INPUT;
     inputEvents[currentEventIndex].mouseButtonInput.button = button;
     inputEvents[currentEventIndex].mouseButtonInput.action = action;
     currentEventIndex++;
@@ -84,17 +84,17 @@ void fbrProcessInput(){
     // Get key presses from last frame and store them in hashmap to add to event buffer as held events
     for (int i = 0; i < currentEventIndex; ++i) {
         switch (inputEvents[i].type) {
-            case MXC_NO_INPUT:
+            case FBR_NO_INPUT:
                 break;
-            case MXC_KEY_INPUT:{
+            case FBR_KEY_INPUT:{
                 if (inputEvents[i].keyInput.action == GLFW_PRESS) {
                     hmput(heldKeyMap, inputEvents[i].keyInput.key, true);
                 }
                 break;
             }
-            case MXC_MOUSE_POS_INPUT:
+            case FBR_MOUSE_POS_INPUT:
                 break;
-            case MXC_MOUSE_BUTTON_INPUT: {
+            case FBR_MOUSE_BUTTON_INPUT: {
                 if (inputEvents[i].mouseButtonInput.action == GLFW_PRESS){
                     hmput(heldMouseButtonMap, inputEvents[i].mouseButtonInput.button, true);
                 }
@@ -107,16 +107,16 @@ void fbrProcessInput(){
     glfwPollEvents();
 
     for (int i = 0; i < hmlen(heldKeyMap); ++i){
-        inputEvents[currentEventIndex].type = MXC_KEY_INPUT;
+        inputEvents[currentEventIndex].type = FBR_KEY_INPUT;
         inputEvents[currentEventIndex].keyInput.key = heldKeyMap[i].key;
-        inputEvents[currentEventIndex].keyInput.action = MXC_HELD;
+        inputEvents[currentEventIndex].keyInput.action = FBR_HELD;
         currentEventIndex++;
     }
 
     for (int i = 0; i < hmlen(heldMouseButtonMap); ++i){
-        inputEvents[currentEventIndex].type = MXC_MOUSE_BUTTON_INPUT;
+        inputEvents[currentEventIndex].type = FBR_MOUSE_BUTTON_INPUT;
         inputEvents[currentEventIndex].mouseButtonInput.button = heldMouseButtonMap[i].key;
-        inputEvents[currentEventIndex].mouseButtonInput.action = MXC_HELD;
+        inputEvents[currentEventIndex].mouseButtonInput.action = FBR_HELD;
         currentEventIndex++;
     }
 }

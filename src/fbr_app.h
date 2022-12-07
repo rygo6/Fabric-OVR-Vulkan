@@ -1,5 +1,5 @@
-#ifndef FABRIC_MXC_APP_H
-#define FABRIC_MXC_APP_H
+#ifndef FABRIC_APP_H
+#define FABRIC_APP_H
 
 #include "cglm/cglm.h"
 
@@ -66,4 +66,4 @@ typedef struct FbrAppState {
 
 } FbrAppState;
 
-#endif //FABRIC_MXC_APP_H
+#endif //FABRIC_APP_H

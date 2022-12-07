@@ -573,13 +573,13 @@ static void createGraphicsPipeline(FbrAppState* pState) {
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
     VkVertexInputBindingDescription bindingDescription = getBindingDescription();
-    VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT];
+    VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTION_COUNT];
     getAttributeDescriptions(attributeDescriptions);
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount = 1,
-            .vertexAttributeDescriptionCount = MXC_ATTRIBUTE_DESCRIPTION_COUNT,
+            .vertexAttributeDescriptionCount = FBR_ATTRIBUTE_DESCRIPTION_COUNT,
             .pVertexBindingDescriptions = &bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
@@ -868,7 +868,7 @@ static void recordCommandBuffer(FbrAppState* pState, uint32_t imageIndex) {
                                 0,
                                 NULL);
 
-        vkCmdDrawIndexed(pState->commandBuffer, MXC_TEST_INDICES_COUNT, 1, 0, 0, 0);
+        vkCmdDrawIndexed(pState->commandBuffer, FBR_TEST_INDICES_COUNT, 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(pState->commandBuffer);
 

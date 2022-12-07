@@ -2,8 +2,8 @@
 // Created by rygo6 on 11/28/2022.
 //
 
-#ifndef FABRIC_MXC_CAMERA_H
-#define FABRIC_MXC_CAMERA_H
+#ifndef FABRIC_CAMERA_H
+#define FABRIC_CAMERA_H
 
 #include "fbr_app.h"
 #include "fbr_input.h"
@@ -29,4 +29,4 @@ void fbrAllocCamera(const FbrAppState* pAppState, FbrCameraState **ppAllocCamera
 
 void fbrFreeCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState);
 
-#endif //FABRIC_MXC_CAMERA_H
+#endif //FABRIC_CAMERA_H

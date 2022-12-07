@@ -15,10 +15,10 @@ static inline void fbrUpdateCameraUBO(FbrCameraState *pCameraState) {
 
 void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEvent, const FbrTimeState *pTimeState) {
     switch (pInputEvent->type) {
-        case MXC_NO_INPUT:
+        case FBR_NO_INPUT:
             break;
-        case MXC_KEY_INPUT: {
-            if (pInputEvent->keyInput.action != GLFW_PRESS && pInputEvent->keyInput.action != MXC_HELD)
+        case FBR_KEY_INPUT: {
+            if (pInputEvent->keyInput.action != GLFW_PRESS && pInputEvent->keyInput.action != FBR_HELD)
                 break;
 
             const float moveAmount = (float) pTimeState->deltaTime;
@@ -37,10 +37,10 @@ void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEv
             glm_vec3_add(pCameraState->transformState.pos, deltaPos, pCameraState->transformState.pos);
 
             fbrUpdateCameraUBO(pCameraState);
-//            fbrLogDebugInfo3("MXC_KEY_INPUT", %f, deltaPos[0], %f, deltaPos[1], %f, deltaPos[2]);
+//            fbrLogDebugInfo3("FBR_KEY_INPUT", %f, deltaPos[0], %f, deltaPos[1], %f, deltaPos[2]);
             break;
         }
-        case MXC_MOUSE_POS_INPUT: {
+        case FBR_MOUSE_POS_INPUT: {
             float yRot = (float) -pInputEvent->mousePosInput.xDelta / 100.0f;
             versor rotQ;
             glm_quatv(rotQ, yRot, GLM_YUP);
@@ -49,7 +49,7 @@ void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEv
             fbrUpdateCameraUBO(pCameraState);
             break;
         }
-        case MXC_MOUSE_BUTTON_INPUT: {
+        case FBR_MOUSE_BUTTON_INPUT: {
 
             break;
         }

@@ -2,8 +2,8 @@
 // Created by rygo6 on 11/29/2022.
 //
 
-#ifndef FABRIC_MXC_BUFFER_H
-#define FABRIC_MXC_BUFFER_H
+#ifndef FABRIC_BUFFER_H
+#define FABRIC_BUFFER_H
 
 #include "fbr_app.h"
 
@@ -19,4 +19,4 @@ void createUniformBuffers(const FbrAppState *pAppState, UniformBufferObject *pUn
 
 void fbrCleanupBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject);
 
-#endif //FABRIC_MXC_BUFFER_H
+#endif //FABRIC_BUFFER_H

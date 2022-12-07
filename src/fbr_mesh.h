@@ -24,13 +24,13 @@ typedef struct FbrMeshState {
 
 } FbrMeshState;
 
-#define MXC_ATTRIBUTE_DESCRIPTION_COUNT 2
-#define MXC_TEST_INDICES_COUNT 6
-#define MXC_TEST_VERTICES_COUNT 4
+#define FBR_ATTRIBUTE_DESCRIPTION_COUNT 2
+#define FBR_TEST_INDICES_COUNT 6
+#define FBR_TEST_VERTICES_COUNT 4
 
 VkVertexInputBindingDescription getBindingDescription();
 
-void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[MXC_ATTRIBUTE_DESCRIPTION_COUNT]);
+void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTION_COUNT]);
 
 void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState);
 
