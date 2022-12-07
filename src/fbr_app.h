@@ -10,6 +10,8 @@
 typedef struct FbrCameraState FbrCameraState;
 typedef struct FbrMeshState FbrMeshState;
 
+typedef struct FbrPipeline FbrPipeline;
+
 typedef struct FbrTimeState{
     double currentTime;
     double deltaTime;
@@ -50,10 +52,13 @@ typedef struct FbrAppState {
     VkFramebuffer *pSwapChainFramebuffers;
 
     VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+//    VkPipelineLayout pipelineLayout;
+//    VkPipeline graphicsPipeline;
 
-    VkDescriptorSetLayout descriptorSetLayout;
+//    VkDescriptorSetLayout descriptorSetLayout;
+    FbrPipeline *pPipeline;
+
+
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
 

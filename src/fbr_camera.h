@@ -25,7 +25,7 @@ typedef struct FbrCameraState {
 
 void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEvent, const FbrTimeState *pTimeState);
 
-void fbrAllocCamera(const FbrAppState* pAppState, FbrCameraState **ppAllocCameraState);
+void fbrCreateCamera(const FbrAppState* pAppState, FbrCameraState **ppAllocCameraState);
 
 void fbrFreeCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState);
 

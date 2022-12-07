@@ -56,19 +56,7 @@ VkVertexInputBindingDescription getBindingDescription() {
     return bindingDescription;
 }
 
-void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTION_COUNT]) {
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-}
-
-void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState ) {
+void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState) {
 //    vec3 add = {.0001f,0,0,};
 //    glm_vec3_add(pMeshState->transformState.pos, add, pMeshState->transformState.pos);
 
@@ -80,7 +68,7 @@ void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraSta
 }
 
 
-void fbrAllocMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState) {
+void fbrCreateMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState) {
     *ppAllocMeshState = malloc(sizeof(FbrMeshState));
     FbrMeshState* pMeshState = *ppAllocMeshState;
 

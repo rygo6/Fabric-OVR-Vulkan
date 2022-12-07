@@ -56,17 +56,19 @@ void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEv
     }
 }
 
-void fbrAllocCamera(const FbrAppState *pAppState, FbrCameraState **ppAllocCameraState) {
-    *ppAllocCameraState = malloc(sizeof(FbrCameraState));
-    FbrCameraState* pCameraState = *ppAllocCameraState;
-    memset(pCameraState, 0, sizeof(FbrCameraState));
-
+void fbrInitCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
     fbrInitTransform(&pCameraState->transformState);
     vec3 pos = {0, 0, -1};
     glm_vec3_copy(pos, pCameraState->transformState.pos);
-
     createUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(FbrMVP));
     fbrUpdateCameraUBO(pAppState->pCameraState);
+}
+
+void fbrCreateCamera(const FbrAppState *pAppState, FbrCameraState **ppAllocCameraState) {
+    *ppAllocCameraState = malloc(sizeof(FbrCameraState));
+    FbrCameraState* pCameraState = *ppAllocCameraState;
+    memset(pCameraState, 0, sizeof(FbrCameraState));
+    fbrInitCamera(pAppState, pCameraState);
 }
 
 void fbrFreeCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
