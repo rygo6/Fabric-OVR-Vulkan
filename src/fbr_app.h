@@ -52,15 +52,10 @@ typedef struct FbrAppState {
     VkFramebuffer *pSwapChainFramebuffers;
 
     VkRenderPass renderPass;
-//    VkPipelineLayout pipelineLayout;
-//    VkPipeline graphicsPipeline;
 
-//    VkDescriptorSetLayout descriptorSetLayout;
     FbrPipeline *pPipeline;
 
-
     VkDescriptorPool descriptorPool;
-    VkDescriptorSet descriptorSet;
 
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;

@@ -46,16 +46,6 @@ static void createIndexBuffer(const FbrAppState* pState, FbrMeshState *pMeshStat
     vkUnmapMemory(pState->device, pMeshState->indexBufferMemory);
 }
 
-VkVertexInputBindingDescription getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-    };
-
-    return bindingDescription;
-}
-
 void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState) {
 //    vec3 add = {.0001f,0,0,};
 //    glm_vec3_add(pMeshState->transformState.pos, add, pMeshState->transformState.pos);
@@ -71,6 +61,7 @@ void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraSta
 void fbrCreateMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState) {
     *ppAllocMeshState = malloc(sizeof(FbrMeshState));
     FbrMeshState* pMeshState = *ppAllocMeshState;
+    memset(pMeshState, 0, sizeof(FbrMeshState));
 
     createVertexBuffer(pAppState, pMeshState);
     createIndexBuffer(pAppState, pMeshState);

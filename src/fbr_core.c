@@ -548,37 +548,6 @@ static void createDescriptorPool(FbrAppState* pState) {
     }
 }
 
-static void createDescriptorSets(FbrAppState* pState) {
-    VkDescriptorSetAllocateInfo allocInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = pState->descriptorPool,
-            .descriptorSetCount = 1,
-            .pSetLayouts = &pState->pPipeline->descriptorSetLayout,
-    };
-
-    if (vkAllocateDescriptorSets(pState->device, &allocInfo, &pState->descriptorSet) != VK_SUCCESS) {
-        printf("%s - failed to allocate descriptor sets!\n", __FUNCTION__);
-    }
-
-    VkDescriptorBufferInfo bufferInfo = {
-            .buffer = pState->pCameraState->mvpUBO.uniformBuffer,
-            .offset = 0,
-            .range = sizeof(FbrMVP),
-    };
-
-    VkWriteDescriptorSet descriptorWrite = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = pState->descriptorSet,
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
-            .pBufferInfo = &bufferInfo
-    };
-
-    vkUpdateDescriptorSets(pState->device, 1, &descriptorWrite, 0, NULL);
-}
-
 static void createCommandBuffer(FbrAppState* pState) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -611,23 +580,32 @@ static void createSyncObjects(FbrAppState* pState) {
 
 void fbrInitVulkan(FbrAppState* pState) {
     printf( "%s - initializing vulkan!\n", __FUNCTION__ );
+
+    // app
     createInstance(pState);
     setupDebugMessenger(pState);
     createSurface(pState);
+
+    // device
     pickPhysicalDevice(pState);
     createLogicalDevice(pState);
+
+    // render
     createSwapChain(pState);
     createImageViews(pState);
     createRenderPass(pState);
-    fbrCreatePipeline(pState, &pState->pPipeline);
     createFramebuffers(pState);
     createCommandPool(pState);
-    fbrCreateMesh(pState, &pState->pMeshState);
-    fbrCreateCamera(pState, &pState->pCameraState);
-    createDescriptorPool(pState);
-    createDescriptorSets(pState);
     createCommandBuffer(pState);
     createSyncObjects(pState);
+    createDescriptorPool(pState);
+
+    // entities
+    fbrCreateCamera(pState, &pState->pCameraState);
+    fbrCreateMesh(pState, &pState->pMeshState);
+
+    // Pipeline
+    fbrCreatePipeline(pState, pState->pCameraState,  &pState->pPipeline);
 }
 
 static void recordCommandBuffer(FbrAppState* pState, uint32_t imageIndex) {
@@ -681,7 +659,7 @@ static void recordCommandBuffer(FbrAppState* pState, uint32_t imageIndex) {
                                 pState->pPipeline->pipelineLayout,
                                 0,
                                 1,
-                                &pState->descriptorSet,
+                                &pState->pPipeline->descriptorSet,
                                 0,
                                 NULL);
 

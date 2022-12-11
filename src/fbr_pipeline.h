@@ -8,9 +8,10 @@ typedef struct FbrPipeline {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSet descriptorSet;
 } FbrPipeline;
 
-void fbrCreatePipeline(const FbrAppState *pAppState, FbrPipeline** ppAllocPipeline);
+void fbrCreatePipeline(const FbrAppState *pAppState, const FbrCameraState *pCameraState, FbrPipeline** ppAllocPipeline);
 void fbrFreePipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline);
 
 #endif //FABRIC_PIPELINE_H

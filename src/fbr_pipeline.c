@@ -1,31 +1,8 @@
 #include "fbr_pipeline.h"
 #include "fbr_mesh.h"
+#include "fbr_camera.h"
 
 #include <memory.h>
-
-#define FBR_ATTRIBUTE_DESCRIPTION_COUNT 2
-
-static VkVertexInputBindingDescription getBindingDescription() {
-    VkVertexInputBindingDescription bindingDescription = {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-    };
-
-    return bindingDescription;
-}
-
-static void getAttributeDescriptions(VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTION_COUNT]) {
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-}
 
 static char* readBinaryFile(const char* filename, uint32_t *length) {
     FILE* file = fopen(filename, "rb");
@@ -38,6 +15,7 @@ static char* readBinaryFile(const char* filename, uint32_t *length) {
     *length = ftell(file);
     rewind(file);
     char* contents = malloc(1 + *length * sizeof (char));
+    memset(contents, 0, *length);
     size_t readCount = fread( contents, *length, 1, file);
     if (readCount == 0) {
         printf("%s - failed to read file! %s\n", __FUNCTION__, filename);
@@ -62,11 +40,12 @@ static VkShaderModule createShaderModule(const FbrAppState *pAppState, const cha
     return shaderModule;
 }
 
-static void createDescriptorSetLayout(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
+static void initDescriptorSetLayout(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
+            // we use it from the vertex shader
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
     };
 
@@ -81,17 +60,55 @@ static void createDescriptorSetLayout(const FbrAppState *pAppState, FbrPipeline*
     }
 }
 
-void fbrCreatePipeline(const FbrAppState *pAppState, FbrPipeline** ppAllocPipeline) {
-    *ppAllocPipeline = malloc(sizeof(FbrPipeline));
-    FbrPipeline* pPipeline = *ppAllocPipeline;
-    memset(pPipeline, 0, sizeof(FbrPipeline));
+static void initPipelineLayout(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 1,
+            .pSetLayouts = &pPipeline->descriptorSetLayout,
+    };
 
-    createDescriptorSetLayout(pAppState, pPipeline);
+    if (vkCreatePipelineLayout(pAppState->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
+        printf("%s - failed to create pipeline layout!\n", __FUNCTION__);
+    }
+}
+
+static void initDescriptorSets(const FbrAppState* pState, const FbrCameraState *pCameraState, FbrPipeline* pPipeline) {
+    VkDescriptorSetAllocateInfo allocInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = pState->descriptorPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = &pState->pPipeline->descriptorSetLayout,
+    };
+
+    if (vkAllocateDescriptorSets(pState->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
+        printf("%s - failed to allocate descriptor sets!\n", __FUNCTION__);
+    }
+
+    VkDescriptorBufferInfo bufferInfo = {
+            .buffer = pCameraState->mvpUBO.uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrMVP),
+    };
+
+    VkWriteDescriptorSet descriptorWrite = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = pPipeline->descriptorSet,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .pBufferInfo = &bufferInfo
+    };
+
+    vkUpdateDescriptorSets(pState->device, 1, &descriptorWrite, 0, NULL);
+}
+
+static void initPipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
 
     uint32_t vertLength;
-    const char* vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
+    char* vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
     uint32_t fragLength;
-    const char* fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
+    char* fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
 
     VkShaderModule vertShaderModule = createShaderModule(pAppState, vertShaderCode, vertLength);
     VkShaderModule fragShaderModule = createShaderModule(pAppState, fragShaderCode, fragLength);
@@ -112,14 +129,28 @@ void fbrCreatePipeline(const FbrAppState *pAppState, FbrPipeline** ppAllocPipeli
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-    VkVertexInputBindingDescription bindingDescription = getBindingDescription();
-    VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTION_COUNT];
-    getAttributeDescriptions(attributeDescriptions);
+    VkVertexInputBindingDescription bindingDescription = {
+            .binding = 0,
+            .stride = sizeof(Vertex),
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    };
+
+    const int attributeDescriptionsCount = 2;
+    VkVertexInputAttributeDescription attributeDescriptions[attributeDescriptionsCount];
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount = 1,
-            .vertexAttributeDescriptionCount = FBR_ATTRIBUTE_DESCRIPTION_COUNT,
+            .vertexAttributeDescriptionCount = attributeDescriptionsCount,
             .pVertexBindingDescriptions = &bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
@@ -181,16 +212,6 @@ void fbrCreatePipeline(const FbrAppState *pAppState, FbrPipeline** ppAllocPipeli
             .pDynamicStates = dynamicStates,
     };
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = &pPipeline->descriptorSetLayout,
-    };
-
-    if (vkCreatePipelineLayout(pAppState->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
-        printf("%s - failed to create pipeline layout!\n", __FUNCTION__);
-    }
-
     VkGraphicsPipelineCreateInfo pipelineInfo = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .stageCount = 2,
@@ -214,6 +235,19 @@ void fbrCreatePipeline(const FbrAppState *pAppState, FbrPipeline** ppAllocPipeli
 
     vkDestroyShaderModule(pAppState->device, fragShaderModule, NULL);
     vkDestroyShaderModule(pAppState->device, vertShaderModule, NULL);
+    free(vertShaderCode);
+    free(fragShaderCode);
+}
+
+void fbrCreatePipeline(const FbrAppState *pAppState, const FbrCameraState *pCameraState, FbrPipeline** ppAllocPipeline) {
+    *ppAllocPipeline = malloc(sizeof(FbrPipeline));
+    FbrPipeline *pPipeline = *ppAllocPipeline;
+    memset(pPipeline, 0, sizeof(FbrPipeline));
+
+    initDescriptorSetLayout(pAppState, pPipeline);
+    initPipelineLayout(pAppState, pPipeline);
+    initPipeline(pAppState, pPipeline);
+    initDescriptorSets(pAppState, pCameraState, pPipeline);
 }
 
 void fbrFreePipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
