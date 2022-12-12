@@ -2,6 +2,7 @@
 #include "fbr_mesh.h"
 #include "fbr_buffer.h"
 #include "fbr_pipeline.h"
+#include "fbr_texture.h"
 
 #include "cglm/cglm.h"
 #include "fbr_input.h"
@@ -603,6 +604,7 @@ void fbrInitVulkan(FbrAppState* pState) {
     // entities
     fbrCreateCamera(pState, &pState->pCameraState);
     fbrCreateMesh(pState, &pState->pMeshState);
+    fbrCreateTexture(pState, &pState->pTexture);
 
     // Pipeline
     fbrCreatePipeline(pState, pState->pCameraState,  &pState->pPipeline);
@@ -769,10 +771,12 @@ static void cleanupSwapChain(FbrAppState* pState) {
     vkDestroySwapchainKHR(pState->device, pState->swapChain, NULL);
 }
 
-void fbrCleanup(FbrAppState* pAppState) {
+void fbrCleanup(FbrAppState *restrict pAppState) {
     printf("%s - cleaning up !\n", __FUNCTION__);
 
     cleanupSwapChain(pAppState);
+
+    fbrCleanupTexture(pAppState, pAppState->pTexture);
 
     fbrFreeCamera(pAppState, pAppState->pCameraState);
 

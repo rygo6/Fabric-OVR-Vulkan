@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <memory.h>
 
-static uint32_t findMemoryType(const FbrAppState* pState, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(pState->physicalDevice, &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
@@ -33,7 +33,7 @@ void fbrCreateBuffer(const FbrAppState* pState, VkDeviceSize size, VkBufferUsage
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = findMemoryType(pState, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = fbrFindMemoryType(pState->physicalDevice, memRequirements.memoryTypeBits, properties),
     };
 
     // this need to be made to vulkan memory allocator, read conclusion https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
@@ -44,7 +44,7 @@ void fbrCreateBuffer(const FbrAppState* pState, VkDeviceSize size, VkBufferUsage
     vkBindBufferMemory(pState->device, *buffer, *bufferMemory, 0);
 }
 
-void fbrCopyBuffer(const FbrAppState *pAppState, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+VkCommandBuffer fbrBeginBufferCommands(const FbrAppState *pAppState) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -62,13 +62,10 @@ void fbrCopyBuffer(const FbrAppState *pAppState, VkBuffer srcBuffer, VkBuffer ds
 
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-    VkBufferCopy copyRegion= {
-            .srcOffset = 0, // Optional
-            .dstOffset = 0, // Optional
-            .size = size,
-    };
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+    return commandBuffer;
+}
 
+VkCommandBuffer fbrEndBufferCommands(const FbrAppState *pAppState, VkCommandBuffer commandBuffer) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {
@@ -81,6 +78,64 @@ void fbrCopyBuffer(const FbrAppState *pAppState, VkBuffer srcBuffer, VkBuffer ds
     vkQueueWaitIdle(pAppState->queue); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pAppState->device, pAppState->commandPool, 1, &commandBuffer);
+}
+
+void fbrCopyBuffer(const FbrAppState *pAppState, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pAppState);
+
+    VkBufferCopy copyRegion= {
+            .srcOffset = 0, // Optional
+            .dstOffset = 0, // Optional
+            .size = size,
+    };
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    fbrEndBufferCommands(pAppState, commandBuffer);
+}
+
+void fbrCreateStagingBuffer(const FbrAppState *restrict pAppState,
+                           const void *restrict srcData,
+                           VkBuffer *restrict stagingBuffer,
+                           VkDeviceMemory *restrict stagingBufferMemory,
+                           VkDeviceSize bufferSize) {
+    fbrCreateBuffer(pAppState,
+                    bufferSize,
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    stagingBuffer,
+                    stagingBufferMemory);
+
+    void* dstData;
+    vkMapMemory(pAppState->device, *stagingBufferMemory, 0, bufferSize, 0, &dstData);
+    memcpy(dstData, srcData,bufferSize);
+    vkUnmapMemory(pAppState->device, *stagingBufferMemory);
+}
+
+void fbrCreatePopulateBufferViaStaging(const FbrAppState *restrict pAppState,
+                                       const void *restrict srcData,
+                                       VkBufferUsageFlagBits usage,
+                                       VkBuffer *restrict buffer,
+                                       VkDeviceMemory *restrict bufferMemory,
+                                       VkDeviceSize bufferSize) {
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    fbrCreateStagingBuffer(pAppState,
+                           srcData,
+                           &stagingBuffer,
+                           &stagingBufferMemory,
+                           bufferSize);
+
+    fbrCreateBuffer(pAppState,
+                    bufferSize,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    buffer,
+                    bufferMemory);
+
+    fbrCopyBuffer(pAppState, stagingBuffer, *buffer, bufferSize);
+
+    vkDestroyBuffer(pAppState->device, stagingBuffer, NULL);
+    vkFreeMemory(pAppState->device, stagingBufferMemory, NULL);
 }
 
 void fbrCreateUniformBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize) {

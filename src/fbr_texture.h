@@ -1,11 +1,14 @@
 #ifndef FABRIC_TEXTURE_H
 #define FABRIC_TEXTURE_H
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include "fbr_app.h"
 
-void createTextureImage(const FbrAppState* pAppState);
+typedef struct FbrTexture {
+    VkImage image;
+    VkDeviceMemory imageMemory;
+} FbrTexture;
+
+void fbrCreateTexture(FBR_APP_PARAM, FbrTexture** ppAllocTexture);
+void fbrCleanupTexture(FBR_APP_PARAM, FbrTexture* pTexture);
 
 #endif //FABRIC_TEXTURE_H

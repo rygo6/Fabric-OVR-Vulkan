@@ -9,19 +9,22 @@
 
 typedef struct FbrCameraState FbrCameraState;
 typedef struct FbrMeshState FbrMeshState;
-
 typedef struct FbrPipeline FbrPipeline;
+typedef struct FbrTexture FbrTexture;
 
 typedef struct FbrTimeState{
     double currentTime;
     double deltaTime;
 } FbrTimeState;
 
+#define FBR_APP_PARAM const FbrAppState *restrict pAppState
+
 typedef struct FbrAppState {
 
     FbrCameraState *pCameraState;
     FbrTimeState *pTimeState;
     FbrMeshState *pMeshState;
+    FbrTexture *pTexture;
 
     // GFLW
     int screenWidth;
