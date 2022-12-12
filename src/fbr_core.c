@@ -413,7 +413,7 @@ static void createSwapChain(FbrAppState* pState) {
     }
 
     vkGetSwapchainImagesKHR(pState->device, pState->swapChain, &pState->swapChainImageCount, NULL);
-    pState->pSwapChainImages = malloc(sizeof(VkImage) * pState->swapChainImageCount);
+    pState->pSwapChainImages = calloc(pState->swapChainImageCount,sizeof(VkImage));
     vkGetSwapchainImagesKHR(pState->device, pState->swapChain, &pState->swapChainImageCount, pState->pSwapChainImages);
 
     pState->swapChainImageFormat = surfaceFormat.format;
@@ -421,7 +421,7 @@ static void createSwapChain(FbrAppState* pState) {
 }
 
 static void createImageViews(FbrAppState* pState) {
-    pState->pSwapChainImageViews =  malloc(sizeof(VkImageView) * pState->swapChainImageCount);
+    pState->pSwapChainImageViews =  calloc(pState->swapChainImageCount,sizeof(VkImageView));
 
     for (size_t i = 0; i < pState->swapChainImageCount; i++) {
         VkImageViewCreateInfo createInfo = {
@@ -495,7 +495,7 @@ static void createRenderPass(FbrAppState* pState) {
 }
 
 static void createFramebuffers(FbrAppState* pState) {
-    pState->pSwapChainFramebuffers = malloc(sizeof(VkFramebuffer) * pState->swapChainImageCount);
+    pState->pSwapChainFramebuffers = calloc(pState->swapChainImageCount, sizeof(VkFramebuffer));
 
     for (size_t i = 0; i < pState->swapChainImageCount; i++) {
         VkImageView attachments[] = {
@@ -782,6 +782,9 @@ void fbrCleanup(FbrAppState* pAppState) {
 
     vkDestroyRenderPass(pAppState->device, pAppState->renderPass, NULL);
 
+    free(pAppState->pSwapChainImages);
+    free(pAppState->pSwapChainImageViews);
+
     fbrFreeMesh((const FbrAppState *) pAppState->device, pAppState->pMeshState);
 
     vkDestroySemaphore(pAppState->device, pAppState->renderFinishedSemaphore, NULL);
@@ -800,6 +803,8 @@ void fbrCleanup(FbrAppState* pAppState) {
     vkDestroyInstance(pAppState->instance, NULL);
 
     glfwDestroyWindow(pAppState->pWindow);
+
+    free(pAppState);
 
     glfwTerminate();
 }

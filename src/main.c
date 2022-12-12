@@ -9,13 +9,11 @@ int main(int argc, char *argv[]) {
     printf("%s - starting up !\n", __FUNCTION__);
 
     FbrAppState *pState;
-    pState = malloc(sizeof(FbrAppState));
-    memset(pState, 0, sizeof(FbrAppState));
+    pState = calloc(1,sizeof(FbrAppState));
     pState->screenWidth = 800;
     pState->screenHeight = 600;
     pState->enableValidationLayers = true;
-    pState->pTimeState = malloc(sizeof(FbrTimeState));
-    memset(pState->pTimeState, 0, sizeof(FbrTimeState));
+    pState->pTimeState = calloc(1,sizeof(FbrTimeState));
 
     fbrInitWindow(pState);
     fbrInitInput(pState);

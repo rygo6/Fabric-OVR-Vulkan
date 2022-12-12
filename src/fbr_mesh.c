@@ -59,9 +59,8 @@ void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraSta
 
 
 void fbrCreateMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState) {
-    *ppAllocMeshState = malloc(sizeof(FbrMeshState));
+    *ppAllocMeshState = calloc(1, sizeof(FbrMeshState));
     FbrMeshState* pMeshState = *ppAllocMeshState;
-    memset(pMeshState, 0, sizeof(FbrMeshState));
 
     createVertexBuffer(pAppState, pMeshState);
     createIndexBuffer(pAppState, pMeshState);

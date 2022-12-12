@@ -65,9 +65,8 @@ void fbrInitCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
 }
 
 void fbrCreateCamera(const FbrAppState *pAppState, FbrCameraState **ppAllocCameraState) {
-    *ppAllocCameraState = malloc(sizeof(FbrCameraState));
+    *ppAllocCameraState = calloc(1,sizeof(FbrCameraState));
     FbrCameraState* pCameraState = *ppAllocCameraState;
-    memset(pCameraState, 0, sizeof(FbrCameraState));
     fbrInitCamera(pAppState, pCameraState);
 }
 

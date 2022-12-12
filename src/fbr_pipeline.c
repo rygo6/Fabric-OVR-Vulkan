@@ -4,8 +4,8 @@
 
 #include <memory.h>
 
-static char* readBinaryFile(const char* filename, uint32_t *length) {
-    FILE* file = fopen(filename, "rb");
+static char *readBinaryFile(const char *filename, uint32_t *length) {
+    FILE *file = fopen(filename, "rb");
 
     if (file == NULL) {
         printf("%s - file can't be opened! %s\n", __FUNCTION__, filename);
@@ -14,9 +14,8 @@ static char* readBinaryFile(const char* filename, uint32_t *length) {
     fseek(file, 0, SEEK_END);
     *length = ftell(file);
     rewind(file);
-    char* contents = malloc(1 + *length * sizeof (char));
-    memset(contents, 0, *length);
-    size_t readCount = fread( contents, *length, 1, file);
+    char *contents = calloc(1 + *length, sizeof(char));
+    size_t readCount = fread(contents, *length, 1, file);
     if (readCount == 0) {
         printf("%s - failed to read file! %s\n", __FUNCTION__, filename);
     }
@@ -240,9 +239,8 @@ static void initPipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
 }
 
 void fbrCreatePipeline(const FbrAppState *pAppState, const FbrCameraState *pCameraState, FbrPipeline** ppAllocPipeline) {
-    *ppAllocPipeline = malloc(sizeof(FbrPipeline));
+    *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
-    memset(pPipeline, 0, sizeof(FbrPipeline));
 
     initDescriptorSetLayout(pAppState, pPipeline);
     initPipelineLayout(pAppState, pPipeline);
