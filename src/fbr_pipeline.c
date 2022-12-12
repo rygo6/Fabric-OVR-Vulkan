@@ -238,7 +238,7 @@ static void initPipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
     free(fragShaderCode);
 }
 
-void fbrCreatePipeline(const FbrAppState *pAppState, const FbrCameraState *pCameraState, FbrPipeline** ppAllocPipeline) {
+void fbrCreatePipeline(const FbrAppState* restrict pAppState, const FbrCameraState* restrict pCameraState, FbrPipeline** restrict ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
 
@@ -248,7 +248,7 @@ void fbrCreatePipeline(const FbrAppState *pAppState, const FbrCameraState *pCame
     initDescriptorSets(pAppState, pCameraState, pPipeline);
 }
 
-void fbrFreePipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
+void fbrFreePipeline(const FbrAppState* restrict pAppState, FbrPipeline* restrict pPipeline) {
     vkDestroyDescriptorSetLayout(pAppState->device, pAppState->pPipeline->descriptorSetLayout, NULL);
     vkDestroyPipeline(pAppState->device, pAppState->pPipeline->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pAppState->device, pAppState->pPipeline->pipelineLayout, NULL);

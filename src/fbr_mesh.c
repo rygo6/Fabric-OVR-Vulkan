@@ -16,37 +16,60 @@ const uint16_t indices[] = {
         0, 1, 2, 2, 3, 0
 };
 
-static void createVertexBuffer(const FbrAppState* pState, FbrMeshState *pMeshState) {
+static void createPopulateBufferViaStaging(const FbrAppState *restrict pAppState,
+                                           const void *restrict srcData,
+                                           VkBufferUsageFlagBits usage,
+                                           VkBuffer *restrict buffer,
+                                           VkDeviceMemory *restrict bufferMemory,
+                                           VkDeviceSize bufferSize) {
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    fbrCreateBuffer(pAppState,
+                    bufferSize,
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    &stagingBuffer,
+                    &stagingBufferMemory);
+
+    void* dstData;
+    vkMapMemory(pAppState->device, stagingBufferMemory, 0, bufferSize, 0, &dstData);
+    memcpy(dstData, srcData,bufferSize);
+    vkUnmapMemory(pAppState->device, stagingBufferMemory);
+
+    fbrCreateBuffer(pAppState,
+                    bufferSize,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    buffer,
+                    bufferMemory);
+
+    fbrCopyBuffer(pAppState, stagingBuffer, *buffer, bufferSize);
+
+    vkDestroyBuffer(pAppState->device, stagingBuffer, NULL);
+    vkFreeMemory(pAppState->device, stagingBufferMemory, NULL);
+}
+
+static void createVertexBuffer(const FbrAppState *restrict pAppState, FbrMeshState *restrict pMeshState) {
     VkDeviceSize bufferSize = (sizeof(Vertex) * FBR_TEST_VERTICES_COUNT);
-    createBuffer(pState,
-                 bufferSize,
-                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 &pMeshState->vertexBuffer,
-                 &pMeshState->vertexBufferMemory);
-
-    void* data;
-    vkMapMemory(pState->device, pMeshState->vertexBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices,bufferSize);
-    vkUnmapMemory(pState->device, pMeshState->vertexBufferMemory);
+    createPopulateBufferViaStaging(pAppState,
+                                   vertices,
+                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                   &pMeshState->vertexBuffer,
+                                   &pMeshState->vertexBufferMemory,
+                                   bufferSize);
 }
 
-static void createIndexBuffer(const FbrAppState* pState, FbrMeshState *pMeshState) {
+static void createIndexBuffer(const FbrAppState *restrict pAppState, FbrMeshState *restrict pMeshState) {
     VkDeviceSize bufferSize = (sizeof(uint16_t) * FBR_TEST_INDICES_COUNT);
-    createBuffer(pState,
-                 bufferSize,
-                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 &pMeshState->indexBuffer,
-                 &pMeshState->indexBufferMemory);
-
-    void* data;
-    vkMapMemory(pState->device, pMeshState->indexBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices,bufferSize);
-    vkUnmapMemory(pState->device, pMeshState->indexBufferMemory);
+    createPopulateBufferViaStaging(pAppState,
+                                   indices,
+                                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                   &pMeshState->indexBuffer,
+                                   &pMeshState->indexBufferMemory,
+                                   bufferSize);
 }
 
-void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState) {
+void fbrMeshUpdateCameraUBO(FbrMeshState *restrict pMeshState, FbrCameraState *restrict pCameraState) {
 //    vec3 add = {.0001f,0,0,};
 //    glm_vec3_add(pMeshState->transformState.pos, add, pMeshState->transformState.pos);
 
@@ -58,7 +81,7 @@ void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraSta
 }
 
 
-void fbrCreateMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState) {
+void fbrCreateMesh(const FbrAppState *restrict pAppState, FbrMeshState **restrict ppAllocMeshState) {
     *ppAllocMeshState = calloc(1, sizeof(FbrMeshState));
     FbrMeshState* pMeshState = *ppAllocMeshState;
 
@@ -66,7 +89,7 @@ void fbrCreateMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState
     createIndexBuffer(pAppState, pMeshState);
 }
 
-void fbrFreeMesh(const FbrAppState* pAppState, FbrMeshState *pMeshState) {
+void fbrFreeMesh(const FbrAppState *restrict pAppState, FbrMeshState *restrict pMeshState) {
     vkDestroyBuffer(pAppState->device, pMeshState->indexBuffer, NULL);
     vkFreeMemory(pAppState->device, pMeshState->indexBufferMemory, NULL);
 

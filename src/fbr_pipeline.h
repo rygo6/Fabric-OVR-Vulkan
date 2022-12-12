@@ -11,7 +11,7 @@ typedef struct FbrPipeline {
     VkDescriptorSet descriptorSet;
 } FbrPipeline;
 
-void fbrCreatePipeline(const FbrAppState *pAppState, const FbrCameraState *pCameraState, FbrPipeline** ppAllocPipeline);
-void fbrFreePipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline);
+void fbrCreatePipeline(const FbrAppState* pAppState, const FbrCameraState* pCameraState, FbrPipeline** ppAllocPipeline);
+void fbrFreePipeline(const FbrAppState* pAppState, FbrPipeline* restrict pPipeline);
 
 #endif //FABRIC_PIPELINE_H

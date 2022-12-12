@@ -60,7 +60,7 @@ void fbrInitCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
     fbrInitTransform(&pCameraState->transformState);
     vec3 pos = {0, 0, -1};
     glm_vec3_copy(pos, pCameraState->transformState.pos);
-    createUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(FbrMVP));
+    fbrCreateUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(FbrMVP));
     fbrUpdateCameraUBO(pAppState->pCameraState);
 }
 
