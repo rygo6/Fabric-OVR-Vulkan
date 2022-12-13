@@ -3,6 +3,7 @@
 #include "fbr_buffer.h"
 #include "fbr_pipeline.h"
 #include "fbr_texture.h"
+#include "fbr_log.h"
 
 #include "cglm/cglm.h"
 #include "fbr_input.h"
@@ -22,7 +23,7 @@ const char *pRequiredExtensions[] = {
 };
 
 void fbrInitWindow(FbrApp *pApp) {
-    printf("%s - initializing  window!\n", __FUNCTION__);
+    FBR_LOG_DEBUG("initializing window!");
 
     glfwInit();
 
@@ -31,17 +32,17 @@ void fbrInitWindow(FbrApp *pApp) {
 
     pApp->pWindow = glfwCreateWindow(pApp->screenWidth, pApp->screenHeight, "Fabric", NULL, NULL);
     if (pApp->pWindow == NULL) {
-        printf("%s - unable to initialize GLFW Window!\n", __FUNCTION__);
+        FBR_LOG_ERROR("unable to initialize GLFW Window!");
     }
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
-              const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) {
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                    void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        printf("%s - validation layer: %s\n", __FUNCTION__, pCallbackData->pMessage);
+        FBR_LOG_DEBUG("validation layer", *pCallbackData->pMessage);
     }
-
     return VK_FALSE;
 }
 
@@ -101,7 +102,7 @@ static bool checkValidationLayerSupport() {
 
 static void createInstance(FbrApp *pApp) {
     if (pApp->enableValidationLayers && !checkValidationLayerSupport()) {
-        printf("%s - validation layers requested, but not available!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("validation layers requested, but not available!");
     }
 
     VkApplicationInfo appInfo = {
@@ -141,7 +142,7 @@ static void createInstance(FbrApp *pApp) {
     }
 
     if (vkCreateInstance(&createInfo, NULL, &pApp->instance) != VK_SUCCESS) {
-        printf("%s - unable to initialize Vulkan!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("unable to initialize Vulkan!");
     }
 }
 
@@ -165,13 +166,13 @@ static void setupDebugMessenger(FbrApp *pApp) {
     populateDebugMessengerCreateInfo(&createInfo);
 
     if (CreateDebugUtilsMessengerEXT(pApp->instance, &createInfo, NULL, &pApp->debugMessenger) != VK_SUCCESS) {
-        printf("%s - failed to set up debug messenger!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to set up debug messenger!");
     }
 }
 
 static bool createSurface(FbrApp *pApp) {
     if (glfwCreateWindowSurface(pApp->instance, pApp->pWindow, NULL, &pApp->surface) != VK_SUCCESS) {
-        printf("%s - failed to create window surface!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create window surface!");
         return false;
     }
 
@@ -183,7 +184,7 @@ static void pickPhysicalDevice(FbrApp *pApp) {
     vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, NULL);
 
     if (deviceCount == 0) {
-        printf("%s - failed to find GPUs with Vulkan support!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to find GPUs with Vulkan support!");
     }
 
     VkPhysicalDevice devices[deviceCount];
@@ -202,7 +203,7 @@ static bool findQueueFamilies(FbrApp *pApp) {
                                              (VkQueueFamilyProperties *) &queueFamilies);
 
     if (queueFamilyCount == 0) {
-        printf("%s - Failed to get queue properties.\n", __FUNCTION__);
+        FBR_LOG_DEBUG("Failed to get queue properties.");
     }
 
     // Taking a cue from SteamVR Vulkan example and just assuming queue that supports both graphics and present is the only one we want. Don't entirely know if that's right.
@@ -218,7 +219,7 @@ static bool findQueueFamilies(FbrApp *pApp) {
         }
     }
 
-    printf("%s - Failed to find a queue that supports both graphics and present!\n", __FUNCTION__);
+    FBR_LOG_DEBUG("Failed to find a queue that supports both graphics and present!");
     return false;
 }
 
@@ -261,7 +262,7 @@ static bool createLogicalDevice(FbrApp *pApp) {
     }
 
     if (vkCreateDevice(pApp->physicalDevice, &createInfo, NULL, &pApp->device) != VK_SUCCESS) {
-        printf("%s - failed to create logical device!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create logical device!");
         return false;
     }
 
@@ -349,8 +350,8 @@ static void createSwapChain(FbrApp *pApp) {
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
     VkExtent2D extent = chooseSwapExtent(pApp, capabilities);
 
-    printf("%s - min swap count %d\n", __FUNCTION__, capabilities.minImageCount);
-    printf("%s - max swap count %d\n", __FUNCTION__, capabilities.maxImageCount);
+    FBR_LOG_DEBUG("min swap count", capabilities.minImageCount);
+    FBR_LOG_DEBUG("max swap count", capabilities.maxImageCount);
 
     // Have a swap queue depth of at least three frames
     pApp->swapChainImageCount = capabilities.minImageCount;
@@ -361,7 +362,7 @@ static void createSwapChain(FbrApp *pApp) {
         // Application must settle for fewer images than desired:
         pApp->swapChainImageCount = capabilities.maxImageCount;
     }
-    printf("%s - swapChainImageCount selected count %d\n", __FUNCTION__, pApp->swapChainImageCount);
+    FBR_LOG_DEBUG("swapChainImageCount selected count", pApp->swapChainImageCount);
 
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
@@ -403,7 +404,7 @@ static void createSwapChain(FbrApp *pApp) {
     }
 
     if (vkCreateSwapchainKHR(pApp->device, &createInfo, NULL, &pApp->swapChain) != VK_SUCCESS) {
-        printf("%s - failed to create swap chain!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create swap chain!");
     }
 
     vkGetSwapchainImagesKHR(pApp->device, pApp->swapChain, &pApp->swapChainImageCount, NULL);
@@ -435,7 +436,7 @@ static void createImageViews(FbrApp *pApp) {
         };
 
         if (vkCreateImageView(pApp->device, &createInfo, NULL, &pApp->pSwapChainImageViews[i]) != VK_SUCCESS) {
-            printf("%s - failed to create image views!\n", __FUNCTION__);
+            FBR_LOG_DEBUG("failed to create image views!");
         }
     }
 }
@@ -484,7 +485,7 @@ static void createRenderPass(FbrApp *pApp) {
     };
 
     if (vkCreateRenderPass(pApp->device, &renderPassInfo, NULL, &pApp->renderPass) != VK_SUCCESS) {
-        printf("%s - failed to create render pass!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create render pass!");
     }
 }
 
@@ -508,7 +509,7 @@ static void createFramebuffers(FbrApp *pApp) {
 
         if (vkCreateFramebuffer(pApp->device, &framebufferInfo, NULL, &pApp->pSwapChainFramebuffers[i]) !=
             VK_SUCCESS) {
-            printf("%s - failed to create framebuffer!\n", __FUNCTION__);
+            FBR_LOG_DEBUG("failed to create framebuffer!");
         }
     }
 }
@@ -521,7 +522,7 @@ static void createCommandPool(FbrApp *pApp) {
     };
 
     if (vkCreateCommandPool(pApp->device, &poolInfo, NULL, &pApp->commandPool) != VK_SUCCESS) {
-        printf("%s - failed to create command pool!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create command pool!");
     }
 }
 
@@ -539,7 +540,7 @@ static void createDescriptorPool(FbrApp *pApp) {
     };
 
     if (vkCreateDescriptorPool(pApp->device, &poolInfo, NULL, &pApp->descriptorPool) != VK_SUCCESS) {
-        printf("%s - failed to create descriptor pool!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create descriptor pool!");
     }
 }
 
@@ -552,7 +553,7 @@ static void createCommandBuffer(FbrApp *pApp) {
     };
 
     if (vkAllocateCommandBuffers(pApp->device, &allocInfo, &pApp->commandBuffer) != VK_SUCCESS) {
-        printf("%s - failed to allocate command buffers!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to allocate command buffers!");
     }
 }
 
@@ -569,12 +570,12 @@ static void createSyncObjects(FbrApp *pApp) {
     if (vkCreateSemaphore(pApp->device, &semaphoreInfo, NULL, &pApp->imageAvailableSemaphore) != VK_SUCCESS ||
         vkCreateSemaphore(pApp->device, &semaphoreInfo, NULL, &pApp->renderFinishedSemaphore) != VK_SUCCESS ||
         vkCreateFence(pApp->device, &fenceInfo, NULL, &pApp->inFlightFence) != VK_SUCCESS) {
-        printf("%s - failed to create synchronization objects for a frame!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to create synchronization objects for a frame!");
     }
 }
 
 void fbrInitVulkan(FbrApp *pApp) {
-    printf("%s - initializing vulkan!\n", __FUNCTION__);
+    FBR_LOG_DEBUG("initializing vulkan!");
 
     // app
     createInstance(pApp);
@@ -610,7 +611,7 @@ static void recordCommandBuffer(FbrApp *pApp, uint32_t imageIndex) {
     };
 
     if (vkBeginCommandBuffer(pApp->commandBuffer, &beginInfo) != VK_SUCCESS) {
-        printf("%s - failed to begin recording command buffer!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to begin recording command buffer!");
     }
 
     VkRenderPassBeginInfo renderPassInfo = {
@@ -664,7 +665,7 @@ static void recordCommandBuffer(FbrApp *pApp, uint32_t imageIndex) {
     vkCmdEndRenderPass(pApp->commandBuffer);
 
     if (vkEndCommandBuffer(pApp->commandBuffer) != VK_SUCCESS) {
-        printf("%s - failed to record command buffer!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to record command buffer!");
     }
 }
 
@@ -706,7 +707,7 @@ static void drawFrame(FbrApp *pApp) {
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     if (vkQueueSubmit(pApp->queue, 1, &submitInfo, pApp->inFlightFence) != VK_SUCCESS) {
-        printf("%s - failed to submit draw command buffer!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("failed to submit draw command buffer!");
     }
 
     VkPresentInfoKHR presentInfo = {
@@ -726,7 +727,7 @@ static void drawFrame(FbrApp *pApp) {
 }
 
 void fbrMainLoop(FbrApp *pApp) {
-    printf("%s -  mainloop starting!\n", __FUNCTION__);
+    FBR_LOG_DEBUG("mainloop starting!");
 
     double lastFrameTime = glfwGetTime();
 
@@ -755,7 +756,8 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 }
 
 static void cleanupSwapChain(FbrApp *pApp) {
-    printf("%s - cleaning up swapchain!\n", __FUNCTION__);
+
+    FBR_LOG_DEBUG("cleaning up swapchain!");
 
     for (int i = 0; i < pApp->swapChainImageCount; ++i) {
         vkDestroyFramebuffer(pApp->device, pApp->pSwapChainFramebuffers[i], NULL);
@@ -769,7 +771,7 @@ static void cleanupSwapChain(FbrApp *pApp) {
 }
 
 void fbrCleanup(FbrApp *pApp) {
-    printf("%s - cleaning up !\n", __FUNCTION__);
+    FBR_LOG_DEBUG("cleaning up!");
 
     cleanupSwapChain(pApp);
 

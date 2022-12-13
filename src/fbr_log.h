@@ -1,9 +1,68 @@
 #ifndef FABRIC_LOG_H
 #define FABRIC_LOG_H
 
-#define fbrLogDebug(m) (printf("%s - %s\n", __FUNCTION__, m))
-#define fbrLogDebugInfo1(m, t0, i0) (printf("%s - %s - %s: "#t0"\n", __FUNCTION__, m, #i0, i0))
-#define fbrLogDebugInfo2(m, t0, i0, t1, i1) (printf("%s - %s - %s: "#t0" - %s: "#t1"\n", __FUNCTION__, m, #i0, i0, #i1, i1))
-#define fbrLogDebugInfo3(m, t0, i0, t1, i1, t2, i2) (printf("%s - %s - %s: "#t0" - %s: "#t1" - %s: "#t2"\n", __FUNCTION__, m, #i0, i0, #i1, i2, #i2, i2))
+#define FBR_LOG_TYPE_SPECIFIER(x) _Generic((x), \
+    _Bool: "%d", \
+    unsigned char: "%hhu", \
+    char: "%c", \
+    signed char: "%hd", \
+    short int: "%hi", \
+    unsigned short int: "%hu", \
+    int: "%d", \
+    unsigned int: "%u", \
+    long int: "%l", \
+    unsigned long int: "%lu", \
+    long long int: "%lli",\
+    unsigned long long int: "%llu", \
+    float: "%f", \
+    double: "%lf", \
+    long double: "%Lf", \
+    char *: "%p", \
+    void *: "%p", \
+    int *: "%p", \
+    default: "%%")
+
+// https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/preprocessor/macros/__VA_ARGS__/count-arguments
+#define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
+#define COUNT_ARGUMENTS(...) ELEVENTH_ARGUMENT(dummy, ## __VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define CONCAT(a, b) a ## b
+#define CONCAT2(a, b) CONCAT(a, b)
+
+#define FBR_LOG_ERROR(m) (printf("ERROR! %s - %s\n", __FUNCTION__, m))
+#define FBR_LOG_DEBUG(m, ...) CONCAT2(FBR_LOG_DEBUG_, COUNT_ARGUMENTS(__VA_ARGS__))(m, ##__VA_ARGS__)
+#define FBR_LOG_DEBUG_0(m) \
+    printf("%s - %s\n", __FUNCTION__, m);
+#define FBR_LOG_DEBUG_1(m, i0) \
+    printf("%s - %s - ", __FUNCTION__, m), \
+    printf("%s: ", #i0), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i0), \
+    printf("\n");
+#define FBR_LOG_DEBUG_2(m, i0, i1) \
+    printf("%s - %s - ", __FUNCTION__, m), \
+    printf("%s: ", #i0), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
+    printf("%s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i1), \
+    printf("\n");
+#define FBR_LOG_DEBUG_3(m, i0, i1, i2) \
+    printf("%s - %s - ", __FUNCTION__, m), \
+    printf("%s: ", #i0), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
+    printf("%s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i1), \
+    printf("%s: ", #i2), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i2), \
+    printf("\n");
+#define FBR_LOG_DEBUG_4(m, i0, i1, i2, i3) \
+    printf("%s - %s - ", __FUNCTION__, m), \
+    printf("%s: ", #i0), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
+    printf("%s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i1), \
+    printf("%s: ", #i2), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i2), \
+    printf("%s: ", #i3), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i3), \
+    printf("\n");
 
 #endif //FABRIC_LOG_H
