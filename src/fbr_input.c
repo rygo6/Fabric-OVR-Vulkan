@@ -2,19 +2,25 @@
 #include "fbr_log.h"
 
 #define STB_DS_IMPLEMENTATION
+
 #include "stb_ds.h"
 
 FbrInputEvent inputEvents[fbrInputEventBufferCount];
 int currentEventIndex;
 
-struct { int key; bool value; } *heldKeyMap = NULL;
-struct { int key; bool value; } *heldMouseButtonMap = NULL;
+struct {
+    int key;
+    bool value;
+} *heldKeyMap = NULL;
+struct {
+    int key;
+    bool value;
+} *heldMouseButtonMap = NULL;
 
 double lastXPos;
 double lastYPos;
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (action == GLFW_REPEAT)
         return;
 
@@ -29,8 +35,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 }
 
-static void cursor_position_callback(GLFWwindow* window, double xPos, double yPos)
-{
+static void cursor_position_callback(GLFWwindow *window, double xPos, double yPos) {
 //    fbrLogDebugInfo2("fbrMouseEvent position", %f, xPos, %f, yPos);
     inputEvents[currentEventIndex].type = FBR_MOUSE_POS_INPUT;
     inputEvents[currentEventIndex].mousePosInput.xPos = xPos;
@@ -42,8 +47,7 @@ static void cursor_position_callback(GLFWwindow* window, double xPos, double yPo
     currentEventIndex++;
 }
 
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
+static void mouse_button_callback(GLFWwindow *window, int button, int action, int mods) {
     if (action == GLFW_REPEAT)
         return;
 
@@ -62,31 +66,31 @@ int fbrInputEventCount() {
     return currentEventIndex;
 }
 
-const FbrInputEvent* fbrGetKeyEvent(int index){
+const FbrInputEvent *fbrGetKeyEvent(int index) {
     return &inputEvents[index];
 }
 
-void fbrInitInput(FbrAppState *pAppState) {
-    glfwSetKeyCallback(pAppState->pWindow, key_callback);
-    glfwSetCursorPosCallback(pAppState->pWindow, cursor_position_callback);
-    glfwSetMouseButtonCallback(pAppState->pWindow, mouse_button_callback);
+void fbrInitInput(FbrApp *pApp) {
+    glfwSetKeyCallback(pApp->pWindow, key_callback);
+    glfwSetCursorPosCallback(pApp->pWindow, cursor_position_callback);
+    glfwSetMouseButtonCallback(pApp->pWindow, mouse_button_callback);
 
     // set initial mouse pos so first delta calc is good
-    glfwGetCursorPos(pAppState->pWindow, &lastXPos, &lastYPos);
+    glfwGetCursorPos(pApp->pWindow, &lastXPos, &lastYPos);
 
-    glfwSetInputMode(pAppState->pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(pApp->pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    hmdefault(heldKeyMap, false);
-    hmdefault(heldMouseButtonMap, false);
+            hmdefault(heldKeyMap, false);
+            hmdefault(heldMouseButtonMap, false);
 }
 
-void fbrProcessInput(){
+void fbrProcessInput() {
     // Get key presses from last frame and store them in hashmap to add to event buffer as held events
     for (int i = 0; i < currentEventIndex; ++i) {
         switch (inputEvents[i].type) {
             case FBR_NO_INPUT:
                 break;
-            case FBR_KEY_INPUT:{
+            case FBR_KEY_INPUT: {
                 if (inputEvents[i].keyInput.action == GLFW_PRESS) {
                     hmput(heldKeyMap, inputEvents[i].keyInput.key, true);
                 }
@@ -95,7 +99,7 @@ void fbrProcessInput(){
             case FBR_MOUSE_POS_INPUT:
                 break;
             case FBR_MOUSE_BUTTON_INPUT: {
-                if (inputEvents[i].mouseButtonInput.action == GLFW_PRESS){
+                if (inputEvents[i].mouseButtonInput.action == GLFW_PRESS) {
                     hmput(heldMouseButtonMap, inputEvents[i].mouseButtonInput.button, true);
                 }
                 break;
@@ -106,14 +110,14 @@ void fbrProcessInput(){
     currentEventIndex = 0;
     glfwPollEvents();
 
-    for (int i = 0; i < hmlen(heldKeyMap); ++i){
+    for (int i = 0; i < hmlen(heldKeyMap); ++i) {
         inputEvents[currentEventIndex].type = FBR_KEY_INPUT;
         inputEvents[currentEventIndex].keyInput.key = heldKeyMap[i].key;
         inputEvents[currentEventIndex].keyInput.action = FBR_HELD;
         currentEventIndex++;
     }
 
-    for (int i = 0; i < hmlen(heldMouseButtonMap); ++i){
+    for (int i = 0; i < hmlen(heldMouseButtonMap); ++i) {
         inputEvents[currentEventIndex].type = FBR_MOUSE_BUTTON_INPUT;
         inputEvents[currentEventIndex].mouseButtonInput.button = heldMouseButtonMap[i].key;
         inputEvents[currentEventIndex].mouseButtonInput.action = FBR_HELD;

@@ -43,9 +43,9 @@ typedef struct FbrInputEvent {
 
 int fbrInputEventCount();
 
-const FbrInputEvent* fbrGetKeyEvent(int index);
+const FbrInputEvent *fbrGetKeyEvent(int index);
 
-void fbrInitInput(FbrAppState *pAppState);
+void fbrInitInput(FbrApp *pApp);
 
 void fbrProcessInput();
 

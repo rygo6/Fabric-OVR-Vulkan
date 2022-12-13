@@ -6,18 +6,18 @@
 typedef struct FbrComponent {
 } FbrComponent;
 
-typedef struct FbrTransformState {
+typedef struct FbrTransform {
     vec3 pos;
     versor rot;
     mat4 matrix;
-} FbrTransformState;
+} FbrTransform;
 
-typedef struct FbrEntityState {
+typedef struct FbrEntity {
     int entityId;
-} FbrEntityState;
+} FbrEntity;
 
-void fbrInitTransform(FbrTransformState *transformState);
+void fbrInitTransform(FbrTransform *transformState);
 
-void fbrUpdateTransformMatrix(FbrTransformState *transformState);
+void fbrUpdateTransformMatrix(FbrTransform *transformState);
 
 #endif //FABRIC_TRANSFORM_H

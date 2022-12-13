@@ -8,7 +8,8 @@ typedef struct FbrTexture {
     VkDeviceMemory imageMemory;
 } FbrTexture;
 
-void fbrCreateTexture(FBR_APP_PARAM, FbrTexture** ppAllocTexture);
-void fbrCleanupTexture(FBR_APP_PARAM, FbrTexture* pTexture);
+void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture);
+
+void fbrCleanupTexture(const FbrApp *pApp, FbrTexture *pTexture);
 
 #endif //FABRIC_TEXTURE_H

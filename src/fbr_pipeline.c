@@ -24,7 +24,7 @@ static char *readBinaryFile(const char *filename, uint32_t *length) {
     return contents;
 }
 
-static VkShaderModule createShaderModule(const FbrAppState *pAppState, const char* code, const uint32_t codeLength) {
+static VkShaderModule createShaderModule(const FbrApp *pApp, const char *code, const uint32_t codeLength) {
     VkShaderModuleCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = codeLength,
@@ -32,14 +32,14 @@ static VkShaderModule createShaderModule(const FbrAppState *pAppState, const cha
     };
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(pAppState->device, &createInfo, NULL, &shaderModule) != VK_SUCCESS) {
+    if (vkCreateShaderModule(pApp->device, &createInfo, NULL, &shaderModule) != VK_SUCCESS) {
         printf("%s - failed to create shader module! %s\n", __FUNCTION__, code);
     }
 
     return shaderModule;
 }
 
-static void initDescriptorSetLayout(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
+static void initDescriptorSetLayout(const FbrApp *pApp, FbrPipeline *pPipeline) {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -54,24 +54,24 @@ static void initDescriptorSetLayout(const FbrAppState *pAppState, FbrPipeline* p
             .pBindings = &uboLayoutBinding,
     };
 
-    if (vkCreateDescriptorSetLayout(pAppState->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(pApp->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout) != VK_SUCCESS) {
         printf("%s - failed to create descriptor set layout!\n", __FUNCTION__);
     }
 }
 
-static void initPipelineLayout(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
+static void initPipelineLayout(const FbrApp *pApp, FbrPipeline *pPipeline) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = &pPipeline->descriptorSetLayout,
     };
 
-    if (vkCreatePipelineLayout(pAppState->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(pApp->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
         printf("%s - failed to create pipeline layout!\n", __FUNCTION__);
     }
 }
 
-static void initDescriptorSets(const FbrAppState* pState, const FbrCameraState *pCameraState, FbrPipeline* pPipeline) {
+static void initDescriptorSets(const FbrApp *pState, const FbrCamera *pCameraState, FbrPipeline *pPipeline) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pState->descriptorPool,
@@ -102,15 +102,14 @@ static void initDescriptorSets(const FbrAppState* pState, const FbrCameraState *
     vkUpdateDescriptorSets(pState->device, 1, &descriptorWrite, 0, NULL);
 }
 
-static void initPipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
-
+static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
     uint32_t vertLength;
-    char* vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
+    char *vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
     uint32_t fragLength;
-    char* fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
+    char *fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
 
-    VkShaderModule vertShaderModule = createShaderModule(pAppState, vertShaderCode, vertLength);
-    VkShaderModule fragShaderModule = createShaderModule(pAppState, fragShaderCode, fragLength);
+    VkShaderModule vertShaderModule = createShaderModule(pApp, vertShaderCode, vertLength);
+    VkShaderModule fragShaderModule = createShaderModule(pApp, fragShaderCode, fragLength);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -184,7 +183,8 @@ static void initPipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
     };
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment = {
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                              VK_COLOR_COMPONENT_A_BIT,
             .blendEnable = VK_FALSE,
     };
 
@@ -223,34 +223,36 @@ static void initPipeline(const FbrAppState *pAppState, FbrPipeline* pPipeline) {
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
             .layout = pPipeline->pipelineLayout,
-            .renderPass = pAppState->renderPass,
+            .renderPass =  pApp->renderPass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
     };
 
-    if (vkCreateGraphicsPipelines(pAppState->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(pApp->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) !=
+        VK_SUCCESS) {
         printf("%s - failed to create graphics pipeline!\n", __FUNCTION__);
     }
 
-    vkDestroyShaderModule(pAppState->device, fragShaderModule, NULL);
-    vkDestroyShaderModule(pAppState->device, vertShaderModule, NULL);
+    vkDestroyShaderModule(pApp->device, fragShaderModule, NULL);
+    vkDestroyShaderModule(pApp->device, vertShaderModule, NULL);
     free(vertShaderCode);
     free(fragShaderCode);
 }
 
-void fbrCreatePipeline(const FbrAppState* restrict pAppState, const FbrCameraState* restrict pCameraState, FbrPipeline** restrict ppAllocPipeline) {
+void fbrCreatePipeline(const FbrApp *pApp,
+                       const FbrCamera *pCameraState,
+                       FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
-
-    initDescriptorSetLayout(pAppState, pPipeline);
-    initPipelineLayout(pAppState, pPipeline);
-    initPipeline(pAppState, pPipeline);
-    initDescriptorSets(pAppState, pCameraState, pPipeline);
+    initDescriptorSetLayout(pApp, pPipeline);
+    initPipelineLayout(pApp, pPipeline);
+    initPipeline(pApp, pPipeline);
+    initDescriptorSets(pApp, pCameraState, pPipeline);
 }
 
-void fbrFreePipeline(const FbrAppState* restrict pAppState, FbrPipeline* restrict pPipeline) {
-    vkDestroyDescriptorSetLayout(pAppState->device, pAppState->pPipeline->descriptorSetLayout, NULL);
-    vkDestroyPipeline(pAppState->device, pAppState->pPipeline->graphicsPipeline, NULL);
-    vkDestroyPipelineLayout(pAppState->device, pAppState->pPipeline->pipelineLayout, NULL);
+void fbrFreePipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
+    vkDestroyDescriptorSetLayout(pApp->device, pApp->pPipeline->descriptorSetLayout, NULL);
+    vkDestroyPipeline(pApp->device, pApp->pPipeline->graphicsPipeline, NULL);
+    vkDestroyPipelineLayout(pApp->device, pApp->pPipeline->pipelineLayout, NULL);
     free(pPipeline);
 }

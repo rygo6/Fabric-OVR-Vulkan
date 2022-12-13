@@ -12,17 +12,17 @@
 #include <string.h>
 
 const uint32_t validationLayersCount = 1;
-const char* pValidationLayers[] = {
+const char *pValidationLayers[] = {
         "VK_LAYER_KHRONOS_validation"
 };
 
 const uint32_t requiredExtensionCount = 1;
-const char* pRequiredExtensions[] = {
+const char *pRequiredExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-void fbrInitWindow(FbrAppState* pState) {
-    printf( "%s - initializing  window!\n", __FUNCTION__ );
+void fbrInitWindow(FbrApp *pState) {
+    printf("%s - initializing  window!\n", __FUNCTION__);
 
     glfwInit();
 
@@ -31,35 +31,41 @@ void fbrInitWindow(FbrAppState* pState) {
 
     pState->pWindow = glfwCreateWindow(pState->screenWidth, pState->screenHeight, "Fabric", NULL, NULL);
     if (pState->pWindow == NULL) {
-        printf( "%s - unable to initialize GLFW Window!\n", __FUNCTION__ );
+        printf("%s - unable to initialize GLFW Window!\n", __FUNCTION__);
     }
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+              const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        printf( "%s - validation layer: %s\n", __FUNCTION__, pCallbackData->pMessage);
+        printf("%s - validation layer: %s\n", __FUNCTION__, pCallbackData->pMessage);
     }
 
     return VK_FALSE;
 }
 
-static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo) {
+static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo) {
     pCreateInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    pCreateInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    pCreateInfo->messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    pCreateInfo->messageSeverity =
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    pCreateInfo->messageType =
+            VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     pCreateInfo->pfnUserCallback = debugCallback;
 }
 
-static void getRequiredExtensions(FbrAppState *pState, uint32_t* extensionCount, const char** pExtensions) {
+static void getRequiredExtensions(FbrApp *pState, uint32_t *extensionCount, const char **pExtensions) {
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    if (pExtensions == NULL){
+    if (pExtensions == NULL) {
         *extensionCount = glfwExtensionCount + (pState->enableValidationLayers ? 1 : 0);
         return;
     }
 
-    for (int i = 0; i < glfwExtensionCount; ++i){
+    for (int i = 0; i < glfwExtensionCount; ++i) {
         pExtensions[i] = glfwExtensions[i];
     }
 
@@ -73,7 +79,7 @@ static bool checkValidationLayerSupport() {
     vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL);
 
     VkLayerProperties availableLayers[availableLayerCount];
-    vkEnumerateInstanceLayerProperties(&availableLayerCount,availableLayers);
+    vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers);
 
     for (int i = 0; i < validationLayersCount; ++i) {
         bool layerFound = false;
@@ -93,9 +99,9 @@ static bool checkValidationLayerSupport() {
     return true;
 }
 
-static void createInstance(FbrAppState* pState) {
+static void createInstance(FbrApp *pState) {
     if (pState->enableValidationLayers && !checkValidationLayerSupport()) {
-        printf( "%s - validation layers requested, but not available!\n", __FUNCTION__ );
+        printf("%s - validation layers requested, but not available!\n", __FUNCTION__);
     }
 
     VkApplicationInfo appInfo = {
@@ -115,7 +121,7 @@ static void createInstance(FbrAppState* pState) {
     uint32_t extensionCount = 0;
     getRequiredExtensions(pState, &extensionCount, NULL);
 
-    const char* extensions[extensionCount];
+    const char *extensions[extensionCount];
     getRequiredExtensions(pState, &extensionCount, extensions);
 
     createInfo.enabledExtensionCount = extensionCount;
@@ -128,19 +134,22 @@ static void createInstance(FbrAppState* pState) {
         createInfo.ppEnabledLayerNames = pValidationLayers;
 
         populateDebugMessengerCreateInfo(&debugCreateInfo);
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *) &debugCreateInfo;
     } else {
         createInfo.enabledLayerCount = 0;
         createInfo.pNext = NULL;
     }
 
     if (vkCreateInstance(&createInfo, NULL, &pState->instance) != VK_SUCCESS) {
-        printf( "%s - unable to initialize Vulkan!\n", __FUNCTION__ );
+        printf("%s - unable to initialize Vulkan!\n", __FUNCTION__);
     }
 }
 
-static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-    PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+                                             const VkAllocationCallbacks *pAllocator,
+                                             VkDebugUtilsMessengerEXT *pDebugMessenger) {
+    PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+                                                                                                         "vkCreateDebugUtilsMessengerEXT");
     if (func != NULL) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
     } else {
@@ -148,7 +157,7 @@ static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugU
     }
 }
 
-static void setupDebugMessenger(FbrAppState * pState) {
+static void setupDebugMessenger(FbrApp *pState) {
     if (!pState->enableValidationLayers)
         return;
 
@@ -156,25 +165,25 @@ static void setupDebugMessenger(FbrAppState * pState) {
     populateDebugMessengerCreateInfo(&createInfo);
 
     if (CreateDebugUtilsMessengerEXT(pState->instance, &createInfo, NULL, &pState->debugMessenger) != VK_SUCCESS) {
-        printf( "%s - failed to set up debug messenger!\n", __FUNCTION__ );
+        printf("%s - failed to set up debug messenger!\n", __FUNCTION__);
     }
 }
 
-static bool createSurface(FbrAppState* pState) {
+static bool createSurface(FbrApp *pState) {
     if (glfwCreateWindowSurface(pState->instance, pState->pWindow, NULL, &pState->surface) != VK_SUCCESS) {
-        printf( "%s - failed to create window surface!\n", __FUNCTION__ );
+        printf("%s - failed to create window surface!\n", __FUNCTION__);
         return false;
     }
 
     return true;
 }
 
-static void pickPhysicalDevice(FbrAppState* pState) {
+static void pickPhysicalDevice(FbrApp *pState) {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(pState->instance, &deviceCount, NULL);
 
     if (deviceCount == 0) {
-        printf( "%s - failed to find GPUs with Vulkan support!\n", __FUNCTION__ );
+        printf("%s - failed to find GPUs with Vulkan support!\n", __FUNCTION__);
     }
 
     VkPhysicalDevice devices[deviceCount];
@@ -185,15 +194,15 @@ static void pickPhysicalDevice(FbrAppState* pState) {
     pState->physicalDevice = devices[0];
 }
 
-static bool findQueueFamilies(FbrAppState* pState) {
+static bool findQueueFamilies(FbrApp *pState) {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(pState->physicalDevice, &queueFamilyCount, NULL);
     VkQueueFamilyProperties queueFamilies[queueFamilyCount];
-    vkGetPhysicalDeviceQueueFamilyProperties(pState->physicalDevice, &queueFamilyCount, (VkQueueFamilyProperties *) &queueFamilies);
+    vkGetPhysicalDeviceQueueFamilyProperties(pState->physicalDevice, &queueFamilyCount,
+                                             (VkQueueFamilyProperties *) &queueFamilies);
 
-    if ( queueFamilyCount == 0 )
-    {
-        printf( "%s - Failed to get queue properties.\n", __FUNCTION__ );
+    if (queueFamilyCount == 0) {
+        printf("%s - Failed to get queue properties.\n", __FUNCTION__);
     }
 
     // Taking a cue from SteamVR Vulkan example and just assuming queue that supports both graphics and present is the only one we want. Don't entirely know if that's right.
@@ -209,18 +218,18 @@ static bool findQueueFamilies(FbrAppState* pState) {
         }
     }
 
-    printf( "%s - Failed to find a queue that supports both graphics and present!\n", __FUNCTION__ );
+    printf("%s - Failed to find a queue that supports both graphics and present!\n", __FUNCTION__);
     return false;
 }
 
-static bool createLogicalDevice(FbrAppState* pState) {
-    if (!findQueueFamilies(pState)){
+static bool createLogicalDevice(FbrApp *pState) {
+    if (!findQueueFamilies(pState)) {
         return false;
     }
 
     const uint32_t queueFamilyCount = 1;
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
-    uint32_t uniqueQueueFamilies[] = {pState->graphicsQueueFamilyIndex };
+    uint32_t uniqueQueueFamilies[] = {pState->graphicsQueueFamilyIndex};
 
     float queuePriority = 1.0f;
     for (int i = 0; i < queueFamilyCount; ++i) {
@@ -252,7 +261,7 @@ static bool createLogicalDevice(FbrAppState* pState) {
     }
 
     if (vkCreateDevice(pState->physicalDevice, &createInfo, NULL, &pState->device) != VK_SUCCESS) {
-        printf( "%s - failed to create logical device!\n", __FUNCTION__ );
+        printf("%s - failed to create logical device!\n", __FUNCTION__);
         return false;
     }
 
@@ -264,7 +273,8 @@ static bool createLogicalDevice(FbrAppState* pState) {
 static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableFormats, uint32_t formatCount) {
     // Favor sRGB if it's available
     for (int i = 0; i < formatCount; ++i) {
-        if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
+            availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             return availableFormats[i];
         }
     }
@@ -273,7 +283,8 @@ static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableF
     return availableFormats[0];
 }
 
-static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t presentModeCount) {
+static VkPresentModeKHR
+chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t presentModeCount) {
     // This logic taken from OVR Vulkan Example
     // VK_PRESENT_MODE_FIFO_KHR - equivalent of eglSwapInterval(1).  The presentation engine waits for the next vertical blanking period to update
     // the current image. Tearing cannot be observed. This mode must be supported by all implementations.
@@ -285,20 +296,15 @@ static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availableP
         // 2. VK_PRESENT_MODE_MAILBOX_KHR - The presentation engine waits for the next vertical blanking period to update the current image. Tearing cannot be observed.
         //                                  An internal single-entry queue is used to hold pending presentation requests.
         // 3. VK_PRESENT_MODE_FIFO_RELAXED_KHR - equivalent of eglSwapInterval(-1).
-        if ( availablePresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR )
-        {
+        if (availablePresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
             // The presentation engine does not wait for a vertical blanking period to update the
             // current image, meaning this mode may result in visible tearing
             swapChainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
             break;
-        }
-        else if ( availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR )
-        {
+        } else if (availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
             swapChainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-        }
-        else if ( ( swapChainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR ) &&
-                  ( availablePresentModes[i] == VK_PRESENT_MODE_FIFO_RELAXED_KHR ) )
-        {
+        } else if ((swapChainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) &&
+                   (availablePresentModes[i] == VK_PRESENT_MODE_FIFO_RELAXED_KHR)) {
             // VK_PRESENT_MODE_FIFO_RELAXED_KHR - equivalent of eglSwapInterval(-1)
             swapChainPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
         }
@@ -307,17 +313,14 @@ static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availableP
     return swapChainPresentMode;
 }
 
-static VkExtent2D chooseSwapExtent(FbrAppState* pState, const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D chooseSwapExtent(FbrApp *pState, const VkSurfaceCapabilitiesKHR capabilities) {
     // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
     VkExtent2D extents;
-    if ( capabilities.currentExtent.width == -1 )
-    {
+    if (capabilities.currentExtent.width == -1) {
         // If the surface size is undefined, the size is set to the size of the images requested.
         extents.width = pState->screenWidth;
         extents.height = pState->screenHeight;
-    }
-    else
-    {
+    } else {
         // If the surface size is defined, the swap chain size must match
         extents = capabilities.currentExtent;
     }
@@ -325,7 +328,7 @@ static VkExtent2D chooseSwapExtent(FbrAppState* pState, const VkSurfaceCapabilit
     return extents;
 }
 
-static void createSwapChain(FbrAppState* pState) {
+static void createSwapChain(FbrApp *pState) {
     // Logic from OVR Vulkan example
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pState->physicalDevice, pState->surface, &capabilities);
@@ -333,51 +336,45 @@ static void createSwapChain(FbrAppState* pState) {
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(pState->physicalDevice, pState->surface, &formatCount, NULL);
     VkSurfaceFormatKHR formats[formatCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pState->physicalDevice, pState->surface, &formatCount, (VkSurfaceFormatKHR *) &formats);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(pState->physicalDevice, pState->surface, &formatCount,
+                                         (VkSurfaceFormatKHR *) &formats);
 
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(pState->physicalDevice, pState->surface, &presentModeCount, NULL);
     VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pState->physicalDevice, pState->surface, &presentModeCount,(VkPresentModeKHR *) &presentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(pState->physicalDevice, pState->surface, &presentModeCount,
+                                              (VkPresentModeKHR *) &presentModes);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
     VkExtent2D extent = chooseSwapExtent(pState, capabilities);
 
-    printf( "%s - min swap count %d\n", __FUNCTION__, capabilities.minImageCount );
-    printf( "%s - max swap count %d\n", __FUNCTION__, capabilities.maxImageCount );
+    printf("%s - min swap count %d\n", __FUNCTION__, capabilities.minImageCount);
+    printf("%s - max swap count %d\n", __FUNCTION__, capabilities.maxImageCount);
 
     // Have a swap queue depth of at least three frames
     pState->swapChainImageCount = capabilities.minImageCount;
-    if ( pState->swapChainImageCount < 2 )
-    {
+    if (pState->swapChainImageCount < 2) {
         pState->swapChainImageCount = 2;
     }
-    if ( ( capabilities.maxImageCount > 0 ) && ( pState->swapChainImageCount > capabilities.maxImageCount ) )
-    {
+    if ((capabilities.maxImageCount > 0) && (pState->swapChainImageCount > capabilities.maxImageCount)) {
         // Application must settle for fewer images than desired:
         pState->swapChainImageCount = capabilities.maxImageCount;
     }
-    printf( "%s - swapChainImageCount selected count %d\n", __FUNCTION__, pState->swapChainImageCount );
+    printf("%s - swapChainImageCount selected count %d\n", __FUNCTION__, pState->swapChainImageCount);
 
     VkSurfaceTransformFlagsKHR preTransform;
-    if ( capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR )
-    {
+    if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
         preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    }
-    else
-    {
+    } else {
         preTransform = capabilities.currentTransform;
     }
 
     VkImageUsageFlags nImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    if ( ( capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT ) )
-    {
+    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
         nImageUsageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    }
-    else
-    {
-        printf( "Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n" );
+    } else {
+        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
     }
 
     VkSwapchainCreateInfoKHR createInfo = {
@@ -396,33 +393,29 @@ static void createSwapChain(FbrAppState* pState) {
             .presentMode = presentMode,
             .clipped = VK_TRUE
     };
-    if ( ( capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR ) != 0 )
-    {
+    if ((capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) != 0) {
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    }
-    else if ( ( capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR ) != 0 )
-    {
+    } else if ((capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) != 0) {
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
-    }
-    else
-    {
-        printf( "Unexpected value for VkSurfaceCapabilitiesKHR.compositeAlpha: %x\n", capabilities.supportedCompositeAlpha );
+    } else {
+        printf("Unexpected value for VkSurfaceCapabilitiesKHR.compositeAlpha: %x\n",
+               capabilities.supportedCompositeAlpha);
     }
 
     if (vkCreateSwapchainKHR(pState->device, &createInfo, NULL, &pState->swapChain) != VK_SUCCESS) {
-        printf( "%s - failed to create swap chain!\n", __FUNCTION__ );
+        printf("%s - failed to create swap chain!\n", __FUNCTION__);
     }
 
     vkGetSwapchainImagesKHR(pState->device, pState->swapChain, &pState->swapChainImageCount, NULL);
-    pState->pSwapChainImages = calloc(pState->swapChainImageCount,sizeof(VkImage));
+    pState->pSwapChainImages = calloc(pState->swapChainImageCount, sizeof(VkImage));
     vkGetSwapchainImagesKHR(pState->device, pState->swapChain, &pState->swapChainImageCount, pState->pSwapChainImages);
 
     pState->swapChainImageFormat = surfaceFormat.format;
     pState->swapChainExtent = extent;
 }
 
-static void createImageViews(FbrAppState* pState) {
-    pState->pSwapChainImageViews =  calloc(pState->swapChainImageCount,sizeof(VkImageView));
+static void createImageViews(FbrApp *pState) {
+    pState->pSwapChainImageViews = calloc(pState->swapChainImageCount, sizeof(VkImageView));
 
     for (size_t i = 0; i < pState->swapChainImageCount; i++) {
         VkImageViewCreateInfo createInfo = {
@@ -442,12 +435,12 @@ static void createImageViews(FbrAppState* pState) {
         };
 
         if (vkCreateImageView(pState->device, &createInfo, NULL, &pState->pSwapChainImageViews[i]) != VK_SUCCESS) {
-            printf( "%s - failed to create image views!\n", __FUNCTION__ );
+            printf("%s - failed to create image views!\n", __FUNCTION__);
         }
     }
 }
 
-static void createRenderPass(FbrAppState* pState) {
+static void createRenderPass(FbrApp *pState) {
     VkAttachmentDescription colorAttachment = {
             .format = pState->swapChainImageFormat,
             .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -495,7 +488,7 @@ static void createRenderPass(FbrAppState* pState) {
     }
 }
 
-static void createFramebuffers(FbrAppState* pState) {
+static void createFramebuffers(FbrApp *pState) {
     pState->pSwapChainFramebuffers = calloc(pState->swapChainImageCount, sizeof(VkFramebuffer));
 
     for (size_t i = 0; i < pState->swapChainImageCount; i++) {
@@ -513,13 +506,14 @@ static void createFramebuffers(FbrAppState* pState) {
                 .layers = 1,
         };
 
-        if (vkCreateFramebuffer(pState->device, &framebufferInfo, NULL, &pState->pSwapChainFramebuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(pState->device, &framebufferInfo, NULL, &pState->pSwapChainFramebuffers[i]) !=
+            VK_SUCCESS) {
             printf("%s - failed to create framebuffer!\n", __FUNCTION__);
         }
     }
 }
 
-static void createCommandPool(FbrAppState* pState) {
+static void createCommandPool(FbrApp *pState) {
     VkCommandPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -531,7 +525,7 @@ static void createCommandPool(FbrAppState* pState) {
     }
 }
 
-static void createDescriptorPool(FbrAppState* pState) {
+static void createDescriptorPool(FbrApp *pState) {
     VkDescriptorPoolSize poolSize = {
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
@@ -549,7 +543,7 @@ static void createDescriptorPool(FbrAppState* pState) {
     }
 }
 
-static void createCommandBuffer(FbrAppState* pState) {
+static void createCommandBuffer(FbrApp *pState) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool = pState->commandPool,
@@ -562,7 +556,7 @@ static void createCommandBuffer(FbrAppState* pState) {
     }
 }
 
-static void createSyncObjects(FbrAppState* pState) {
+static void createSyncObjects(FbrApp *pState) {
     VkSemaphoreCreateInfo semaphoreInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
@@ -579,8 +573,8 @@ static void createSyncObjects(FbrAppState* pState) {
     }
 }
 
-void fbrInitVulkan(FbrAppState* pState) {
-    printf( "%s - initializing vulkan!\n", __FUNCTION__ );
+void fbrInitVulkan(FbrApp *pState) {
+    printf("%s - initializing vulkan!\n", __FUNCTION__);
 
     // app
     createInstance(pState);
@@ -602,15 +596,15 @@ void fbrInitVulkan(FbrAppState* pState) {
     createDescriptorPool(pState);
 
     // entities
-    fbrCreateCamera(pState, &pState->pCameraState);
-    fbrCreateMesh(pState, &pState->pMeshState);
+    fbrCreateCamera(pState, &pState->pCamera);
+    fbrCreateMesh(pState, &pState->pMesh);
     fbrCreateTexture(pState, &pState->pTexture);
 
     // Pipeline
-    fbrCreatePipeline(pState, pState->pCameraState,  &pState->pPipeline);
+    fbrCreatePipeline(pState, pState->pCamera, &pState->pPipeline);
 }
 
-static void recordCommandBuffer(FbrAppState* pState, uint32_t imageIndex) {
+static void recordCommandBuffer(FbrApp *pState, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo = {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
@@ -651,10 +645,10 @@ static void recordCommandBuffer(FbrAppState* pState, uint32_t imageIndex) {
         };
         vkCmdSetScissor(pState->commandBuffer, 0, 1, &scissor);
 
-        VkBuffer vertexBuffers[] = {pState->pMeshState->vertexBuffer};
+        VkBuffer vertexBuffers[] = {pState->pMesh->vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(pState->commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(pState->commandBuffer, pState->pMeshState->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(pState->commandBuffer, pState->pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(pState->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -674,21 +668,22 @@ static void recordCommandBuffer(FbrAppState* pState, uint32_t imageIndex) {
     }
 }
 
-static void waitForLastFrame(FbrAppState* pState) {
+static void waitForLastFrame(FbrApp *pState) {
     vkWaitForFences(pState->device, 1, &pState->inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(pState->device, 1, &pState->inFlightFence);
 }
 
-static void processInputFrame(FbrAppState* pState) {
+static void processInputFrame(FbrApp *pState) {
     fbrProcessInput();
-    for (int i = 0; i < fbrInputEventCount(); ++i){
-        fbrUpdateCamera(pState->pCameraState,fbrGetKeyEvent(i), pState->pTimeState);
+    for (int i = 0; i < fbrInputEventCount(); ++i) {
+        fbrUpdateCamera(pState->pCamera, fbrGetKeyEvent(i), pState->pTime);
     }
 }
 
-static void drawFrame(FbrAppState* pState) {
+static void drawFrame(FbrApp *pState) {
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(pState->device, pState->swapChain, UINT64_MAX, pState->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    vkAcquireNextImageKHR(pState->device, pState->swapChain, UINT64_MAX, pState->imageAvailableSemaphore,
+                          VK_NULL_HANDLE, &imageIndex);
 
     vkResetCommandBuffer(pState->commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
     recordCommandBuffer(pState, imageIndex);
@@ -730,34 +725,36 @@ static void drawFrame(FbrAppState* pState) {
     vkQueuePresentKHR(pState->queue, &presentInfo);
 }
 
-void fbrMainLoop(FbrAppState* pState) {
-    printf( "%s -  mainloop starting!\n", __FUNCTION__ );
+void fbrMainLoop(FbrApp *pState) {
+    printf("%s -  mainloop starting!\n", __FUNCTION__);
 
     double lastFrameTime = glfwGetTime();
 
     while (!glfwWindowShouldClose(pState->pWindow)) {
 
-        pState->pTimeState->currentTime = glfwGetTime();
-        pState->pTimeState->deltaTime = pState->pTimeState->currentTime - lastFrameTime;
-        lastFrameTime = pState->pTimeState->currentTime;
+        pState->pTime->currentTime = glfwGetTime();
+        pState->pTime->deltaTime = pState->pTime->currentTime - lastFrameTime;
+        lastFrameTime = pState->pTime->currentTime;
 
         waitForLastFrame(pState);
         processInputFrame(pState);
-        fbrMeshUpdateCameraUBO(pState->pMeshState, pState->pCameraState); //todo I dont like this
+        fbrMeshUpdateCameraUBO(pState->pMesh, pState->pCamera); //todo I dont like this
         drawFrame(pState);
     }
 
     vkDeviceWaitIdle(pState->device);
 }
 
-static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-    PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
+                                          const VkAllocationCallbacks *pAllocator) {
+    PFN_vkDestroyDebugUtilsMessengerEXT func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+                                                                                                           "vkDestroyDebugUtilsMessengerEXT");
     if (func != NULL) {
         func(instance, debugMessenger, pAllocator);
     }
 }
 
-static void cleanupSwapChain(FbrAppState* pState) {
+static void cleanupSwapChain(FbrApp *pState) {
     printf("%s - cleaning up swapchain!\n", __FUNCTION__);
 
     for (int i = 0; i < pState->swapChainImageCount; ++i) {
@@ -771,44 +768,44 @@ static void cleanupSwapChain(FbrAppState* pState) {
     vkDestroySwapchainKHR(pState->device, pState->swapChain, NULL);
 }
 
-void fbrCleanup(FbrAppState *restrict pAppState) {
+void fbrCleanup(FbrApp *pApp) {
     printf("%s - cleaning up !\n", __FUNCTION__);
 
-    cleanupSwapChain(pAppState);
+    cleanupSwapChain(pApp);
 
-    fbrCleanupTexture(pAppState, pAppState->pTexture);
+    fbrCleanupTexture(pApp, pApp->pTexture);
 
-    fbrFreeCamera(pAppState, pAppState->pCameraState);
+    fbrFreeCamera(pApp, pApp->pCamera);
 
-    vkDestroyDescriptorPool(pAppState->device, pAppState->descriptorPool, NULL);
+    vkDestroyDescriptorPool(pApp->device, pApp->descriptorPool, NULL);
 
-    fbrFreePipeline(pAppState, pAppState->pPipeline);
+    fbrFreePipeline(pApp, pApp->pPipeline);
 
-    vkDestroyRenderPass(pAppState->device, pAppState->renderPass, NULL);
+    vkDestroyRenderPass(pApp->device, pApp->renderPass, NULL);
 
-    free(pAppState->pSwapChainImages);
-    free(pAppState->pSwapChainImageViews);
+    free(pApp->pSwapChainImages);
+    free(pApp->pSwapChainImageViews);
 
-    fbrFreeMesh((const FbrAppState *) pAppState->device, pAppState->pMeshState);
+    fbrFreeMesh((const FbrApp *) pApp->device, pApp->pMesh);
 
-    vkDestroySemaphore(pAppState->device, pAppState->renderFinishedSemaphore, NULL);
-    vkDestroySemaphore(pAppState->device, pAppState->imageAvailableSemaphore, NULL);
-    vkDestroyFence(pAppState->device, pAppState->inFlightFence, NULL);
+    vkDestroySemaphore(pApp->device, pApp->renderFinishedSemaphore, NULL);
+    vkDestroySemaphore(pApp->device, pApp->imageAvailableSemaphore, NULL);
+    vkDestroyFence(pApp->device, pApp->inFlightFence, NULL);
 
-    vkDestroyCommandPool(pAppState->device, pAppState->commandPool, NULL);
+    vkDestroyCommandPool(pApp->device, pApp->commandPool, NULL);
 
-    vkDestroyDevice(pAppState->device, NULL);
+    vkDestroyDevice(pApp->device, NULL);
 
-    if (pAppState->enableValidationLayers) {
-        destroyDebugUtilsMessengerEXT(pAppState->instance, pAppState->debugMessenger, NULL);
+    if (pApp->enableValidationLayers) {
+        destroyDebugUtilsMessengerEXT(pApp->instance, pApp->debugMessenger, NULL);
     }
 
-    vkDestroySurfaceKHR(pAppState->instance, pAppState->surface, NULL);
-    vkDestroyInstance(pAppState->instance, NULL);
+    vkDestroySurfaceKHR(pApp->instance, pApp->surface, NULL);
+    vkDestroyInstance(pApp->instance, NULL);
 
-    glfwDestroyWindow(pAppState->pWindow);
+    glfwDestroyWindow(pApp->pWindow);
 
-    free(pAppState);
+    free(pApp);
 
     glfwTerminate();
 }

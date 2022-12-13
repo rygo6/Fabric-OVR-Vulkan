@@ -12,17 +12,17 @@ typedef struct FbrMVP {
     mat4 proj;
 } FbrMVP;
 
-typedef struct FbrCameraState {
-    FbrEntityState entityState;
-    FbrTransformState transformState;
+typedef struct FbrCamera {
+    FbrEntity entity;
+    FbrTransform transform;
     FbrMVP mvp;
     UniformBufferObject mvpUBO;
-} FbrCameraState;
+} FbrCamera;
 
-void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEvent, const FbrTimeState *pTimeState);
+void fbrUpdateCamera(FbrCamera *pCameraState, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState);
 
-void fbrCreateCamera(const FbrAppState* pAppState, FbrCameraState **ppAllocCameraState);
+void fbrCreateCamera(const FbrApp *pApp, FbrCamera **ppAllocCameraState);
 
-void fbrFreeCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState);
+void fbrFreeCamera(const FbrApp *pApp, FbrCamera *pCameraState);
 
 #endif //FABRIC_CAMERA_H

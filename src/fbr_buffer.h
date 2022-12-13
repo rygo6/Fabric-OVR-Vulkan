@@ -10,34 +10,36 @@
 typedef struct UniformBufferObject {
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
-    void* pUniformBufferMapped;
+    void *pUniformBufferMapped;
 } UniformBufferObject;
 
-VkCommandBuffer fbrBeginBufferCommands(const FbrAppState *pAppState);
+VkCommandBuffer fbrBeginBufferCommands(const FbrApp *pApp);
 
-VkCommandBuffer fbrEndBufferCommands(const FbrAppState *pAppState, VkCommandBuffer commandBuffer);
+VkCommandBuffer fbrEndBufferCommands(const FbrApp *pApp, VkCommandBuffer commandBuffer);
 
 uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-void fbrCopyBuffer(const FbrAppState *pAppState, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+void fbrCopyBuffer(const FbrApp *pApp, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-void fbrCreateBuffer(const FbrAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
+void fbrCreateBuffer(const FbrApp *pState, VkDeviceSize size, VkBufferUsageFlags usage,
+                     VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
 
-void fbrCreateStagingBuffer(const FbrAppState* pAppState,
-                            const void* srcData,
-                            VkBuffer* stagingBuffer,
-                            VkDeviceMemory* stagingBufferMemory,
+void fbrCreateStagingBuffer(const FbrApp *pApp,
+                            const void *srcData,
+                            VkBuffer *stagingBuffer,
+                            VkDeviceMemory *stagingBufferMemory,
                             VkDeviceSize bufferSize);
 
-void fbrCreatePopulateBufferViaStaging(const FbrAppState *restrict pAppState,
-                                       const void *restrict srcData,
+void fbrCreatePopulateBufferViaStaging(const FbrApp *pApp,
+                                       const void *srcData,
                                        VkBufferUsageFlagBits usage,
-                                       VkBuffer *restrict buffer,
-                                       VkDeviceMemory *restrict bufferMemory,
+                                       VkBuffer *buffer,
+                                       VkDeviceMemory *bufferMemory,
                                        VkDeviceSize bufferSize);
 
-void fbrCreateUniformBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+void
+fbrCreateUniformBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
 
-void fbrCleanupBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject);
+void fbrCleanupBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject);
 
 #endif //FABRIC_BUFFER_H

@@ -4,12 +4,12 @@
 
 #include "fbr_transform.h"
 
-void fbrInitTransform(FbrTransformState *transformState) {
+void fbrInitTransform(FbrTransform *transformState) {
     glm_vec3_zero(transformState->pos);
     glm_quat_identity(transformState->rot);
     glm_mat4_identity(transformState->matrix);
 }
 
-void fbrUpdateTransformMatrix(FbrTransformState *transformState){
+void fbrUpdateTransformMatrix(FbrTransform *transformState) {
     glm_quat_look(transformState->pos, transformState->rot, transformState->matrix);
 }

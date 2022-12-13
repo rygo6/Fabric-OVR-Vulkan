@@ -4,26 +4,25 @@
 #include "cglm/cglm.h"
 
 #define GLFW_INCLUDE_VULKAN
+
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-typedef struct FbrCameraState FbrCameraState;
-typedef struct FbrMeshState FbrMeshState;
+typedef struct FbrCamera FbrCamera;
+typedef struct FbrMesh FbrMesh;
 typedef struct FbrPipeline FbrPipeline;
 typedef struct FbrTexture FbrTexture;
 
-typedef struct FbrTimeState{
+typedef struct FbrTimeState {
     double currentTime;
     double deltaTime;
-} FbrTimeState;
+} FbrTime;
 
-#define FBR_APP_PARAM const FbrAppState *restrict pAppState
+typedef struct FbrApp {
 
-typedef struct FbrAppState {
-
-    FbrCameraState *pCameraState;
-    FbrTimeState *pTimeState;
-    FbrMeshState *pMeshState;
+    FbrCamera *pCamera;
+    FbrTime *pTime;
+    FbrMesh *pMesh;
     FbrTexture *pTexture;
 
     // GFLW
@@ -67,6 +66,6 @@ typedef struct FbrAppState {
     VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
 
-} FbrAppState;
+} FbrApp;
 
 #endif //FABRIC_APP_H

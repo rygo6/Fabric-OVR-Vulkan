@@ -15,7 +15,8 @@ uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
 }
 
-void fbrCreateBuffer(const FbrAppState* pState, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
+void fbrCreateBuffer(const FbrApp *pState, VkDeviceSize size, VkBufferUsageFlags usage,
+                     VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
     VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size = size,
@@ -44,16 +45,16 @@ void fbrCreateBuffer(const FbrAppState* pState, VkDeviceSize size, VkBufferUsage
     vkBindBufferMemory(pState->device, *buffer, *bufferMemory, 0);
 }
 
-VkCommandBuffer fbrBeginBufferCommands(const FbrAppState *pAppState) {
+VkCommandBuffer fbrBeginBufferCommands(const FbrApp *pApp) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandPool = pAppState->commandPool,
+            .commandPool =  pApp->commandPool,
             .commandBufferCount = 1,
     };
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(pAppState->device, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(pApp->device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -65,7 +66,7 @@ VkCommandBuffer fbrBeginBufferCommands(const FbrAppState *pAppState) {
     return commandBuffer;
 }
 
-VkCommandBuffer fbrEndBufferCommands(const FbrAppState *pAppState, VkCommandBuffer commandBuffer) {
+VkCommandBuffer fbrEndBufferCommands(const FbrApp *pApp, VkCommandBuffer commandBuffer) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo = {
@@ -74,85 +75,91 @@ VkCommandBuffer fbrEndBufferCommands(const FbrAppState *pAppState, VkCommandBuff
             .pCommandBuffers = &commandBuffer,
     };
 
-    vkQueueSubmit(pAppState->queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(pAppState->queue); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    vkQueueSubmit(pApp->queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(
+            pApp->queue); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
-    vkFreeCommandBuffers(pAppState->device, pAppState->commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(pApp->device, pApp->commandPool, 1, &commandBuffer);
 }
 
-void fbrCopyBuffer(const FbrAppState *pAppState, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pAppState);
+void fbrCopyBuffer(const FbrApp *pApp, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pApp);
 
-    VkBufferCopy copyRegion= {
+    VkBufferCopy copyRegion = {
             .srcOffset = 0, // Optional
             .dstOffset = 0, // Optional
             .size = size,
     };
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    fbrEndBufferCommands(pAppState, commandBuffer);
+    fbrEndBufferCommands(pApp, commandBuffer);
 }
 
-void fbrCreateStagingBuffer(const FbrAppState *restrict pAppState,
-                           const void *restrict srcData,
-                           VkBuffer *restrict stagingBuffer,
-                           VkDeviceMemory *restrict stagingBufferMemory,
-                           VkDeviceSize bufferSize) {
-    fbrCreateBuffer(pAppState,
+void fbrCreateStagingBuffer(const FbrApp *pApp,
+                            const void *srcData,
+                            VkBuffer *stagingBuffer,
+                            VkDeviceMemory *stagingBufferMemory,
+                            VkDeviceSize bufferSize) {
+    fbrCreateBuffer(pApp,
                     bufferSize,
                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     stagingBuffer,
                     stagingBufferMemory);
 
-    void* dstData;
-    vkMapMemory(pAppState->device, *stagingBufferMemory, 0, bufferSize, 0, &dstData);
-    memcpy(dstData, srcData,bufferSize);
-    vkUnmapMemory(pAppState->device, *stagingBufferMemory);
+    void *dstData;
+    vkMapMemory(pApp->device, *stagingBufferMemory, 0, bufferSize, 0, &dstData);
+    memcpy(dstData, srcData, bufferSize);
+    vkUnmapMemory(pApp->device, *stagingBufferMemory);
 }
 
-void fbrCreatePopulateBufferViaStaging(const FbrAppState *restrict pAppState,
-                                       const void *restrict srcData,
+void fbrCreatePopulateBufferViaStaging(const FbrApp *pApp,
+                                       const void *srcData,
                                        VkBufferUsageFlagBits usage,
-                                       VkBuffer *restrict buffer,
-                                       VkDeviceMemory *restrict bufferMemory,
+                                       VkBuffer *buffer,
+                                       VkDeviceMemory *bufferMemory,
                                        VkDeviceSize bufferSize) {
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    fbrCreateStagingBuffer(pAppState,
+    fbrCreateStagingBuffer(pApp,
                            srcData,
                            &stagingBuffer,
                            &stagingBufferMemory,
                            bufferSize);
 
-    fbrCreateBuffer(pAppState,
+    fbrCreateBuffer(pApp,
                     bufferSize,
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     buffer,
                     bufferMemory);
 
-    fbrCopyBuffer(pAppState, stagingBuffer, *buffer, bufferSize);
+    fbrCopyBuffer(pApp, stagingBuffer, *buffer, bufferSize);
 
-    vkDestroyBuffer(pAppState->device, stagingBuffer, NULL);
-    vkFreeMemory(pAppState->device, stagingBufferMemory, NULL);
+    vkDestroyBuffer(pApp->device, stagingBuffer, NULL);
+    vkFreeMemory(pApp->device, stagingBufferMemory, NULL);
 }
 
-void fbrCreateUniformBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize) {
-    fbrCreateBuffer(pAppState, bufferSize,
+void fbrCreateUniformBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize) {
+    fbrCreateBuffer(pApp, bufferSize,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     &pUniformBufferObject->uniformBuffer,
                     &pUniformBufferObject->uniformBufferMemory);
-    vkMapMemory(pAppState->device, pUniformBufferObject->uniformBufferMemory, 0, bufferSize, 0,&pUniformBufferObject->pUniformBufferMapped);
+    vkMapMemory(pApp->device,
+                pUniformBufferObject->uniformBufferMemory,
+                0,
+                bufferSize,
+                0,
+                &pUniformBufferObject->pUniformBufferMapped);
 }
 
-void fbrCleanupBuffers(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject) {
-    vkUnmapMemory(pAppState->device, pUniformBufferObject->uniformBufferMemory);
-    vkDestroyBuffer(pAppState->device, pUniformBufferObject->uniformBuffer, NULL);
-    vkFreeMemory(pAppState->device, pUniformBufferObject->uniformBufferMemory, NULL);
+void fbrCleanupBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject) {
+    vkUnmapMemory(pApp->device, pUniformBufferObject->uniformBufferMemory);
+    vkDestroyBuffer(pApp->device, pUniformBufferObject->uniformBuffer, NULL);
+    vkFreeMemory(pApp->device, pUniformBufferObject->uniformBufferMemory, NULL);
 }
 
-void updateUniformBuffer(const FbrAppState *pAppState, UniformBufferObject *pUniformBufferObject, void *data, int dataSize) {
+void updateUniformBuffer(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject, void *data, int dataSize) {
     memcpy(pUniformBufferObject->pUniformBufferMapped, data, dataSize);
 }

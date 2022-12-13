@@ -4,16 +4,14 @@
 
 #include <memory.h>
 
-static inline void fbrUpdateCameraUBO(FbrCameraState *pCameraState) {
-    fbrUpdateTransformMatrix(&pCameraState->transformState);
-    glm_mat4_copy(pCameraState->transformState.matrix, pCameraState->mvp.view);
-
+static inline void fbrUpdateCameraUBO(FbrCamera *pCameraState) {
+    fbrUpdateTransformMatrix(&pCameraState->transform);
+    glm_mat4_copy(pCameraState->transform.matrix, pCameraState->mvp.view);
     glm_perspective(90, 1, .01f, 10, pCameraState->mvp.proj);
-
     memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(FbrMVP));
 }
 
-void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEvent, const FbrTimeState *pTimeState) {
+void fbrUpdateCamera(FbrCamera *pCameraState, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState) {
     switch (pInputEvent->type) {
         case FBR_NO_INPUT:
             break;
@@ -33,8 +31,8 @@ void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEv
                 deltaPos[0] = -moveAmount;
             }
 
-            glm_quat_rotatev(pCameraState->transformState.rot, deltaPos, deltaPos);
-            glm_vec3_add(pCameraState->transformState.pos, deltaPos, pCameraState->transformState.pos);
+            glm_quat_rotatev(pCameraState->transform.rot, deltaPos, deltaPos);
+            glm_vec3_add(pCameraState->transform.pos, deltaPos, pCameraState->transform.pos);
 
             fbrUpdateCameraUBO(pCameraState);
 //            fbrLogDebugInfo3("FBR_KEY_INPUT", %f, deltaPos[0], %f, deltaPos[1], %f, deltaPos[2]);
@@ -44,7 +42,7 @@ void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEv
             float yRot = (float) -pInputEvent->mousePosInput.xDelta / 100.0f;
             versor rotQ;
             glm_quatv(rotQ, yRot, GLM_YUP);
-            glm_quat_mul(pCameraState->transformState.rot, rotQ, pCameraState->transformState.rot);
+            glm_quat_mul(pCameraState->transform.rot, rotQ, pCameraState->transform.rot);
 
             fbrUpdateCameraUBO(pCameraState);
             break;
@@ -56,21 +54,21 @@ void fbrUpdateCamera(FbrCameraState *pCameraState, const FbrInputEvent *pInputEv
     }
 }
 
-void fbrInitCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
-    fbrInitTransform(&pCameraState->transformState);
+void fbrInitCamera(const FbrApp *pApp, FbrCamera *pCameraState) {
+    fbrInitTransform(&pCameraState->transform);
     vec3 pos = {0, 0, -1};
-    glm_vec3_copy(pos, pCameraState->transformState.pos);
-    fbrCreateUniformBuffers(pAppState, &pAppState->pCameraState->mvpUBO, sizeof(FbrMVP));
-    fbrUpdateCameraUBO(pAppState->pCameraState);
+    glm_vec3_copy(pos, pCameraState->transform.pos);
+    fbrCreateUniformBuffers(pApp, &pApp->pCamera->mvpUBO, sizeof(FbrMVP));
+    fbrUpdateCameraUBO(pApp->pCamera);
 }
 
-void fbrCreateCamera(const FbrAppState *pAppState, FbrCameraState **ppAllocCameraState) {
-    *ppAllocCameraState = calloc(1,sizeof(FbrCameraState));
-    FbrCameraState* pCameraState = *ppAllocCameraState;
-    fbrInitCamera(pAppState, pCameraState);
+void fbrCreateCamera(const FbrApp *pApp, FbrCamera **ppAllocCameraState) {
+    *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
+    FbrCamera *pCameraState = *ppAllocCameraState;
+    fbrInitCamera(pApp, pCameraState);
 }
 
-void fbrFreeCamera(const FbrAppState *pAppState, FbrCameraState *pCameraState) {
-    fbrCleanupBuffers(pAppState, &pCameraState->mvpUBO);
+void fbrFreeCamera(const FbrApp *pApp, FbrCamera *pCameraState) {
+    fbrCleanupBuffers(pApp, &pCameraState->mvpUBO);
     free(pCameraState);
 }

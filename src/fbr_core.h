@@ -7,12 +7,16 @@
 #include "cglm/cglm.h"
 
 #define GLFW_INCLUDE_VULKAN
+
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-void fbrInitWindow(FbrAppState* pState);
-void fbrInitVulkan(FbrAppState* pState);
-void fbrMainLoop(FbrAppState* pState);
-void fbrCleanup(FbrAppState* pAppState);
+void fbrInitWindow(FbrApp *pState);
+
+void fbrInitVulkan(FbrApp *pState);
+
+void fbrMainLoop(FbrApp *pState);
+
+void fbrCleanup(FbrApp *pApp);
 
 #endif //FABRIC_CORE_H

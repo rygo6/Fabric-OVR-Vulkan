@@ -12,9 +12,9 @@ typedef struct Vertex {
     vec3 color;
 } Vertex;
 
-typedef struct FbrMeshState {
-    FbrEntityState entityState;
-    FbrTransformState transformState;
+typedef struct FbrMesh {
+    FbrEntity entity;
+    FbrTransform transform;
 
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
@@ -22,15 +22,15 @@ typedef struct FbrMeshState {
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
 
-} FbrMeshState;
+} FbrMesh;
 
 #define FBR_TEST_INDICES_COUNT 6
 #define FBR_TEST_VERTICES_COUNT 4
 
-void fbrMeshUpdateCameraUBO(FbrMeshState *pMeshState, FbrCameraState *pCameraState);
+void fbrMeshUpdateCameraUBO(FbrMesh *pMeshState, FbrCamera *pCameraState);
 
-void fbrCreateMesh(const FbrAppState* pAppState, FbrMeshState **ppAllocMeshState);
+void fbrCreateMesh(const FbrApp *pApp, FbrMesh **ppAllocMeshState);
 
-void fbrFreeMesh(const FbrAppState* pAppState, FbrMeshState *pMeshState);
+void fbrFreeMesh(const FbrApp *pApp, FbrMesh *pMeshState);
 
 #endif //FABRIC_MESH_H
