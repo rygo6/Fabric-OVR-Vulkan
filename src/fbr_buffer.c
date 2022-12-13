@@ -15,7 +15,7 @@ uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
 }
 
-void fbrCreateBuffer(const FbrApp *pState, VkDeviceSize size, VkBufferUsageFlags usage,
+void fbrCreateBuffer(const FbrApp *pApp, VkDeviceSize size, VkBufferUsageFlags usage,
                      VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory) {
     VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -24,25 +24,25 @@ void fbrCreateBuffer(const FbrApp *pState, VkDeviceSize size, VkBufferUsageFlags
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    if (vkCreateBuffer(pState->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(pApp->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
         printf("%s - failed to create buffer!\n", __FUNCTION__);
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(pState->device, *buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(pApp->device, *buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pState->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = fbrFindMemoryType(pApp->physicalDevice, memRequirements.memoryTypeBits, properties),
     };
 
     // this need to be made to vulkan memory allocator, read conclusion https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
-    if (vkAllocateMemory(pState->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(pApp->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
         printf("%s - failed to allocate buffer memory!\n", __FUNCTION__);
     }
 
-    vkBindBufferMemory(pState->device, *buffer, *bufferMemory, 0);
+    vkBindBufferMemory(pApp->device, *buffer, *bufferMemory, 0);
 }
 
 VkCommandBuffer fbrBeginBufferCommands(const FbrApp *pApp) {

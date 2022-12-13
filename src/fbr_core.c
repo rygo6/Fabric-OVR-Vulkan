@@ -21,7 +21,7 @@ const char *pRequiredExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-void fbrInitWindow(FbrApp *pState) {
+void fbrInitWindow(FbrApp *pApp) {
     printf("%s - initializing  window!\n", __FUNCTION__);
 
     glfwInit();
@@ -29,8 +29,8 @@ void fbrInitWindow(FbrApp *pState) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    pState->pWindow = glfwCreateWindow(pState->screenWidth, pState->screenHeight, "Fabric", NULL, NULL);
-    if (pState->pWindow == NULL) {
+    pApp->pWindow = glfwCreateWindow(pApp->screenWidth, pApp->screenHeight, "Fabric", NULL, NULL);
+    if (pApp->pWindow == NULL) {
         printf("%s - unable to initialize GLFW Window!\n", __FUNCTION__);
     }
 }
@@ -56,12 +56,12 @@ static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT 
     pCreateInfo->pfnUserCallback = debugCallback;
 }
 
-static void getRequiredExtensions(FbrApp *pState, uint32_t *extensionCount, const char **pExtensions) {
+static void getRequiredExtensions(FbrApp *pApp, uint32_t *extensionCount, const char **pExtensions) {
     uint32_t glfwExtensionCount = 0;
     const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
     if (pExtensions == NULL) {
-        *extensionCount = glfwExtensionCount + (pState->enableValidationLayers ? 1 : 0);
+        *extensionCount = glfwExtensionCount + (pApp->enableValidationLayers ? 1 : 0);
         return;
     }
 
@@ -69,7 +69,7 @@ static void getRequiredExtensions(FbrApp *pState, uint32_t *extensionCount, cons
         pExtensions[i] = glfwExtensions[i];
     }
 
-    if (pState->enableValidationLayers) {
+    if (pApp->enableValidationLayers) {
         pExtensions[glfwExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
     }
 }
@@ -99,8 +99,8 @@ static bool checkValidationLayerSupport() {
     return true;
 }
 
-static void createInstance(FbrApp *pState) {
-    if (pState->enableValidationLayers && !checkValidationLayerSupport()) {
+static void createInstance(FbrApp *pApp) {
+    if (pApp->enableValidationLayers && !checkValidationLayerSupport()) {
         printf("%s - validation layers requested, but not available!\n", __FUNCTION__);
     }
 
@@ -119,17 +119,17 @@ static void createInstance(FbrApp *pState) {
     };
 
     uint32_t extensionCount = 0;
-    getRequiredExtensions(pState, &extensionCount, NULL);
+    getRequiredExtensions(pApp, &extensionCount, NULL);
 
     const char *extensions[extensionCount];
-    getRequiredExtensions(pState, &extensionCount, extensions);
+    getRequiredExtensions(pApp, &extensionCount, extensions);
 
     createInfo.enabledExtensionCount = extensionCount;
     createInfo.ppEnabledExtensionNames = extensions;
     createInfo.enabledLayerCount = 0;
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
-    if (pState->enableValidationLayers) {
+    if (pApp->enableValidationLayers) {
         createInfo.enabledLayerCount = validationLayersCount;
         createInfo.ppEnabledLayerNames = pValidationLayers;
 
@@ -140,7 +140,7 @@ static void createInstance(FbrApp *pState) {
         createInfo.pNext = NULL;
     }
 
-    if (vkCreateInstance(&createInfo, NULL, &pState->instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, NULL, &pApp->instance) != VK_SUCCESS) {
         printf("%s - unable to initialize Vulkan!\n", __FUNCTION__);
     }
 }
@@ -157,20 +157,20 @@ static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugU
     }
 }
 
-static void setupDebugMessenger(FbrApp *pState) {
-    if (!pState->enableValidationLayers)
+static void setupDebugMessenger(FbrApp *pApp) {
+    if (!pApp->enableValidationLayers)
         return;
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo;
     populateDebugMessengerCreateInfo(&createInfo);
 
-    if (CreateDebugUtilsMessengerEXT(pState->instance, &createInfo, NULL, &pState->debugMessenger) != VK_SUCCESS) {
+    if (CreateDebugUtilsMessengerEXT(pApp->instance, &createInfo, NULL, &pApp->debugMessenger) != VK_SUCCESS) {
         printf("%s - failed to set up debug messenger!\n", __FUNCTION__);
     }
 }
 
-static bool createSurface(FbrApp *pState) {
-    if (glfwCreateWindowSurface(pState->instance, pState->pWindow, NULL, &pState->surface) != VK_SUCCESS) {
+static bool createSurface(FbrApp *pApp) {
+    if (glfwCreateWindowSurface(pApp->instance, pApp->pWindow, NULL, &pApp->surface) != VK_SUCCESS) {
         printf("%s - failed to create window surface!\n", __FUNCTION__);
         return false;
     }
@@ -178,27 +178,27 @@ static bool createSurface(FbrApp *pState) {
     return true;
 }
 
-static void pickPhysicalDevice(FbrApp *pState) {
+static void pickPhysicalDevice(FbrApp *pApp) {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(pState->instance, &deviceCount, NULL);
+    vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, NULL);
 
     if (deviceCount == 0) {
         printf("%s - failed to find GPUs with Vulkan support!\n", __FUNCTION__);
     }
 
     VkPhysicalDevice devices[deviceCount];
-    vkEnumeratePhysicalDevices(pState->instance, &deviceCount, devices);
+    vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, devices);
 
     // Todo Implement Query OpenVR for the physical device to use
     // If no OVR fallback to first one. OVR Vulkan used this logic, its much simpler than vulkan example, is it correct? Seemed to be on my 6950xt
-    pState->physicalDevice = devices[0];
+    pApp->physicalDevice = devices[0];
 }
 
-static bool findQueueFamilies(FbrApp *pState) {
+static bool findQueueFamilies(FbrApp *pApp) {
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(pState->physicalDevice, &queueFamilyCount, NULL);
+    vkGetPhysicalDeviceQueueFamilyProperties(pApp->physicalDevice, &queueFamilyCount, NULL);
     VkQueueFamilyProperties queueFamilies[queueFamilyCount];
-    vkGetPhysicalDeviceQueueFamilyProperties(pState->physicalDevice, &queueFamilyCount,
+    vkGetPhysicalDeviceQueueFamilyProperties(pApp->physicalDevice, &queueFamilyCount,
                                              (VkQueueFamilyProperties *) &queueFamilies);
 
     if (queueFamilyCount == 0) {
@@ -210,10 +210,10 @@ static bool findQueueFamilies(FbrApp *pState) {
         VkBool32 graphicsSupport = queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
 
         VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(pState->physicalDevice, i, pState->surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(pApp->physicalDevice, i, pApp->surface, &presentSupport);
 
         if (graphicsSupport && presentSupport) {
-            pState->graphicsQueueFamilyIndex = i;
+            pApp->graphicsQueueFamilyIndex = i;
             return true;
         }
     }
@@ -222,14 +222,14 @@ static bool findQueueFamilies(FbrApp *pState) {
     return false;
 }
 
-static bool createLogicalDevice(FbrApp *pState) {
-    if (!findQueueFamilies(pState)) {
+static bool createLogicalDevice(FbrApp *pApp) {
+    if (!findQueueFamilies(pApp)) {
         return false;
     }
 
     const uint32_t queueFamilyCount = 1;
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
-    uint32_t uniqueQueueFamilies[] = {pState->graphicsQueueFamilyIndex};
+    uint32_t uniqueQueueFamilies[] = {pApp->graphicsQueueFamilyIndex};
 
     float queuePriority = 1.0f;
     for (int i = 0; i < queueFamilyCount; ++i) {
@@ -253,19 +253,19 @@ static bool createLogicalDevice(FbrApp *pState) {
             .ppEnabledExtensionNames = pRequiredExtensions,
     };
 
-    if (pState->enableValidationLayers) {
+    if (pApp->enableValidationLayers) {
         createInfo.enabledLayerCount = validationLayersCount;
         createInfo.ppEnabledLayerNames = pValidationLayers;
     } else {
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateDevice(pState->physicalDevice, &createInfo, NULL, &pState->device) != VK_SUCCESS) {
+    if (vkCreateDevice(pApp->physicalDevice, &createInfo, NULL, &pApp->device) != VK_SUCCESS) {
         printf("%s - failed to create logical device!\n", __FUNCTION__);
         return false;
     }
 
-    vkGetDeviceQueue(pState->device, pState->graphicsQueueFamilyIndex, 0, &pState->queue);
+    vkGetDeviceQueue(pApp->device, pApp->graphicsQueueFamilyIndex, 0, &pApp->queue);
 
     return true;
 }
@@ -313,13 +313,13 @@ chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t pr
     return swapChainPresentMode;
 }
 
-static VkExtent2D chooseSwapExtent(FbrApp *pState, const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D chooseSwapExtent(FbrApp *pApp, const VkSurfaceCapabilitiesKHR capabilities) {
     // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
     VkExtent2D extents;
     if (capabilities.currentExtent.width == -1) {
         // If the surface size is undefined, the size is set to the size of the images requested.
-        extents.width = pState->screenWidth;
-        extents.height = pState->screenHeight;
+        extents.width = pApp->screenWidth;
+        extents.height = pApp->screenHeight;
     } else {
         // If the surface size is defined, the swap chain size must match
         extents = capabilities.currentExtent;
@@ -328,40 +328,40 @@ static VkExtent2D chooseSwapExtent(FbrApp *pState, const VkSurfaceCapabilitiesKH
     return extents;
 }
 
-static void createSwapChain(FbrApp *pState) {
+static void createSwapChain(FbrApp *pApp) {
     // Logic from OVR Vulkan example
     VkSurfaceCapabilitiesKHR capabilities;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pState->physicalDevice, pState->surface, &capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pApp->physicalDevice, pApp->surface, &capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pState->physicalDevice, pState->surface, &formatCount, NULL);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(pApp->physicalDevice, pApp->surface, &formatCount, NULL);
     VkSurfaceFormatKHR formats[formatCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pState->physicalDevice, pState->surface, &formatCount,
+    vkGetPhysicalDeviceSurfaceFormatsKHR(pApp->physicalDevice, pApp->surface, &formatCount,
                                          (VkSurfaceFormatKHR *) &formats);
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pState->physicalDevice, pState->surface, &presentModeCount, NULL);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(pApp->physicalDevice, pApp->surface, &presentModeCount, NULL);
     VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pState->physicalDevice, pState->surface, &presentModeCount,
+    vkGetPhysicalDeviceSurfacePresentModesKHR(pApp->physicalDevice, pApp->surface, &presentModeCount,
                                               (VkPresentModeKHR *) &presentModes);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
-    VkExtent2D extent = chooseSwapExtent(pState, capabilities);
+    VkExtent2D extent = chooseSwapExtent(pApp, capabilities);
 
     printf("%s - min swap count %d\n", __FUNCTION__, capabilities.minImageCount);
     printf("%s - max swap count %d\n", __FUNCTION__, capabilities.maxImageCount);
 
     // Have a swap queue depth of at least three frames
-    pState->swapChainImageCount = capabilities.minImageCount;
-    if (pState->swapChainImageCount < 2) {
-        pState->swapChainImageCount = 2;
+    pApp->swapChainImageCount = capabilities.minImageCount;
+    if (pApp->swapChainImageCount < 2) {
+        pApp->swapChainImageCount = 2;
     }
-    if ((capabilities.maxImageCount > 0) && (pState->swapChainImageCount > capabilities.maxImageCount)) {
+    if ((capabilities.maxImageCount > 0) && (pApp->swapChainImageCount > capabilities.maxImageCount)) {
         // Application must settle for fewer images than desired:
-        pState->swapChainImageCount = capabilities.maxImageCount;
+        pApp->swapChainImageCount = capabilities.maxImageCount;
     }
-    printf("%s - swapChainImageCount selected count %d\n", __FUNCTION__, pState->swapChainImageCount);
+    printf("%s - swapChainImageCount selected count %d\n", __FUNCTION__, pApp->swapChainImageCount);
 
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
@@ -379,8 +379,8 @@ static void createSwapChain(FbrApp *pState) {
 
     VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .surface = pState->surface,
-            .minImageCount = pState->swapChainImageCount,
+            .surface = pApp->surface,
+            .minImageCount = pApp->swapChainImageCount,
             .imageFormat = surfaceFormat.format,
             .imageColorSpace = surfaceFormat.colorSpace,
             .imageExtent = extent,
@@ -402,27 +402,27 @@ static void createSwapChain(FbrApp *pState) {
                capabilities.supportedCompositeAlpha);
     }
 
-    if (vkCreateSwapchainKHR(pState->device, &createInfo, NULL, &pState->swapChain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(pApp->device, &createInfo, NULL, &pApp->swapChain) != VK_SUCCESS) {
         printf("%s - failed to create swap chain!\n", __FUNCTION__);
     }
 
-    vkGetSwapchainImagesKHR(pState->device, pState->swapChain, &pState->swapChainImageCount, NULL);
-    pState->pSwapChainImages = calloc(pState->swapChainImageCount, sizeof(VkImage));
-    vkGetSwapchainImagesKHR(pState->device, pState->swapChain, &pState->swapChainImageCount, pState->pSwapChainImages);
+    vkGetSwapchainImagesKHR(pApp->device, pApp->swapChain, &pApp->swapChainImageCount, NULL);
+    pApp->pSwapChainImages = calloc(pApp->swapChainImageCount, sizeof(VkImage));
+    vkGetSwapchainImagesKHR(pApp->device, pApp->swapChain, &pApp->swapChainImageCount, pApp->pSwapChainImages);
 
-    pState->swapChainImageFormat = surfaceFormat.format;
-    pState->swapChainExtent = extent;
+    pApp->swapChainImageFormat = surfaceFormat.format;
+    pApp->swapChainExtent = extent;
 }
 
-static void createImageViews(FbrApp *pState) {
-    pState->pSwapChainImageViews = calloc(pState->swapChainImageCount, sizeof(VkImageView));
+static void createImageViews(FbrApp *pApp) {
+    pApp->pSwapChainImageViews = calloc(pApp->swapChainImageCount, sizeof(VkImageView));
 
-    for (size_t i = 0; i < pState->swapChainImageCount; i++) {
+    for (size_t i = 0; i < pApp->swapChainImageCount; i++) {
         VkImageViewCreateInfo createInfo = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = pState->pSwapChainImages[i],
+                .image = pApp->pSwapChainImages[i],
                 .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = pState->swapChainImageFormat,
+                .format = pApp->swapChainImageFormat,
                 .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -434,15 +434,15 @@ static void createImageViews(FbrApp *pState) {
                 .subresourceRange.layerCount = 1,
         };
 
-        if (vkCreateImageView(pState->device, &createInfo, NULL, &pState->pSwapChainImageViews[i]) != VK_SUCCESS) {
+        if (vkCreateImageView(pApp->device, &createInfo, NULL, &pApp->pSwapChainImageViews[i]) != VK_SUCCESS) {
             printf("%s - failed to create image views!\n", __FUNCTION__);
         }
     }
 }
 
-static void createRenderPass(FbrApp *pState) {
+static void createRenderPass(FbrApp *pApp) {
     VkAttachmentDescription colorAttachment = {
-            .format = pState->swapChainImageFormat,
+            .format = pApp->swapChainImageFormat,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -483,49 +483,49 @@ static void createRenderPass(FbrApp *pState) {
             .pDependencies = &dependency,
     };
 
-    if (vkCreateRenderPass(pState->device, &renderPassInfo, NULL, &pState->renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(pApp->device, &renderPassInfo, NULL, &pApp->renderPass) != VK_SUCCESS) {
         printf("%s - failed to create render pass!\n", __FUNCTION__);
     }
 }
 
-static void createFramebuffers(FbrApp *pState) {
-    pState->pSwapChainFramebuffers = calloc(pState->swapChainImageCount, sizeof(VkFramebuffer));
+static void createFramebuffers(FbrApp *pApp) {
+    pApp->pSwapChainFramebuffers = calloc(pApp->swapChainImageCount, sizeof(VkFramebuffer));
 
-    for (size_t i = 0; i < pState->swapChainImageCount; i++) {
+    for (size_t i = 0; i < pApp->swapChainImageCount; i++) {
         VkImageView attachments[] = {
-                pState->pSwapChainImageViews[i]
+                pApp->pSwapChainImageViews[i]
         };
 
         VkFramebufferCreateInfo framebufferInfo = {
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass = pState->renderPass,
+                .renderPass = pApp->renderPass,
                 .attachmentCount = 1,
                 .pAttachments = attachments,
-                .width = pState->swapChainExtent.width,
-                .height = pState->swapChainExtent.height,
+                .width = pApp->swapChainExtent.width,
+                .height = pApp->swapChainExtent.height,
                 .layers = 1,
         };
 
-        if (vkCreateFramebuffer(pState->device, &framebufferInfo, NULL, &pState->pSwapChainFramebuffers[i]) !=
+        if (vkCreateFramebuffer(pApp->device, &framebufferInfo, NULL, &pApp->pSwapChainFramebuffers[i]) !=
             VK_SUCCESS) {
             printf("%s - failed to create framebuffer!\n", __FUNCTION__);
         }
     }
 }
 
-static void createCommandPool(FbrApp *pState) {
+static void createCommandPool(FbrApp *pApp) {
     VkCommandPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = pState->graphicsQueueFamilyIndex,
+            .queueFamilyIndex = pApp->graphicsQueueFamilyIndex,
     };
 
-    if (vkCreateCommandPool(pState->device, &poolInfo, NULL, &pState->commandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(pApp->device, &poolInfo, NULL, &pApp->commandPool) != VK_SUCCESS) {
         printf("%s - failed to create command pool!\n", __FUNCTION__);
     }
 }
 
-static void createDescriptorPool(FbrApp *pState) {
+static void createDescriptorPool(FbrApp *pApp) {
     VkDescriptorPoolSize poolSize = {
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
@@ -538,25 +538,25 @@ static void createDescriptorPool(FbrApp *pState) {
             .maxSets = 1,
     };
 
-    if (vkCreateDescriptorPool(pState->device, &poolInfo, NULL, &pState->descriptorPool) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(pApp->device, &poolInfo, NULL, &pApp->descriptorPool) != VK_SUCCESS) {
         printf("%s - failed to create descriptor pool!\n", __FUNCTION__);
     }
 }
 
-static void createCommandBuffer(FbrApp *pState) {
+static void createCommandBuffer(FbrApp *pApp) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = pState->commandPool,
+            .commandPool = pApp->commandPool,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = 1,
     };
 
-    if (vkAllocateCommandBuffers(pState->device, &allocInfo, &pState->commandBuffer) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(pApp->device, &allocInfo, &pApp->commandBuffer) != VK_SUCCESS) {
         printf("%s - failed to allocate command buffers!\n", __FUNCTION__);
     }
 }
 
-static void createSyncObjects(FbrApp *pState) {
+static void createSyncObjects(FbrApp *pApp) {
     VkSemaphoreCreateInfo semaphoreInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
@@ -566,146 +566,146 @@ static void createSyncObjects(FbrApp *pState) {
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
     };
 
-    if (vkCreateSemaphore(pState->device, &semaphoreInfo, NULL, &pState->imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(pState->device, &semaphoreInfo, NULL, &pState->renderFinishedSemaphore) != VK_SUCCESS ||
-        vkCreateFence(pState->device, &fenceInfo, NULL, &pState->inFlightFence) != VK_SUCCESS) {
+    if (vkCreateSemaphore(pApp->device, &semaphoreInfo, NULL, &pApp->imageAvailableSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(pApp->device, &semaphoreInfo, NULL, &pApp->renderFinishedSemaphore) != VK_SUCCESS ||
+        vkCreateFence(pApp->device, &fenceInfo, NULL, &pApp->inFlightFence) != VK_SUCCESS) {
         printf("%s - failed to create synchronization objects for a frame!\n", __FUNCTION__);
     }
 }
 
-void fbrInitVulkan(FbrApp *pState) {
+void fbrInitVulkan(FbrApp *pApp) {
     printf("%s - initializing vulkan!\n", __FUNCTION__);
 
     // app
-    createInstance(pState);
-    setupDebugMessenger(pState);
-    createSurface(pState);
+    createInstance(pApp);
+    setupDebugMessenger(pApp);
+    createSurface(pApp);
 
     // device
-    pickPhysicalDevice(pState);
-    createLogicalDevice(pState);
+    pickPhysicalDevice(pApp);
+    createLogicalDevice(pApp);
 
     // render
-    createSwapChain(pState);
-    createImageViews(pState);
-    createRenderPass(pState);
-    createFramebuffers(pState);
-    createCommandPool(pState);
-    createCommandBuffer(pState);
-    createSyncObjects(pState);
-    createDescriptorPool(pState);
+    createSwapChain(pApp);
+    createImageViews(pApp);
+    createRenderPass(pApp);
+    createFramebuffers(pApp);
+    createCommandPool(pApp);
+    createCommandBuffer(pApp);
+    createSyncObjects(pApp);
+    createDescriptorPool(pApp);
 
     // entities
-    fbrCreateCamera(pState, &pState->pCamera);
-    fbrCreateMesh(pState, &pState->pMesh);
-    fbrCreateTexture(pState, &pState->pTexture);
+    fbrCreateCamera(pApp, &pApp->pCamera);
+    fbrCreateMesh(pApp, &pApp->pMesh);
+    fbrCreateTexture(pApp, &pApp->pTexture);
 
     // Pipeline
-    fbrCreatePipeline(pState, pState->pCamera, &pState->pPipeline);
+    fbrCreatePipeline(pApp, pApp->pCamera, &pApp->pPipeline);
 }
 
-static void recordCommandBuffer(FbrApp *pState, uint32_t imageIndex) {
+static void recordCommandBuffer(FbrApp *pApp, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo = {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
 
-    if (vkBeginCommandBuffer(pState->commandBuffer, &beginInfo) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(pApp->commandBuffer, &beginInfo) != VK_SUCCESS) {
         printf("%s - failed to begin recording command buffer!\n", __FUNCTION__);
     }
 
     VkRenderPassBeginInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass = pState->renderPass,
-            .framebuffer = pState->pSwapChainFramebuffers[imageIndex],
+            .renderPass = pApp->renderPass,
+            .framebuffer = pApp->pSwapChainFramebuffers[imageIndex],
             .renderArea.offset = {0, 0},
-            .renderArea.extent = pState->swapChainExtent,
+            .renderArea.extent = pApp->swapChainExtent,
     };
 
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
-    vkCmdBeginRenderPass(pState->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(pApp->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     {
-        vkCmdBindPipeline(pState->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pState->pPipeline->graphicsPipeline);
+        vkCmdBindPipeline(pApp->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pApp->pPipeline->graphicsPipeline);
 
         VkViewport viewport = {
                 .x = 0.0f,
                 .y = 0.0f,
-                .width = (float) pState->swapChainExtent.width,
-                .height = (float) pState->swapChainExtent.height,
+                .width = (float) pApp->swapChainExtent.width,
+                .height = (float) pApp->swapChainExtent.height,
                 .minDepth = 0.0f,
                 .maxDepth = 1.0f,
         };
-        vkCmdSetViewport(pState->commandBuffer, 0, 1, &viewport);
+        vkCmdSetViewport(pApp->commandBuffer, 0, 1, &viewport);
 
         VkRect2D scissor = {
                 .offset = {0, 0},
-                .extent = pState->swapChainExtent,
+                .extent = pApp->swapChainExtent,
         };
-        vkCmdSetScissor(pState->commandBuffer, 0, 1, &scissor);
+        vkCmdSetScissor(pApp->commandBuffer, 0, 1, &scissor);
 
-        VkBuffer vertexBuffers[] = {pState->pMesh->vertexBuffer};
+        VkBuffer vertexBuffers[] = {pApp->pMesh->vertexBuffer};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(pState->commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(pState->commandBuffer, pState->pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindVertexBuffers(pApp->commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(pApp->commandBuffer, pApp->pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-        vkCmdBindDescriptorSets(pState->commandBuffer,
+        vkCmdBindDescriptorSets(pApp->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pState->pPipeline->pipelineLayout,
+                                pApp->pPipeline->pipelineLayout,
                                 0,
                                 1,
-                                &pState->pPipeline->descriptorSet,
+                                &pApp->pPipeline->descriptorSet,
                                 0,
                                 NULL);
 
-        vkCmdDrawIndexed(pState->commandBuffer, FBR_TEST_INDICES_COUNT, 1, 0, 0, 0);
+        vkCmdDrawIndexed(pApp->commandBuffer, FBR_TEST_INDICES_COUNT, 1, 0, 0, 0);
     }
-    vkCmdEndRenderPass(pState->commandBuffer);
+    vkCmdEndRenderPass(pApp->commandBuffer);
 
-    if (vkEndCommandBuffer(pState->commandBuffer) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(pApp->commandBuffer) != VK_SUCCESS) {
         printf("%s - failed to record command buffer!\n", __FUNCTION__);
     }
 }
 
-static void waitForLastFrame(FbrApp *pState) {
-    vkWaitForFences(pState->device, 1, &pState->inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(pState->device, 1, &pState->inFlightFence);
+static void waitForLastFrame(FbrApp *pApp) {
+    vkWaitForFences(pApp->device, 1, &pApp->inFlightFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(pApp->device, 1, &pApp->inFlightFence);
 }
 
-static void processInputFrame(FbrApp *pState) {
+static void processInputFrame(FbrApp *pApp) {
     fbrProcessInput();
     for (int i = 0; i < fbrInputEventCount(); ++i) {
-        fbrUpdateCamera(pState->pCamera, fbrGetKeyEvent(i), pState->pTime);
+        fbrUpdateCamera(pApp->pCamera, fbrGetKeyEvent(i), pApp->pTime);
     }
 }
 
-static void drawFrame(FbrApp *pState) {
+static void drawFrame(FbrApp *pApp) {
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(pState->device, pState->swapChain, UINT64_MAX, pState->imageAvailableSemaphore,
+    vkAcquireNextImageKHR(pApp->device, pApp->swapChain, UINT64_MAX, pApp->imageAvailableSemaphore,
                           VK_NULL_HANDLE, &imageIndex);
 
-    vkResetCommandBuffer(pState->commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
-    recordCommandBuffer(pState, imageIndex);
+    vkResetCommandBuffer(pApp->commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
+    recordCommandBuffer(pApp, imageIndex);
 
     VkSubmitInfo submitInfo = {
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO
     };
 
-    VkSemaphore waitSemaphores[] = {pState->imageAvailableSemaphore};
+    VkSemaphore waitSemaphores[] = {pApp->imageAvailableSemaphore};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &pState->commandBuffer;
+    submitInfo.pCommandBuffers = &pApp->commandBuffer;
 
-    VkSemaphore signalSemaphores[] = {pState->renderFinishedSemaphore};
+    VkSemaphore signalSemaphores[] = {pApp->renderFinishedSemaphore};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(pState->queue, 1, &submitInfo, pState->inFlightFence) != VK_SUCCESS) {
+    if (vkQueueSubmit(pApp->queue, 1, &submitInfo, pApp->inFlightFence) != VK_SUCCESS) {
         printf("%s - failed to submit draw command buffer!\n", __FUNCTION__);
     }
 
@@ -716,33 +716,33 @@ static void drawFrame(FbrApp *pState) {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    VkSwapchainKHR swapChains[] = {pState->swapChain};
+    VkSwapchainKHR swapChains[] = {pApp->swapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
 
     presentInfo.pImageIndices = &imageIndex;
 
-    vkQueuePresentKHR(pState->queue, &presentInfo);
+    vkQueuePresentKHR(pApp->queue, &presentInfo);
 }
 
-void fbrMainLoop(FbrApp *pState) {
+void fbrMainLoop(FbrApp *pApp) {
     printf("%s -  mainloop starting!\n", __FUNCTION__);
 
     double lastFrameTime = glfwGetTime();
 
-    while (!glfwWindowShouldClose(pState->pWindow)) {
+    while (!glfwWindowShouldClose(pApp->pWindow)) {
 
-        pState->pTime->currentTime = glfwGetTime();
-        pState->pTime->deltaTime = pState->pTime->currentTime - lastFrameTime;
-        lastFrameTime = pState->pTime->currentTime;
+        pApp->pTime->currentTime = glfwGetTime();
+        pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
+        lastFrameTime = pApp->pTime->currentTime;
 
-        waitForLastFrame(pState);
-        processInputFrame(pState);
-        fbrMeshUpdateCameraUBO(pState->pMesh, pState->pCamera); //todo I dont like this
-        drawFrame(pState);
+        waitForLastFrame(pApp);
+        processInputFrame(pApp);
+        fbrMeshUpdateCameraUBO(pApp->pMesh, pApp->pCamera); //todo I dont like this
+        drawFrame(pApp);
     }
 
-    vkDeviceWaitIdle(pState->device);
+    vkDeviceWaitIdle(pApp->device);
 }
 
 static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
@@ -754,18 +754,18 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
-static void cleanupSwapChain(FbrApp *pState) {
+static void cleanupSwapChain(FbrApp *pApp) {
     printf("%s - cleaning up swapchain!\n", __FUNCTION__);
 
-    for (int i = 0; i < pState->swapChainImageCount; ++i) {
-        vkDestroyFramebuffer(pState->device, pState->pSwapChainFramebuffers[i], NULL);
+    for (int i = 0; i < pApp->swapChainImageCount; ++i) {
+        vkDestroyFramebuffer(pApp->device, pApp->pSwapChainFramebuffers[i], NULL);
     }
 
-    for (int i = 0; i < pState->swapChainImageCount; ++i) {
-        vkDestroyImageView(pState->device, pState->pSwapChainImageViews[i], NULL);
+    for (int i = 0; i < pApp->swapChainImageCount; ++i) {
+        vkDestroyImageView(pApp->device, pApp->pSwapChainImageViews[i], NULL);
     }
 
-    vkDestroySwapchainKHR(pState->device, pState->swapChain, NULL);
+    vkDestroySwapchainKHR(pApp->device, pApp->swapChain, NULL);
 }
 
 void fbrCleanup(FbrApp *pApp) {

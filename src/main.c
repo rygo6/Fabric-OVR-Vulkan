@@ -8,20 +8,20 @@
 int main(int argc, char *argv[]) {
     printf("%s - starting up !\n", __FUNCTION__);
 
-    FbrApp *pState;
-    pState = calloc(1, sizeof(FbrApp));
-    pState->screenWidth = 800;
-    pState->screenHeight = 600;
-    pState->enableValidationLayers = true;
-    pState->pTime = calloc(1, sizeof(FbrTime));
+    FbrApp *pApp;
+    pApp = calloc(1, sizeof(FbrApp));
+    pApp->screenWidth = 800;
+    pApp->screenHeight = 600;
+    pApp->enableValidationLayers = true;
+    pApp->pTime = calloc(1, sizeof(FbrTime));
 
-    fbrInitWindow(pState);
-    fbrInitInput(pState);
-    fbrInitVulkan(pState);
-    fbrMainLoop(pState);
-    fbrCleanup(pState);
+    fbrInitWindow(pApp);
+    fbrInitInput(pApp);
+    fbrInitVulkan(pApp);
+    fbrMainLoop(pApp);
+    fbrCleanup(pApp);
 
-    free(pState);
+    free(pApp);
 
     return 0;
 }

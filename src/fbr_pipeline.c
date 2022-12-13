@@ -71,15 +71,15 @@ static void initPipelineLayout(const FbrApp *pApp, FbrPipeline *pPipeline) {
     }
 }
 
-static void initDescriptorSets(const FbrApp *pState, const FbrCamera *pCameraState, FbrPipeline *pPipeline) {
+static void initDescriptorSets(const FbrApp *pApp, const FbrCamera *pCameraState, FbrPipeline *pPipeline) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = pState->descriptorPool,
+            .descriptorPool = pApp->descriptorPool,
             .descriptorSetCount = 1,
-            .pSetLayouts = &pState->pPipeline->descriptorSetLayout,
+            .pSetLayouts = &pApp->pPipeline->descriptorSetLayout,
     };
 
-    if (vkAllocateDescriptorSets(pState->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(pApp->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
         printf("%s - failed to allocate descriptor sets!\n", __FUNCTION__);
     }
 
@@ -99,7 +99,7 @@ static void initDescriptorSets(const FbrApp *pState, const FbrCamera *pCameraSta
             .pBufferInfo = &bufferInfo
     };
 
-    vkUpdateDescriptorSets(pState->device, 1, &descriptorWrite, 0, NULL);
+    vkUpdateDescriptorSets(pApp->device, 1, &descriptorWrite, 0, NULL);
 }
 
 static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {

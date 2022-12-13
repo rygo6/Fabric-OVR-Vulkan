@@ -21,7 +21,7 @@ uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
 
 void fbrCopyBuffer(const FbrApp *pApp, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-void fbrCreateBuffer(const FbrApp *pState, VkDeviceSize size, VkBufferUsageFlags usage,
+void fbrCreateBuffer(const FbrApp *pApp, VkDeviceSize size, VkBufferUsageFlags usage,
                      VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory);
 
 void fbrCreateStagingBuffer(const FbrApp *pApp,

@@ -11,11 +11,11 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-void fbrInitWindow(FbrApp *pState);
+void fbrInitWindow(FbrApp *pApp);
 
-void fbrInitVulkan(FbrApp *pState);
+void fbrInitVulkan(FbrApp *pApp);
 
-void fbrMainLoop(FbrApp *pState);
+void fbrMainLoop(FbrApp *pApp);
 
 void fbrCleanup(FbrApp *pApp);
 
