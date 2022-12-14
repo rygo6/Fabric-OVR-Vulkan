@@ -170,13 +170,10 @@ static void setupDebugMessenger(FbrApp *pApp) {
     }
 }
 
-static bool createSurface(FbrApp *pApp) {
+static void createSurface(FbrApp *pApp) {
     if (glfwCreateWindowSurface(pApp->instance, pApp->pWindow, NULL, &pApp->surface) != VK_SUCCESS) {
         FBR_LOG_DEBUG("failed to create window surface!");
-        return false;
     }
-
-    return true;
 }
 
 static void pickPhysicalDevice(FbrApp *pApp) {
@@ -195,7 +192,7 @@ static void pickPhysicalDevice(FbrApp *pApp) {
     pApp->physicalDevice = devices[0];
 }
 
-static bool findQueueFamilies(FbrApp *pApp) {
+static void findQueueFamilies(FbrApp *pApp) {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(pApp->physicalDevice, &queueFamilyCount, NULL);
     VkQueueFamilyProperties queueFamilies[queueFamilyCount];
@@ -215,18 +212,15 @@ static bool findQueueFamilies(FbrApp *pApp) {
 
         if (graphicsSupport && presentSupport) {
             pApp->graphicsQueueFamilyIndex = i;
-            return true;
+            return;
         }
     }
 
     FBR_LOG_DEBUG("Failed to find a queue that supports both graphics and present!");
-    return false;
 }
 
-static bool createLogicalDevice(FbrApp *pApp) {
-    if (!findQueueFamilies(pApp)) {
-        return false;
-    }
+static void createLogicalDevice(FbrApp *pApp) {
+    findQueueFamilies(pApp);
 
     const uint32_t queueFamilyCount = 1;
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
@@ -243,13 +237,14 @@ static bool createLogicalDevice(FbrApp *pApp) {
         queueCreateInfos[i] = queueCreateInfo;
     }
 
-    VkPhysicalDeviceFeatures deviceFeatures = {};
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(pApp->physicalDevice, &supportedFeatures);
 
     VkDeviceCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .queueCreateInfoCount = queueFamilyCount,
             .pQueueCreateInfos = queueCreateInfos,
-            .pEnabledFeatures = &deviceFeatures,
+            .pEnabledFeatures = &supportedFeatures,
             .enabledExtensionCount = requiredExtensionCount,
             .ppEnabledExtensionNames = pRequiredExtensions,
     };
@@ -263,12 +258,9 @@ static bool createLogicalDevice(FbrApp *pApp) {
 
     if (vkCreateDevice(pApp->physicalDevice, &createInfo, NULL, &pApp->device) != VK_SUCCESS) {
         FBR_LOG_DEBUG("failed to create logical device!");
-        return false;
     }
 
     vkGetDeviceQueue(pApp->device, pApp->graphicsQueueFamilyIndex, 0, &pApp->queue);
-
-    return true;
 }
 
 static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableFormats, uint32_t formatCount) {
@@ -337,14 +329,12 @@ static void createSwapChain(FbrApp *pApp) {
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(pApp->physicalDevice, pApp->surface, &formatCount, NULL);
     VkSurfaceFormatKHR formats[formatCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pApp->physicalDevice, pApp->surface, &formatCount,
-                                         (VkSurfaceFormatKHR *) &formats);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(pApp->physicalDevice, pApp->surface, &formatCount, (VkSurfaceFormatKHR *) &formats);
 
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(pApp->physicalDevice, pApp->surface, &presentModeCount, NULL);
     VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pApp->physicalDevice, pApp->surface, &presentModeCount,
-                                              (VkPresentModeKHR *) &presentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(pApp->physicalDevice, pApp->surface, &presentModeCount, (VkPresentModeKHR *) &presentModes);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);

@@ -4,6 +4,7 @@
 
 #include "fbr_texture.h"
 #include "fbr_buffer.h"
+#include "fbr_log.h"
 
 void copyBufferToImage(const FbrApp *pApp,
                        VkBuffer buffer,
@@ -76,7 +77,7 @@ void transitionImageLayout(const FbrApp *pApp,
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        printf("%s - unsupported layout transition!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("%s - unsupported layout transition!");
     }
 
     vkCmdPipelineBarrier(
@@ -92,15 +93,15 @@ void transitionImageLayout(const FbrApp *pApp,
     fbrEndBufferCommands(pApp, commandBuffer);
 }
 
-void createImage(const FbrApp *pApp,
-                 uint32_t width,
-                 uint32_t height,
-                 VkFormat format,
-                 VkImageTiling tiling,
-                 VkImageUsageFlags usage,
-                 VkMemoryPropertyFlags properties,
-                 VkImage *image,
-                 VkDeviceMemory *imageMemory) {
+void createTexture(const FbrApp *pApp,
+                   uint32_t width,
+                   uint32_t height,
+                   VkFormat format,
+                   VkImageTiling tiling,
+                   VkImageUsageFlags usage,
+                   VkMemoryPropertyFlags properties,
+                   VkImage *image,
+                   VkDeviceMemory *imageMemory) {
 
     VkImageCreateInfo imageInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -119,7 +120,7 @@ void createImage(const FbrApp *pApp,
     };
 
     if (vkCreateImage(pApp->device, &imageInfo, NULL, image) != VK_SUCCESS) {
-        printf("%s - failed to create image!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("%s - failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
@@ -132,22 +133,66 @@ void createImage(const FbrApp *pApp,
     };
 
     if (vkAllocateMemory(pApp->device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
-        printf("%s - failed to allocate image memory!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("%s - failed to allocate image memory!");
     }
 
     vkBindImageMemory(pApp->device, *image, *imageMemory, 0);
 }
 
-void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture) {
-    *ppAllocTexture = calloc(1, sizeof(FbrTexture));
-    FbrTexture *pTexture = *ppAllocTexture;
+void createTextureView(const FbrApp *pApp, FbrTexture *pTexture, VkFormat format) {
+    VkImageViewCreateInfo viewInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = pTexture->texture,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = format,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+    };
 
+    if (vkCreateImageView(pApp->device, &viewInfo, NULL, &pTexture->textureView) != VK_SUCCESS) {
+        FBR_LOG_DEBUG("failed to create texture image view!");
+    }
+}
+
+void createTextureSampler(const FbrApp *pApp, FbrTexture *pTexture){
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(pApp->physicalDevice, &properties);
+    FBR_LOG_DEBUG("Max Anisotropy!", properties.limits.maxSamplerAnisotropy);
+
+    VkSamplerCreateInfo samplerInfo = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter = VK_FILTER_LINEAR,
+            .minFilter = VK_FILTER_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE,
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .mipLodBias = 0.0f,
+            .minLod = 0.0f,
+            .maxLod = 0.0f,
+    };
+
+    if (vkCreateSampler(pApp->device, &samplerInfo, NULL, &pTexture->textureSampler) != VK_SUCCESS) {
+        FBR_LOG_DEBUG("Failed to create texture sampler!");
+    }
+}
+
+void createPopulateTexture(const FbrApp *pApp, FbrTexture *pTexture) {
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load("textures/test.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageBufferSize = texWidth * texHeight * 4;
 
     if (!pixels) {
-        printf("%s - failed to load texture image!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("Failed to load texture image!");
     }
 
     VkBuffer stagingBuffer;
@@ -160,29 +205,43 @@ void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture) {
 
     stbi_image_free(pixels);
 
-    createImage(pApp,
-                texWidth,
-                texHeight,
-                VK_FORMAT_R8G8B8A8_SRGB,
-                VK_IMAGE_TILING_OPTIMAL,
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                &pTexture->image,
-                &pTexture->imageMemory);
+    createTexture(pApp,
+                  texWidth,
+                  texHeight,
+                  VK_FORMAT_R8G8B8A8_SRGB,
+                  VK_IMAGE_TILING_OPTIMAL,
+                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                  &pTexture->texture,
+                  &pTexture->textureMemory);
 
-
-    transitionImageLayout(pApp, pTexture->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+    transitionImageLayout(pApp,
+                          pTexture->texture,
+                          VK_FORMAT_R8G8B8A8_SRGB,
+                          VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(pApp, stagingBuffer, pTexture->image, texWidth, texHeight);
-    transitionImageLayout(pApp, pTexture->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    copyBufferToImage(pApp, stagingBuffer, pTexture->texture, texWidth, texHeight);
+    transitionImageLayout(pApp, pTexture->texture,
+                          VK_FORMAT_R8G8B8A8_SRGB,
+                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(pApp->device, stagingBuffer, NULL);
     vkFreeMemory(pApp->device, stagingBufferMemory, NULL);
 }
 
+void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture) {
+    *ppAllocTexture = calloc(1, sizeof(FbrTexture));
+    FbrTexture *pTexture = *ppAllocTexture;
+    createPopulateTexture(pApp, pTexture);
+    createTextureView(pApp, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
+    createTextureSampler(pApp, pTexture);
+}
+
 void fbrCleanupTexture(const FbrApp *pApp, FbrTexture *pTexture) {
-    vkDestroyImage(pApp->device, pTexture->image, NULL);
-    vkFreeMemory(pApp->device, pTexture->imageMemory, NULL);
+    vkDestroyImage(pApp->device, pTexture->texture, NULL);
+    vkFreeMemory(pApp->device, pTexture->textureMemory, NULL);
+    vkDestroySampler(pApp->device, pTexture->textureSampler, NULL);
+    vkDestroyImageView(pApp->device, pTexture->textureView, NULL);
     free(pTexture);
 }

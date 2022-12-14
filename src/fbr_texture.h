@@ -4,8 +4,10 @@
 #include "fbr_app.h"
 
 typedef struct FbrTexture {
-    VkImage image;
-    VkDeviceMemory imageMemory;
+    VkImage texture;
+    VkImageView textureView;
+    VkDeviceMemory textureMemory;
+    VkSampler textureSampler;
 } FbrTexture;
 
 void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture);
