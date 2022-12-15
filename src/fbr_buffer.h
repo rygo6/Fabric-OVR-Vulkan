@@ -40,6 +40,6 @@ void fbrCreatePopulateBufferViaStaging(const FbrApp *pApp,
 void
 fbrCreateUniformBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
 
-void fbrCleanupBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject);
+void fbrCleanupUniformBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject);
 
 #endif //FABRIC_BUFFER_H

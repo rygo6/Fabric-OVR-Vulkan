@@ -1,6 +1,8 @@
 #include "fbr_pipeline.h"
 #include "fbr_mesh.h"
+#include "fbr_texture.h"
 #include "fbr_camera.h"
+#include "fbr_log.h"
 
 #include <memory.h>
 
@@ -8,7 +10,7 @@ static char *readBinaryFile(const char *filename, uint32_t *length) {
     FILE *file = fopen(filename, "rb");
 
     if (file == NULL) {
-        printf("%s - file can't be opened! %s\n", __FUNCTION__, filename);
+        FBR_LOG_DEBUG("File can't be opened!", filename);
     }
 
     fseek(file, 0, SEEK_END);
@@ -17,7 +19,7 @@ static char *readBinaryFile(const char *filename, uint32_t *length) {
     char *contents = calloc(1 + *length, sizeof(char));
     size_t readCount = fread(contents, *length, 1, file);
     if (readCount == 0) {
-        printf("%s - failed to read file! %s\n", __FUNCTION__, filename);
+        FBR_LOG_DEBUG("Failed to read file!", filename);
     }
     fclose(file);
 
@@ -33,7 +35,7 @@ static VkShaderModule createShaderModule(const FbrApp *pApp, const char *code, c
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(pApp->device, &createInfo, NULL, &shaderModule) != VK_SUCCESS) {
-        printf("%s - failed to create shader module! %s\n", __FUNCTION__, code);
+        FBR_LOG_DEBUG("Failed to create shader module!", code);
     }
 
     return shaderModule;
@@ -48,14 +50,25 @@ static void initDescriptorSetLayout(const FbrApp *pApp, FbrPipeline *pPipeline) 
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
     };
 
+    VkDescriptorSetLayoutBinding samplerLayoutBinding = {
+            .binding = 1,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImmutableSamplers = NULL,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+    };
+
+    const uint32_t bindingsCount = 2;
+    VkDescriptorSetLayoutBinding bindings[] = {uboLayoutBinding, samplerLayoutBinding};
+
     VkDescriptorSetLayoutCreateInfo layoutInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 1,
-            .pBindings = &uboLayoutBinding,
+            .bindingCount = bindingsCount,
+            .pBindings = bindings,
     };
 
     if (vkCreateDescriptorSetLayout(pApp->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout) != VK_SUCCESS) {
-        printf("%s - failed to create descriptor set layout!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("Failed to create descriptor set layout!");
     }
 }
 
@@ -67,20 +80,20 @@ static void initPipelineLayout(const FbrApp *pApp, FbrPipeline *pPipeline) {
     };
 
     if (vkCreatePipelineLayout(pApp->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
-        printf("%s - failed to create pipeline layout!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("Failed to create pipeline layout!");
     }
 }
 
-static void initDescriptorSets(const FbrApp *pApp, const FbrCamera *pCameraState, FbrPipeline *pPipeline) {
+static void initDescriptorSets(const FbrApp *pApp, const FbrCamera *pCameraState, const FbrTexture *pTexture, FbrPipeline *pPipeline) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pApp->descriptorPool,
-            .descriptorSetCount = 1,
+            .descriptorSetCount = FBR_DESCRIPTOR_SET_COUNT,
             .pSetLayouts = &pApp->pPipeline->descriptorSetLayout,
     };
 
     if (vkAllocateDescriptorSets(pApp->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
-        printf("%s - failed to allocate descriptor sets!\n", __FUNCTION__);
+        FBR_LOG_DEBUG("Failed to allocate descriptor sets!");
     }
 
     VkDescriptorBufferInfo bufferInfo = {
@@ -89,17 +102,34 @@ static void initDescriptorSets(const FbrApp *pApp, const FbrCamera *pCameraState
             .range = sizeof(FbrMVP),
     };
 
-    VkWriteDescriptorSet descriptorWrite = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = pPipeline->descriptorSet,
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
-            .pBufferInfo = &bufferInfo
+    VkDescriptorImageInfo imageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pTexture->textureView,
+            .sampler = pTexture->textureSampler,
     };
 
-    vkUpdateDescriptorSets(pApp->device, 1, &descriptorWrite, 0, NULL);
+    VkWriteDescriptorSet descriptorWrites[FBR_DESCRIPTOR_COUNT] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = pPipeline->descriptorSet,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .pBufferInfo = &bufferInfo,
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .dstSet = pPipeline->descriptorSet,
+                    .dstBinding = 1,
+                    .dstArrayElement = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .pImageInfo = &imageInfo,
+            },
+    };
+
+    vkUpdateDescriptorSets(pApp->device, FBR_DESCRIPTOR_COUNT, descriptorWrites, 0, NULL);
 }
 
 static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
@@ -127,29 +157,40 @@ static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-    VkVertexInputBindingDescription bindingDescription = {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    VkVertexInputBindingDescription bindingDescription[FBR_BINDING_DESCRIPTOR_COUNT] = {
+            {
+                    .binding = 0,
+                    .stride = sizeof(Vertex),
+                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+            }
     };
 
-    const int attributeDescriptionsCount = 2;
-    VkVertexInputAttributeDescription attributeDescriptions[attributeDescriptionsCount];
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
+    VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTOR_COUNT] = {
+            {
+                    .binding = 0,
+                    .location = 0,
+                    .format = VK_FORMAT_R32G32_SFLOAT,
+                    .offset = offsetof(Vertex, pos),
+            },
+            {
+                    .binding = 0,
+                    .location = 1,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex, color),
+            },
+            {
+                    .binding = 0,
+                    .location = 2,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex, texCoord),
+            }
+    };
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount = 1,
-            .vertexAttributeDescriptionCount = attributeDescriptionsCount,
-            .pVertexBindingDescriptions = &bindingDescription,
+            .vertexBindingDescriptionCount = FBR_BINDING_DESCRIPTOR_COUNT,
+            .vertexAttributeDescriptionCount = FBR_ATTRIBUTE_DESCRIPTOR_COUNT,
+            .pVertexBindingDescriptions = bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
 
@@ -183,8 +224,7 @@ static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
     };
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment = {
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                              VK_COLOR_COMPONENT_A_BIT,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
             .blendEnable = VK_FALSE,
     };
 
@@ -228,9 +268,8 @@ static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
             .basePipelineHandle = VK_NULL_HANDLE,
     };
 
-    if (vkCreateGraphicsPipelines(pApp->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) !=
-        VK_SUCCESS) {
-        printf("%s - failed to create graphics pipeline!\n", __FUNCTION__);
+    if (vkCreateGraphicsPipelines(pApp->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) != VK_SUCCESS) {
+        FBR_LOG_DEBUG("Failed to create graphics pipeline!");
     }
 
     vkDestroyShaderModule(pApp->device, fragShaderModule, NULL);
@@ -241,13 +280,14 @@ static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
 
 void fbrCreatePipeline(const FbrApp *pApp,
                        const FbrCamera *pCameraState,
+                       const FbrTexture *pTexture,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
     initDescriptorSetLayout(pApp, pPipeline);
     initPipelineLayout(pApp, pPipeline);
     initPipeline(pApp, pPipeline);
-    initDescriptorSets(pApp, pCameraState, pPipeline);
+    initDescriptorSets(pApp, pCameraState, pTexture, pPipeline);
 }
 
 void fbrFreePipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {

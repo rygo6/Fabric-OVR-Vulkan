@@ -17,7 +17,8 @@
     float: "%f", \
     double: "%lf", \
     long double: "%Lf", \
-    char *: "%p", \
+    char *: "%s", \
+    const char *: "%s", \
     void *: "%p", \
     int *: "%p", \
     default: "%%")

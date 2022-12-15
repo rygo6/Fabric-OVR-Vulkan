@@ -41,7 +41,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
                                                     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                     void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        FBR_LOG_DEBUG("validation layer", *pCallbackData->pMessage);
+        FBR_LOG_DEBUG("validation layer", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
@@ -240,11 +240,16 @@ static void createLogicalDevice(FbrApp *pApp) {
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(pApp->physicalDevice, &supportedFeatures);
 
+    //force robust buffer access??
+    VkPhysicalDeviceFeatures enabledFeatures = {
+            .samplerAnisotropy = true
+    };
+
     VkDeviceCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .queueCreateInfoCount = queueFamilyCount,
             .pQueueCreateInfos = queueCreateInfos,
-            .pEnabledFeatures = &supportedFeatures,
+            .pEnabledFeatures = &enabledFeatures,
             .enabledExtensionCount = requiredExtensionCount,
             .ppEnabledExtensionNames = pRequiredExtensions,
     };
@@ -517,16 +522,24 @@ static void createCommandPool(FbrApp *pApp) {
 }
 
 static void createDescriptorPool(FbrApp *pApp) {
-    VkDescriptorPoolSize poolSize = {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
+    const uint32_t frameCount = 1;
+    const uint32_t poolSizeCount = 2;
+    VkDescriptorPoolSize poolSizes[] = {
+            {
+                    .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = frameCount,
+            },
+            {
+                    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = frameCount,
+            }
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .poolSizeCount = 1,
-            .pPoolSizes = &poolSize,
-            .maxSets = 1,
+            .poolSizeCount = poolSizeCount,
+            .pPoolSizes = poolSizes,
+            .maxSets = frameCount,
     };
 
     if (vkCreateDescriptorPool(pApp->device, &poolInfo, NULL, &pApp->descriptorPool) != VK_SUCCESS) {
@@ -592,7 +605,7 @@ void fbrInitVulkan(FbrApp *pApp) {
     fbrCreateTexture(pApp, &pApp->pTexture);
 
     // Pipeline
-    fbrCreatePipeline(pApp, pApp->pCamera, &pApp->pPipeline);
+    fbrCreatePipeline(pApp, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);
 }
 
 static void recordCommandBuffer(FbrApp *pApp, uint32_t imageIndex) {
@@ -645,7 +658,7 @@ static void recordCommandBuffer(FbrApp *pApp, uint32_t imageIndex) {
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pApp->pPipeline->pipelineLayout,
                                 0,
-                                1,
+                                FBR_DESCRIPTOR_SET_COUNT,
                                 &pApp->pPipeline->descriptorSet,
                                 0,
                                 NULL);
@@ -673,8 +686,12 @@ static void processInputFrame(FbrApp *pApp) {
 
 static void drawFrame(FbrApp *pApp) {
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(pApp->device, pApp->swapChain, UINT64_MAX, pApp->imageAvailableSemaphore,
-                          VK_NULL_HANDLE, &imageIndex);
+    vkAcquireNextImageKHR(pApp->device,
+                          pApp->swapChain,
+                          UINT64_MAX,
+                          pApp->imageAvailableSemaphore,
+                          VK_NULL_HANDLE,
+                          &imageIndex);
 
     vkResetCommandBuffer(pApp->commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
     recordCommandBuffer(pApp, imageIndex);

@@ -154,7 +154,7 @@ void fbrCreateUniformBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBu
                 &pUniformBufferObject->pUniformBufferMapped);
 }
 
-void fbrCleanupBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject) {
+void fbrCleanupUniformBuffers(const FbrApp *pApp, UniformBufferObject *pUniformBufferObject) {
     vkUnmapMemory(pApp->device, pUniformBufferObject->uniformBufferMemory);
     vkDestroyBuffer(pApp->device, pUniformBufferObject->uniformBuffer, NULL);
     vkFreeMemory(pApp->device, pUniformBufferObject->uniformBufferMemory, NULL);

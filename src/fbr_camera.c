@@ -8,6 +8,7 @@ static inline void fbrUpdateCameraUBO(FbrCamera *pCameraState) {
     fbrUpdateTransformMatrix(&pCameraState->transform);
     glm_mat4_copy(pCameraState->transform.matrix, pCameraState->mvp.view);
     glm_perspective(90, 1, .01f, 10, pCameraState->mvp.proj);
+    // TODO this is getting copied multiple places.. in fbr_mesh.c too
     memcpy(pCameraState->mvpUBO.pUniformBufferMapped, &pCameraState->mvp, sizeof(FbrMVP));
 }
 
@@ -69,6 +70,6 @@ void fbrCreateCamera(const FbrApp *pApp, FbrCamera **ppAllocCameraState) {
 }
 
 void fbrFreeCamera(const FbrApp *pApp, FbrCamera *pCameraState) {
-    fbrCleanupBuffers(pApp, &pCameraState->mvpUBO);
+    fbrCleanupUniformBuffers(pApp, &pCameraState->mvpUBO);
     free(pCameraState);
 }
