@@ -7,7 +7,7 @@
 
 #include "fbr_app.h"
 
-#define fbrInputEventBufferCount 32
+#define FBR_INPUT_BUFFER_COUNT 32
 #define FBR_HELD 3
 
 struct FbrKeyInputEvent {

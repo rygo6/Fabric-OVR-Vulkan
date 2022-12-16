@@ -1,20 +1,16 @@
 #include "fbr_core.h"
-#include "fbr_input.h"
+#include "fbr_log.h"
 
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-    FbrApp *pApp;
-    pApp = calloc(1, sizeof(FbrApp));
-    pApp->screenWidth = 800;
-    pApp->screenHeight = 600;
-    pApp->enableValidationLayers = true;
-    pApp->pTime = calloc(1, sizeof(FbrTime));
+    FBR_LOG_DEBUG("starting!");
 
-    fbrInitWindow(pApp);
-    fbrInitInput(pApp);
-    fbrInitVulkan(pApp);
+    FbrApp *pApp;
+    fbrCreateApp(&pApp);
+
     fbrMainLoop(pApp);
+
     fbrCleanup(pApp);
 
     free(pApp);

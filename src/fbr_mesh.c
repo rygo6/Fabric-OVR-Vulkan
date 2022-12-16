@@ -2,6 +2,7 @@
 #include "fbr_app.h"
 #include "fbr_buffer.h"
 #include "fbr_camera.h"
+#include "fbr_vulkan.h"
 
 #include <memory.h>
 
@@ -16,9 +17,9 @@ const uint16_t indices[] = {
         0, 1, 2, 2, 3, 0
 };
 
-static void createVertexBuffer(const FbrApp *pApp, FbrMesh *pMeshState) {
+static void createVertexBuffer(const FbrVulkan *pVulkan, FbrMesh *pMeshState) {
     VkDeviceSize bufferSize = (sizeof(Vertex) * FBR_TEST_VERTICES_COUNT);
-    fbrCreatePopulateBufferViaStaging(pApp,
+    fbrCreatePopulateBufferViaStaging(pVulkan,
                                       vertices,
                                       VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                       &pMeshState->vertexBuffer,
@@ -26,9 +27,9 @@ static void createVertexBuffer(const FbrApp *pApp, FbrMesh *pMeshState) {
                                       bufferSize);
 }
 
-static void createIndexBuffer(const FbrApp *pApp, FbrMesh *pMeshState) {
+static void createIndexBuffer(const FbrVulkan *pVulkan, FbrMesh *pMeshState) {
     VkDeviceSize bufferSize = (sizeof(uint16_t) * FBR_TEST_INDICES_COUNT);
-    fbrCreatePopulateBufferViaStaging(pApp,
+    fbrCreatePopulateBufferViaStaging(pVulkan,
                                       indices,
                                       VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                                       &pMeshState->indexBuffer,
@@ -48,17 +49,17 @@ void fbrMeshUpdateCameraUBO(FbrMesh *pMeshState, FbrCamera *pCameraState) {
 }
 
 
-void fbrCreateMesh(const FbrApp *pApp, FbrMesh **ppAllocMeshState) {
+void fbrCreateMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState) {
     *ppAllocMeshState = calloc(1, sizeof(FbrMesh));
     FbrMesh *pMeshState = *ppAllocMeshState;
-    createVertexBuffer(pApp, pMeshState);
-    createIndexBuffer(pApp, pMeshState);
+    createVertexBuffer(pVulkan, pMeshState);
+    createIndexBuffer(pVulkan, pMeshState);
 }
 
-void fbrFreeMesh(const FbrApp *pApp, FbrMesh *pMeshState) {
-    vkDestroyBuffer(pApp->device, pMeshState->indexBuffer, NULL);
-    vkFreeMemory(pApp->device, pMeshState->indexBufferMemory, NULL);
-    vkDestroyBuffer(pApp->device, pMeshState->vertexBuffer, NULL);
-    vkFreeMemory(pApp->device, pMeshState->vertexBufferMemory, NULL);
+void fbrCleanupMesh(const FbrVulkan *pVulkan, FbrMesh *pMeshState) {
+    vkDestroyBuffer(pVulkan->device, pMeshState->indexBuffer, NULL);
+    vkFreeMemory(pVulkan->device, pMeshState->indexBufferMemory, NULL);
+    vkDestroyBuffer(pVulkan->device, pMeshState->vertexBuffer, NULL);
+    vkFreeMemory(pVulkan->device, pMeshState->vertexBufferMemory, NULL);
     free(pMeshState);
 }

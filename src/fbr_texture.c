@@ -1,17 +1,17 @@
-#define STB_IMAGE_IMPLEMENTATION
-
-#include <stb_image.h>
-
 #include "fbr_texture.h"
 #include "fbr_buffer.h"
+#include "fbr_vulkan.h"
 #include "fbr_log.h"
 
-void copyBufferToImage(const FbrApp *pApp,
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+void copyBufferToImage(const FbrVulkan *pVulkan,
                        VkBuffer buffer,
                        VkImage image,
                        uint32_t width,
                        uint32_t height) {
-    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pApp);
+    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pVulkan);
 
     VkBufferImageCopy region = {
             .bufferOffset = 0,
@@ -34,15 +34,15 @@ void copyBufferToImage(const FbrApp *pApp,
             &region
     );
 
-    fbrEndBufferCommands(pApp, commandBuffer);
+    fbrEndBufferCommands(pVulkan, commandBuffer);
 }
 
-void transitionImageLayout(const FbrApp *pApp,
+void transitionImageLayout(const FbrVulkan *pVulkan,
                            VkImage image,
                            VkFormat format,
                            VkImageLayout oldLayout,
                            VkImageLayout newLayout) {
-    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pApp);
+    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pVulkan);
 
     VkImageMemoryBarrier barrier = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -90,10 +90,10 @@ void transitionImageLayout(const FbrApp *pApp,
             1, &barrier
     );
 
-    fbrEndBufferCommands(pApp, commandBuffer);
+    fbrEndBufferCommands(pVulkan, commandBuffer);
 }
 
-void createTexture(const FbrApp *pApp,
+void createTexture(const FbrVulkan *pVulkan,
                    uint32_t width,
                    uint32_t height,
                    VkFormat format,
@@ -119,27 +119,27 @@ void createTexture(const FbrApp *pApp,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    if (vkCreateImage(pApp->device, &imageInfo, NULL, image) != VK_SUCCESS) {
+    if (vkCreateImage(pVulkan->device, &imageInfo, NULL, image) != VK_SUCCESS) {
         FBR_LOG_DEBUG("%s - failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(pApp->device, *image, &memRequirements);
+    vkGetImageMemoryRequirements(pVulkan->device, *image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pApp->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
     };
 
-    if (vkAllocateMemory(pApp->device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
+    if (vkAllocateMemory(pVulkan->device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
         FBR_LOG_DEBUG("%s - failed to allocate image memory!");
     }
 
-    vkBindImageMemory(pApp->device, *image, *imageMemory, 0);
+    vkBindImageMemory(pVulkan->device, *image, *imageMemory, 0);
 }
 
-void createTextureView(const FbrApp *pApp, FbrTexture *pTexture, VkFormat format) {
+void createTextureView(const FbrVulkan *pVulkan, FbrTexture *pTexture, VkFormat format) {
     VkImageViewCreateInfo viewInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image = pTexture->texture,
@@ -152,14 +152,14 @@ void createTextureView(const FbrApp *pApp, FbrTexture *pTexture, VkFormat format
             .subresourceRange.layerCount = 1,
     };
 
-    if (vkCreateImageView(pApp->device, &viewInfo, NULL, &pTexture->textureView) != VK_SUCCESS) {
+    if (vkCreateImageView(pVulkan->device, &viewInfo, NULL, &pTexture->textureView) != VK_SUCCESS) {
         FBR_LOG_DEBUG("failed to create texture image view!");
     }
 }
 
-void createTextureSampler(const FbrApp *pApp, FbrTexture *pTexture){
+void createTextureSampler(const FbrVulkan *pVulkan, FbrTexture *pTexture){
     VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(pApp->physicalDevice, &properties);
+    vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &properties);
     FBR_LOG_DEBUG("Max Anisotropy!", properties.limits.maxSamplerAnisotropy);
 
     VkSamplerCreateInfo samplerInfo = {
@@ -181,12 +181,12 @@ void createTextureSampler(const FbrApp *pApp, FbrTexture *pTexture){
             .maxLod = 0.0f,
     };
 
-    if (vkCreateSampler(pApp->device, &samplerInfo, NULL, &pTexture->textureSampler) != VK_SUCCESS) {
+    if (vkCreateSampler(pVulkan->device, &samplerInfo, NULL, &pTexture->textureSampler) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to create texture sampler!");
     }
 }
 
-void createPopulateTexture(const FbrApp *pApp, FbrTexture *pTexture) {
+void createPopulateTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load("textures/test.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageBufferSize = texWidth * texHeight * 4;
@@ -197,7 +197,7 @@ void createPopulateTexture(const FbrApp *pApp, FbrTexture *pTexture) {
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    fbrCreateStagingBuffer(pApp,
+    fbrCreateStagingBuffer(pVulkan,
                            pixels,
                            &stagingBuffer,
                            &stagingBufferMemory,
@@ -205,7 +205,7 @@ void createPopulateTexture(const FbrApp *pApp, FbrTexture *pTexture) {
 
     stbi_image_free(pixels);
 
-    createTexture(pApp,
+    createTexture(pVulkan,
                   texWidth,
                   texHeight,
                   VK_FORMAT_R8G8B8A8_SRGB,
@@ -215,33 +215,33 @@ void createPopulateTexture(const FbrApp *pApp, FbrTexture *pTexture) {
                   &pTexture->texture,
                   &pTexture->textureMemory);
 
-    transitionImageLayout(pApp,
+    transitionImageLayout(pVulkan,
                           pTexture->texture,
                           VK_FORMAT_R8G8B8A8_SRGB,
                           VK_IMAGE_LAYOUT_UNDEFINED,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(pApp, stagingBuffer, pTexture->texture, texWidth, texHeight);
-    transitionImageLayout(pApp, pTexture->texture,
+    copyBufferToImage(pVulkan, stagingBuffer, pTexture->texture, texWidth, texHeight);
+    transitionImageLayout(pVulkan, pTexture->texture,
                           VK_FORMAT_R8G8B8A8_SRGB,
                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    vkDestroyBuffer(pApp->device, stagingBuffer, NULL);
-    vkFreeMemory(pApp->device, stagingBufferMemory, NULL);
+    vkDestroyBuffer(pVulkan->device, stagingBuffer, NULL);
+    vkFreeMemory(pVulkan->device, stagingBufferMemory, NULL);
 }
 
-void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture) {
+void fbrCreateTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
-    createPopulateTexture(pApp, pTexture);
-    createTextureView(pApp, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
-    createTextureSampler(pApp, pTexture);
+    createPopulateTexture(pVulkan, pTexture);
+    createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
+    createTextureSampler(pVulkan, pTexture);
 }
 
-void fbrCleanupTexture(const FbrApp *pApp, FbrTexture *pTexture) {
-    vkDestroyImage(pApp->device, pTexture->texture, NULL);
-    vkFreeMemory(pApp->device, pTexture->textureMemory, NULL);
-    vkDestroySampler(pApp->device, pTexture->textureSampler, NULL);
-    vkDestroyImageView(pApp->device, pTexture->textureView, NULL);
+void fbrCleanupTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {
+    vkDestroyImage(pVulkan->device, pTexture->texture, NULL);
+    vkFreeMemory(pVulkan->device, pTexture->textureMemory, NULL);
+    vkDestroySampler(pVulkan->device, pTexture->textureSampler, NULL);
+    vkDestroyImageView(pVulkan->device, pTexture->textureView, NULL);
     free(pTexture);
 }

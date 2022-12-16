@@ -30,8 +30,8 @@ typedef struct FbrMesh {
 
 void fbrMeshUpdateCameraUBO(FbrMesh *pMeshState, FbrCamera *pCameraState);
 
-void fbrCreateMesh(const FbrApp *pApp, FbrMesh **ppAllocMeshState);
+void fbrCreateMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState);
 
-void fbrFreeMesh(const FbrApp *pApp, FbrMesh *pMeshState);
+void fbrCleanupMesh(const FbrVulkan *pVulkan, FbrMesh *pMeshState);
 
 #endif //FABRIC_MESH_H

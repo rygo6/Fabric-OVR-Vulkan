@@ -19,10 +19,10 @@ typedef struct FbrCamera {
     UniformBufferObject mvpUBO;
 } FbrCamera;
 
-void fbrUpdateCamera(FbrCamera *pCameraState, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState);
+void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState);
 
-void fbrCreateCamera(const FbrApp *pApp, FbrCamera **ppAllocCameraState);
+void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState);
 
-void fbrFreeCamera(const FbrApp *pApp, FbrCamera *pCameraState);
+void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);
 
 #endif //FABRIC_CAMERA_H

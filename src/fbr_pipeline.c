@@ -3,6 +3,7 @@
 #include "fbr_texture.h"
 #include "fbr_camera.h"
 #include "fbr_log.h"
+#include "fbr_vulkan.h"
 
 #include <memory.h>
 
@@ -26,7 +27,7 @@ static char *readBinaryFile(const char *filename, uint32_t *length) {
     return contents;
 }
 
-static VkShaderModule createShaderModule(const FbrApp *pApp, const char *code, const uint32_t codeLength) {
+static VkShaderModule createShaderModule(const FbrVulkan *pVulkan, const char *code, const uint32_t codeLength) {
     VkShaderModuleCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = codeLength,
@@ -34,14 +35,14 @@ static VkShaderModule createShaderModule(const FbrApp *pApp, const char *code, c
     };
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(pApp->device, &createInfo, NULL, &shaderModule) != VK_SUCCESS) {
+    if (vkCreateShaderModule(pVulkan->device, &createInfo, NULL, &shaderModule) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to create shader module!", code);
     }
 
     return shaderModule;
 }
 
-static void initDescriptorSetLayout(const FbrApp *pApp, FbrPipeline *pPipeline) {
+static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -67,32 +68,32 @@ static void initDescriptorSetLayout(const FbrApp *pApp, FbrPipeline *pPipeline) 
             .pBindings = bindings,
     };
 
-    if (vkCreateDescriptorSetLayout(pApp->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(pVulkan->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to create descriptor set layout!");
     }
 }
 
-static void initPipelineLayout(const FbrApp *pApp, FbrPipeline *pPipeline) {
+static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = &pPipeline->descriptorSetLayout,
     };
 
-    if (vkCreatePipelineLayout(pApp->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to create pipeline layout!");
     }
 }
 
-static void initDescriptorSets(const FbrApp *pApp, const FbrCamera *pCameraState, const FbrTexture *pTexture, FbrPipeline *pPipeline) {
+static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCameraState, const FbrTexture *pTexture, FbrPipeline *pPipeline) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = pApp->descriptorPool,
+            .descriptorPool = pVulkan->descriptorPool,
             .descriptorSetCount = FBR_DESCRIPTOR_SET_COUNT,
-            .pSetLayouts = &pApp->pPipeline->descriptorSetLayout,
+            .pSetLayouts = &pPipeline->descriptorSetLayout,
     };
 
-    if (vkAllocateDescriptorSets(pApp->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
+    if (vkAllocateDescriptorSets(pVulkan->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to allocate descriptor sets!");
     }
 
@@ -129,17 +130,17 @@ static void initDescriptorSets(const FbrApp *pApp, const FbrCamera *pCameraState
             },
     };
 
-    vkUpdateDescriptorSets(pApp->device, FBR_DESCRIPTOR_COUNT, descriptorWrites, 0, NULL);
+    vkUpdateDescriptorSets(pVulkan->device, FBR_DESCRIPTOR_COUNT, descriptorWrites, 0, NULL);
 }
 
-static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
+static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
     uint32_t vertLength;
     char *vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
     uint32_t fragLength;
     char *fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
 
-    VkShaderModule vertShaderModule = createShaderModule(pApp, vertShaderCode, vertLength);
-    VkShaderModule fragShaderModule = createShaderModule(pApp, fragShaderCode, fragLength);
+    VkShaderModule vertShaderModule = createShaderModule(pVulkan, vertShaderCode, vertLength);
+    VkShaderModule fragShaderModule = createShaderModule(pVulkan, fragShaderCode, fragLength);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -263,36 +264,36 @@ static void initPipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
             .layout = pPipeline->pipelineLayout,
-            .renderPass =  pApp->renderPass,
+            .renderPass = pVulkan->renderPass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
     };
 
-    if (vkCreateGraphicsPipelines(pApp->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) != VK_SUCCESS) {
+    if (vkCreateGraphicsPipelines(pVulkan->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to create graphics pipeline!");
     }
 
-    vkDestroyShaderModule(pApp->device, fragShaderModule, NULL);
-    vkDestroyShaderModule(pApp->device, vertShaderModule, NULL);
+    vkDestroyShaderModule(pVulkan->device, fragShaderModule, NULL);
+    vkDestroyShaderModule(pVulkan->device, vertShaderModule, NULL);
     free(vertShaderCode);
     free(fragShaderCode);
 }
 
-void fbrCreatePipeline(const FbrApp *pApp,
+void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        const FbrCamera *pCameraState,
                        const FbrTexture *pTexture,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
-    initDescriptorSetLayout(pApp, pPipeline);
-    initPipelineLayout(pApp, pPipeline);
-    initPipeline(pApp, pPipeline);
-    initDescriptorSets(pApp, pCameraState, pTexture, pPipeline);
+    initDescriptorSetLayout(pVulkan, pPipeline);
+    initPipelineLayout(pVulkan, pPipeline);
+    initPipeline(pVulkan, pPipeline);
+    initDescriptorSets(pVulkan, pCameraState, pTexture, pPipeline);
 }
 
-void fbrFreePipeline(const FbrApp *pApp, FbrPipeline *pPipeline) {
-    vkDestroyDescriptorSetLayout(pApp->device, pApp->pPipeline->descriptorSetLayout, NULL);
-    vkDestroyPipeline(pApp->device, pApp->pPipeline->graphicsPipeline, NULL);
-    vkDestroyPipelineLayout(pApp->device, pApp->pPipeline->pipelineLayout, NULL);
+void fbrCleanupPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
+    vkDestroyDescriptorSetLayout(pVulkan->device, pPipeline->descriptorSetLayout, NULL);
+    vkDestroyPipeline(pVulkan->device, pPipeline->graphicsPipeline, NULL);
+    vkDestroyPipelineLayout(pVulkan->device, pPipeline->pipelineLayout, NULL);
     free(pPipeline);
 }

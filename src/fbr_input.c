@@ -5,7 +5,7 @@
 
 #include "stb_ds.h"
 
-FbrInputEvent inputEvents[fbrInputEventBufferCount];
+FbrInputEvent inputEvents[FBR_INPUT_BUFFER_COUNT];
 int currentEventIndex;
 
 struct {

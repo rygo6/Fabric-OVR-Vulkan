@@ -10,8 +10,8 @@ typedef struct FbrTexture {
     VkSampler textureSampler;
 } FbrTexture;
 
-void fbrCreateTexture(const FbrApp *pApp, FbrTexture **ppAllocTexture);
+void fbrCreateTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture);
 
-void fbrCleanupTexture(const FbrApp *pApp, FbrTexture *pTexture);
+void fbrCleanupTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 
 #endif //FABRIC_TEXTURE_H
