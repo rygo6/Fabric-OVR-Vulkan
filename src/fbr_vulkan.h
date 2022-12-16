@@ -7,6 +7,9 @@
 #include <stdbool.h>
 
 typedef struct FbrVulkan {
+    int screenWidth;
+    int screenHeight;
+
     bool enableValidationLayers;
 
     VkInstance instance;
@@ -40,7 +43,11 @@ typedef struct FbrVulkan {
     VkFence inFlightFence;
 } FbrVulkan;
 
-void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, bool enableValidationLayers);
+void fbrCreateVulkan(const FbrApp *pApp,
+                     FbrVulkan **ppAllocVulkan,
+                     int screenWidth,
+                     int screenHeight,
+                     bool enableValidationLayers);
 
 void fbrCleanupVulkan(FbrVulkan *pVulkan);
 

@@ -10,46 +10,6 @@
 #include "cglm/cglm.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-
-static void initWindow(FbrApp *pApp) {
-    FBR_LOG_DEBUG("initializing window!");
-
-    glfwInit();
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-    pApp->pWindow = glfwCreateWindow(pApp->screenWidth, pApp->screenHeight, "Fabric", NULL, NULL);
-    if (pApp->pWindow == NULL) {
-        FBR_LOG_ERROR("unable to initialize GLFW Window!");
-    }
-}
-
-static void initEntities(FbrApp *pApp) {
-    FBR_LOG_DEBUG("initializing vulkan!");
-
-    // entities
-    fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
-    fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    fbrCreateTexture(pApp->pVulkan, &pApp->pTexture);
-
-    // Pipeline
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);
-}
-
-void fbrCreateApp(FbrApp **ppAllocApp) {
-    *ppAllocApp = calloc(1, sizeof(FbrApp));
-    FbrApp *pApp = *ppAllocApp;
-    pApp->screenWidth = 800;
-    pApp->screenHeight = 600;
-    pApp->pTime = calloc(1, sizeof(FbrTime));
-
-    initWindow(pApp);
-    fbrInitInput(pApp);
-    fbrCreateVulkan(pApp, &pApp->pVulkan, true);
-    initEntities(pApp);
-}
 
 static void waitForLastFrame(FbrVulkan *pVulkan) {
     vkWaitForFences(pVulkan->device, 1, &pVulkan->inFlightFence, VK_TRUE, UINT64_MAX);
@@ -200,16 +160,4 @@ void fbrMainLoop(FbrApp *pApp) {
     }
 
     vkDeviceWaitIdle(pApp->pVulkan->device);
-}
-
-void fbrCleanup(FbrApp *pApp) {
-    FBR_LOG_DEBUG("cleaning up!");
-    fbrCleanupTexture(pApp->pVulkan, pApp->pTexture);
-    fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
-    fbrCleanupMesh(pApp->pVulkan, pApp->pMesh);
-    fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
-    fbrCleanupVulkan(pApp->pVulkan);
-    glfwDestroyWindow(pApp->pWindow);
-    free(pApp);
-    glfwTerminate();
 }

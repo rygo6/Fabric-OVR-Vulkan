@@ -282,13 +282,13 @@ static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availableP
     return swapChainPresentMode;
 }
 
-static VkExtent2D chooseSwapExtent(FbrApp *pApp, const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D chooseSwapExtent(FbrVulkan *pVulkan, const VkSurfaceCapabilitiesKHR capabilities) {
     // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
     VkExtent2D extents;
     if (capabilities.currentExtent.width == -1) {
         // If the surface size is undefined, the size is set to the size of the images requested.
-        extents.width = pApp->screenWidth;
-        extents.height = pApp->screenHeight;
+        extents.width = pVulkan->screenWidth;
+        extents.height = pVulkan->screenHeight;
     } else {
         // If the surface size is defined, the swap chain size must match
         extents = capabilities.currentExtent;
@@ -576,10 +576,12 @@ void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     createDescriptorPool(pVulkan);
 }
 
-void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, bool enableValidationLayers) {
+void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWidth, int screenHeight, bool enableValidationLayers) {
     *ppAllocVulkan = calloc(1, sizeof(FbrVulkan));
     FbrVulkan *pVulkan = *ppAllocVulkan;
     pVulkan->enableValidationLayers = enableValidationLayers;
+    pVulkan->screenWidth = screenWidth;
+    pVulkan->screenHeight = screenHeight;
     initVulkan(pApp, pVulkan);
 }
 

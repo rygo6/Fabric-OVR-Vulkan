@@ -1,3 +1,4 @@
+#include "fbr_app.h"
 #include "fbr_core.h"
 #include "fbr_log.h"
 

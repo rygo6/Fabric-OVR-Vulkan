@@ -15,7 +15,7 @@ file(GLOB SRC_FILES
 
 add_executable(${TARGET_NAME}
         ${SRC_FILES}
-        src/fbr_pipeline.h src/fbr_pipeline.c src/fbr_texture.h src/fbr_texture.c src/fbr_vulkan.h src/fbr_vulkan.c)
+        )
 
 target_link_directories(${TARGET_NAME} PUBLIC
         lib

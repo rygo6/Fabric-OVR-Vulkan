@@ -20,17 +20,17 @@ typedef struct FbrTimeState {
 } FbrTime;
 
 typedef struct FbrApp {
-    int screenWidth;
-    int screenHeight;
     GLFWwindow *pWindow;
-
     FbrVulkan *pVulkan;
-
     FbrCamera *pCamera;
     FbrTime *pTime;
     FbrMesh *pMesh;
     FbrTexture *pTexture;
     FbrPipeline *pPipeline;
 } FbrApp;
+
+void fbrCreateApp(FbrApp **ppAllocApp);
+
+void fbrCleanup(FbrApp *pApp);
 
 #endif //FABRIC_APP_H
