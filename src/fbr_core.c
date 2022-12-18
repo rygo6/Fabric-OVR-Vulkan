@@ -145,7 +145,6 @@ void fbrMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
     while (!glfwWindowShouldClose(pApp->pWindow)) {
-
         pApp->pTime->currentTime = glfwGetTime();
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;

@@ -34,36 +34,36 @@
 #define FBR_LOG_DEBUG_0(m) \
     printf("%s - %s\n", __FUNCTION__, m);
 #define FBR_LOG_DEBUG_1(m, i0) \
-    printf("%s - %s - ", __FUNCTION__, m), \
-    printf("%s: ", #i0), \
+    printf("%s - %s", __FUNCTION__, m), \
+    printf(" - %s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0), \
     printf("\n");
 #define FBR_LOG_DEBUG_2(m, i0, i1) \
-    printf("%s - %s - ", __FUNCTION__, m), \
-    printf("%s: ", #i0), \
+    printf("%s - %s ", __FUNCTION__, m), \
+    printf(" - %s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
-    printf("%s: ", #i1), \
-    printf(FBR_LOG_TYPE_SPECIFIER(i0), i1), \
+    printf(" - %s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i1), i1), \
     printf("\n");
 #define FBR_LOG_DEBUG_3(m, i0, i1, i2) \
-    printf("%s - %s - ", __FUNCTION__, m), \
-    printf("%s: ", #i0), \
+    printf("%s - %s", __FUNCTION__, m), \
+    printf(" - %s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
-    printf("%s: ", #i1), \
-    printf(FBR_LOG_TYPE_SPECIFIER(i0), i1), \
-    printf("%s: ", #i2), \
-    printf(FBR_LOG_TYPE_SPECIFIER(i0), i2), \
+    printf(" - %s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i1), i1), \
+    printf(" - %s: ", #i2), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i2), i2), \
     printf("\n");
 #define FBR_LOG_DEBUG_4(m, i0, i1, i2, i3) \
-    printf("%s - %s - ", __FUNCTION__, m), \
-    printf("%s: ", #i0), \
+    printf("%s - %s", __FUNCTION__, m), \
+    printf(" - %s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
-    printf("%s: ", #i1), \
-    printf(FBR_LOG_TYPE_SPECIFIER(i0), i1), \
-    printf("%s: ", #i2), \
-    printf(FBR_LOG_TYPE_SPECIFIER(i0), i2), \
-    printf("%s: ", #i3), \
-    printf(FBR_LOG_TYPE_SPECIFIER(i0), i3), \
+    printf(" - %s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i1), i1), \
+    printf(" - %s: ", #i2), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i2), i2), \
+    printf(" - %s: ", #i3), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i3), i3), \
     printf("\n");
 
 #endif //FABRIC_LOG_H
