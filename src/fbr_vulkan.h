@@ -3,9 +3,6 @@
 
 #include "fbr_app.h"
 
-#include <vulkan/vulkan.h>
-#include <stdbool.h>
-
 typedef struct FbrVulkan {
     int screenWidth;
     int screenHeight;
@@ -41,6 +38,8 @@ typedef struct FbrVulkan {
     VkSemaphore imageAvailableSemaphore;
     VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
+
+
 } FbrVulkan;
 
 void fbrCreateVulkan(const FbrApp *pApp,

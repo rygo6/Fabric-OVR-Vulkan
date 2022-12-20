@@ -2,22 +2,33 @@
 #include "fbr_log.h"
 
 #include <string.h>
+#include <windows.h>
+#include <vulkan/vulkan_win32.h>
 
-const uint32_t validationLayersCount = 1;
-const char *pValidationLayers[] = {
+//#define FBR_LOG_VULKAN_CAPABILITIES
+
+const uint32_t requiredValidationLayerCount = 1;
+const char *pRequiredValidationLayers[] = {
         "VK_LAYER_KHRONOS_validation"
 };
 
-const uint32_t requiredInstanceExtensionCount = 3;
+const uint32_t requiredInstanceExtensionCount = 4;
 const char *pRequiredInstanceExtensions[] = {
+        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
 };
 
-const uint32_t requiredDeviceExtensionCount = 1;
+const uint32_t requiredDeviceExtensionCount = 7;
 const char *pRequiredDeviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME
 };
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -64,11 +75,11 @@ static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensio
 }
 
 static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uint32_t availableLayerCount) {
-    for (int i = 0; i < validationLayersCount; ++i) {
+    for (int i = 0; i < requiredValidationLayerCount; ++i) {
         bool layerFound = false;
 
         for (int j = 0; j < availableLayerCount; ++j) {
-            if (strcmp(pValidationLayers[i], availableLayers[j].layerName) == 0) {
+            if (strcmp(pRequiredValidationLayers[i], availableLayers[j].layerName) == 0) {
                 layerFound = true;
                 break;
             }
@@ -84,25 +95,28 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
 
 
 static void createInstance(FbrVulkan *pVulkan) {
-    uint32_t availableLayerCount = 0;
-    if (vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Could not get the number of device extensions!");
-    }
-    VkLayerProperties availableLayers[availableLayerCount];
-    if (vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Could not enumerate device extensions!");
-    }
-    FBR_LOG_DEBUG("Available Layer Count: ", availableLayerCount);
-    for (int i = 0; i < availableLayerCount; ++i){
-        char* layerName = availableLayers[i].layerName;
-        uint32_t specVersion = availableLayers[i].specVersion;
-        uint32_t implementationVersion = availableLayers[i].implementationVersion;
-        char* description = availableLayers[i].description;
-        FBR_LOG_DEBUG("Available Layer", layerName, specVersion, implementationVersion, description);
-    }
-
-    if (pVulkan->enableValidationLayers && !checkValidationLayerSupport(availableLayers, availableLayerCount)) {
-        FBR_LOG_DEBUG("validation layers requested, but not available!");
+    if (pVulkan->enableValidationLayers) {
+        uint32_t availableLayerCount = 0;
+        if (vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL) != VK_SUCCESS) {
+            FBR_LOG_DEBUG("Could not get the number of device extensions!");
+        }
+        VkLayerProperties availableLayers[availableLayerCount];
+        if (vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers) != VK_SUCCESS) {
+            FBR_LOG_DEBUG("Could not enumerate device extensions!");
+        }
+#ifdef FBR_LOG_VULKAN_CAPABILITIES
+        FBR_LOG_DEBUG("Available Layer Count: ", availableLayerCount);
+        for (int i = 0; i < availableLayerCount; ++i){
+            char* layerName = availableLayers[i].layerName;
+            uint32_t specVersion = availableLayers[i].specVersion;
+            uint32_t implementationVersion = availableLayers[i].implementationVersion;
+            char* description = availableLayers[i].description;
+            FBR_LOG_DEBUG("Available Layer", layerName, specVersion, implementationVersion, description);
+        }
+#endif
+        if (!checkValidationLayerSupport(availableLayers, availableLayerCount)) {
+            FBR_LOG_DEBUG("validation layers requested, but not available!");
+        }
     }
 
     VkApplicationInfo appInfo = {
@@ -119,6 +133,7 @@ static void createInstance(FbrVulkan *pVulkan) {
             .pApplicationInfo = &appInfo,
     };
 
+#ifdef FBR_LOG_VULKAN_CAPABILITIES
     uint32_t availableExtensionCount = 0;
     if (vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Could not get the number of instance extensions!");
@@ -133,6 +148,7 @@ static void createInstance(FbrVulkan *pVulkan) {
         uint32_t specVersion = availableExtensions[i].specVersion;
         FBR_LOG_DEBUG("Available Instance Extension", extensionName, specVersion);
     }
+#endif
 
     uint32_t extensionCount = 0;
     getRequiredInstanceExtensions(pVulkan, &extensionCount, NULL);
@@ -149,8 +165,8 @@ static void createInstance(FbrVulkan *pVulkan) {
     createInfo.enabledLayerCount = 0;
 
     if (pVulkan->enableValidationLayers) {
-        createInfo.enabledLayerCount = validationLayersCount;
-        createInfo.ppEnabledLayerNames = pValidationLayers;
+        createInfo.enabledLayerCount = requiredValidationLayerCount;
+        createInfo.ppEnabledLayerNames = pRequiredValidationLayers;
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = debugMessengerCreateInfo();
         createInfo.pNext = &debugCreateInfo;
@@ -265,6 +281,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
             .robustBufferAccess = true
     };
 
+#if FBR_LOG_VULKAN_CAPABILITIES
     uint32_t availableExtensionCount = 0;
     if (vkEnumerateDeviceExtensionProperties(pVulkan->physicalDevice, NULL, &availableExtensionCount, NULL ) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Could not get the number of device extensions!");
@@ -279,6 +296,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
         uint32_t specVersion = availableExtensions[i].specVersion;
         FBR_LOG_DEBUG("Available Device Extension", extensionName, specVersion);
     }
+#endif
 
     VkDeviceCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -290,8 +308,8 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
     };
 
     if (pVulkan->enableValidationLayers) {
-        createInfo.enabledLayerCount = validationLayersCount;
-        createInfo.ppEnabledLayerNames = pValidationLayers;
+        createInfo.enabledLayerCount = requiredValidationLayerCount;
+        createInfo.ppEnabledLayerNames = pRequiredValidationLayers;
     } else {
         createInfo.enabledLayerCount = 0;
     }

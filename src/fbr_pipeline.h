@@ -1,8 +1,6 @@
 #ifndef FABRIC_PIPELINE_H
 #define FABRIC_PIPELINE_H
 
-#include <vulkan/vulkan.h>
-
 #include "fbr_app.h"
 
 #define FBR_DESCRIPTOR_SET_COUNT 1

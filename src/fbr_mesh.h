@@ -1,9 +1,6 @@
 #ifndef FABRIC_MESH_H
 #define FABRIC_MESH_H
 
-#include <vulkan/vulkan.h>
-#include "cglm/cglm.h"
-
 #include "fbr_transform.h"
 #include "fbr_app.h"
 

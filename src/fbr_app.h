@@ -1,10 +1,8 @@
 #ifndef FABRIC_APP_H
 #define FABRIC_APP_H
 
-#include "cglm/cglm.h"
-
-#define GLFW_INCLUDE_VULKAN
-
+#include <cglm/cglm.h>
+#include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
@@ -26,6 +24,7 @@ typedef struct FbrApp {
     FbrTime *pTime;
     FbrMesh *pMesh;
     FbrTexture *pTexture;
+    FbrTexture *pExternalTextureTest;
     FbrPipeline *pPipeline;
 } FbrApp;
 

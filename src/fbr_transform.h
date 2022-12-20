@@ -1,7 +1,7 @@
 #ifndef FABRIC_TRANSFORM_H
 #define FABRIC_TRANSFORM_H
 
-#include "cglm/cglm.h"
+#include "fbr_app.h"
 
 typedef struct FbrComponent {
 } FbrComponent;

@@ -105,8 +105,8 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
 
     VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pTexture->textureView,
-            .sampler = pTexture->textureSampler,
+            .imageView = pTexture->imageView,
+            .sampler = pTexture->sampler,
     };
 
     VkWriteDescriptorSet descriptorWrites[FBR_DESCRIPTOR_COUNT] = {

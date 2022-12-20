@@ -29,7 +29,8 @@ static void initEntities(FbrApp *pApp) {
     // entities
     fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    fbrCreateTexture(pApp->pVulkan, &pApp->pTexture);
+    fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", FALSE);
+    fbrCreateTexture(pApp->pVulkan, &pApp->pExternalTextureTest, "textures/test.jpg", TRUE);
 
     // Pipeline
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);
@@ -49,6 +50,7 @@ void fbrCreateApp(FbrApp **ppAllocApp) {
 void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
     fbrCleanupTexture(pApp->pVulkan, pApp->pTexture);
+    fbrCleanupTexture(pApp->pVulkan, pApp->pExternalTextureTest);
     fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
     fbrCleanupMesh(pApp->pVulkan, pApp->pMesh);
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
