@@ -22,10 +22,16 @@ typedef struct FbrApp {
     FbrVulkan *pVulkan;
     FbrCamera *pCamera;
     FbrTime *pTime;
+
+
     FbrMesh *pMesh;
     FbrTexture *pTexture;
-    FbrTexture *pExternalTextureTest;
     FbrPipeline *pPipeline;
+
+    FbrMesh *pMeshExternalTest;
+    FbrTexture *pTextureExternalTest;
+    FbrPipeline *pPipelineExternalTest;
+
 } FbrApp;
 
 void fbrCreateApp(FbrApp **ppAllocApp);

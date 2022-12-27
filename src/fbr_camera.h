@@ -6,18 +6,20 @@
 #include "fbr_transform.h"
 #include "fbr_buffer.h"
 
-typedef struct FbrMVP {
-    mat4 model;
+typedef struct FbrCameraGpuData {
     mat4 view;
     mat4 proj;
-} FbrMVP;
+} FbrCameraGpuData;
 
 typedef struct FbrCamera {
     FbrEntity entity;
     FbrTransform transform;
-    FbrMVP mvp;
-    UniformBufferObject mvpUBO;
+    mat4 proj;
+    FbrCameraGpuData gpuData;
+    UniformBufferObject gpuUBO;
 } FbrCamera;
+
+void fbrUpdateCameraUBO(FbrCamera *pCamera);
 
 void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState);
 

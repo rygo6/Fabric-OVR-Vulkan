@@ -45,9 +45,9 @@ static VkShaderModule createShaderModule(const FbrVulkan *pVulkan, const char *c
 static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {
             .binding = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
-            // we use it from the vertex shader
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pImmutableSamplers = NULL,
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
     };
 
@@ -59,12 +59,11 @@ static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipe
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
     };
 
-    const uint32_t bindingsCount = 2;
     VkDescriptorSetLayoutBinding bindings[] = {uboLayoutBinding, samplerLayoutBinding};
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = bindingsCount,
+            .bindingCount = 2,
             .pBindings = bindings,
     };
 
@@ -74,10 +73,18 @@ static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipe
 }
 
 static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
+    VkPushConstantRange pushConstant = {
+        .offset = 0,
+        .size = sizeof(mat4),
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+    };
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = &pPipeline->descriptorSetLayout,
+            .pPushConstantRanges = &pushConstant,
+            .pushConstantRangeCount  = 1
     };
 
     if (vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
@@ -89,7 +96,7 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pVulkan->descriptorPool,
-            .descriptorSetCount = FBR_DESCRIPTOR_SET_COUNT,
+            .descriptorSetCount = 1,
             .pSetLayouts = &pPipeline->descriptorSetLayout,
     };
 
@@ -98,9 +105,9 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
     }
 
     VkDescriptorBufferInfo bufferInfo = {
-            .buffer = pCameraState->mvpUBO.uniformBuffer,
+            .buffer = pCameraState->gpuUBO.uniformBuffer,
             .offset = 0,
-            .range = sizeof(FbrMVP),
+            .range = sizeof(FbrCameraGpuData),
     };
 
     VkDescriptorImageInfo imageInfo = {
@@ -109,7 +116,8 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
             .sampler = pTexture->sampler,
     };
 
-    VkWriteDescriptorSet descriptorWrites[FBR_DESCRIPTOR_COUNT] = {
+    /// realy you only need to switch the descriptor set to change the texture
+    VkWriteDescriptorSet descriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .dstSet = pPipeline->descriptorSet,
@@ -130,7 +138,7 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
             },
     };
 
-    vkUpdateDescriptorSets(pVulkan->device, FBR_DESCRIPTOR_COUNT, descriptorWrites, 0, NULL);
+    vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
 }
 
 static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
@@ -158,7 +166,7 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-    VkVertexInputBindingDescription bindingDescription[FBR_BINDING_DESCRIPTOR_COUNT] = {
+    VkVertexInputBindingDescription bindingDescription[1] = {
             {
                     .binding = 0,
                     .stride = sizeof(Vertex),
@@ -166,7 +174,7 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
             }
     };
 
-    VkVertexInputAttributeDescription attributeDescriptions[FBR_ATTRIBUTE_DESCRIPTOR_COUNT] = {
+    VkVertexInputAttributeDescription attributeDescriptions[3] = {
             {
                     .binding = 0,
                     .location = 0,
@@ -189,8 +197,8 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount = FBR_BINDING_DESCRIPTOR_COUNT,
-            .vertexAttributeDescriptionCount = FBR_ATTRIBUTE_DESCRIPTOR_COUNT,
+            .vertexBindingDescriptionCount = 1,
+            .vertexAttributeDescriptionCount = 3,
             .pVertexBindingDescriptions = bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
@@ -285,10 +293,12 @@ void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
+
     initDescriptorSetLayout(pVulkan, pPipeline);
+    initDescriptorSets(pVulkan, pCameraState, pTexture, pPipeline);
+
     initPipelineLayout(pVulkan, pPipeline);
     initPipeline(pVulkan, pPipeline);
-    initDescriptorSets(pVulkan, pCameraState, pTexture, pPipeline);
 }
 
 void fbrCleanupPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {

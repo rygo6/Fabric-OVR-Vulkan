@@ -25,8 +25,6 @@ typedef struct FbrMesh {
 #define FBR_TEST_INDICES_COUNT 6
 #define FBR_TEST_VERTICES_COUNT 4
 
-void fbrMeshUpdateCameraUBO(FbrMesh *pMeshState, FbrCamera *pCameraState);
-
 void fbrCreateMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState);
 
 void fbrCleanupMesh(const FbrVulkan *pVulkan, FbrMesh *pMeshState);

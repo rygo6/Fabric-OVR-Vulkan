@@ -80,8 +80,8 @@ void fbrInitInput(FbrApp *pApp) {
 
     glfwSetInputMode(pApp->pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-            hmdefault(heldKeyMap, false);
-            hmdefault(heldMouseButtonMap, false);
+    hmdefault(heldKeyMap, false);
+    hmdefault(heldMouseButtonMap, false);
 }
 
 void fbrProcessInput() {

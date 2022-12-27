@@ -26,14 +26,17 @@ static void initWindow(FbrApp *pApp) {
 static void initEntities(FbrApp *pApp) {
     FBR_LOG_DEBUG("initializing vulkan!");
 
-    // entities
     fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
+
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
     fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", FALSE);
-    fbrCreateTexture(pApp->pVulkan, &pApp->pExternalTextureTest, "textures/test.jpg", TRUE);
-
-    // Pipeline
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);
+
+    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+//    vec3 add = {1,0,0,};
+//    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, add, pApp->pMeshExternalTest->transform.pos);
+    fbrCreateTexture(pApp->pVulkan, &pApp->pTextureExternalTest, "textures/test.jpg", FALSE);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
 }
 
 void fbrCreateApp(FbrApp **ppAllocApp) {
@@ -44,16 +47,19 @@ void fbrCreateApp(FbrApp **ppAllocApp) {
     initWindow(pApp);
     fbrInitInput(pApp);
     fbrCreateVulkan(pApp, &pApp->pVulkan, FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT, true);
+
     initEntities(pApp);
 }
 
 void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
-    fbrCleanupTexture(pApp->pVulkan, pApp->pTexture);
-    fbrCleanupTexture(pApp->pVulkan, pApp->pExternalTextureTest);
     fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
+    fbrCleanupTexture(pApp->pVulkan, pApp->pTexture);
+    fbrCleanupTexture(pApp->pVulkan, pApp->pTextureExternalTest);
     fbrCleanupMesh(pApp->pVulkan, pApp->pMesh);
+    fbrCleanupMesh(pApp->pVulkan, pApp->pMeshExternalTest);
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
+    fbrCleanupPipeline(pApp->pVulkan, pApp->pPipelineExternalTest);
     fbrCleanupVulkan(pApp->pVulkan);
     glfwDestroyWindow(pApp->pWindow);
     free(pApp);

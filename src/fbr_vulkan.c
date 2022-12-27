@@ -573,24 +573,24 @@ static void createCommandPool(FbrVulkan *pVulkan) {
 }
 
 static void createDescriptorPool(FbrVulkan *pVulkan) {
-    const uint32_t frameCount = 1;
-    const uint32_t poolSizeCount = 2;
-    VkDescriptorPoolSize poolSizes[] = {
+    const uint32_t setPoolCount = 2;
+    const uint32_t poolSizesCount = 2;
+    const VkDescriptorPoolSize poolSizes[2] = {
             {
                     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = frameCount,
+                    .descriptorCount = setPoolCount,
             },
             {
                     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = frameCount,
+                    .descriptorCount = setPoolCount,
             }
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .poolSizeCount = poolSizeCount,
+            .poolSizeCount = poolSizesCount,
             .pPoolSizes = poolSizes,
-            .maxSets = frameCount,
+            .maxSets = setPoolCount,
     };
 
     if (vkCreateDescriptorPool(pVulkan->device, &poolInfo, NULL, &pVulkan->descriptorPool) != VK_SUCCESS) {

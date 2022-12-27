@@ -16,8 +16,8 @@ typedef struct FbrEntity {
     int entityId;
 } FbrEntity;
 
-void fbrInitTransform(FbrTransform *transformState);
+void fbrInitTransform(FbrTransform *transform);
 
-void fbrUpdateTransformMatrix(FbrTransform *transformState);
+void fbrUpdateTransformMatrix(FbrTransform *transform);
 
 #endif //FABRIC_TRANSFORM_H

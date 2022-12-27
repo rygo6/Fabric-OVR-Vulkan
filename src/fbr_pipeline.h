@@ -3,11 +3,6 @@
 
 #include "fbr_app.h"
 
-#define FBR_DESCRIPTOR_SET_COUNT 1
-#define FBR_DESCRIPTOR_COUNT 2
-#define FBR_BINDING_DESCRIPTOR_COUNT 1
-#define FBR_ATTRIBUTE_DESCRIPTOR_COUNT 3
-
 typedef struct FbrPipeline {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;

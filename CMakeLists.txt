@@ -4,7 +4,7 @@ set(TARGET_NAME fabric)
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_C_STANDARD 17)
 
-set(VULKAN_SDK_PATH "C:/VulkanSDK/1.3.231.1")
+set(VULKAN_SDK_PATH "C:/VulkanSDK/1.3.236.0")
 set(GLFW_SDK_PATH "C:/Developer/glfw-3.3.8.bin.WIN64")
 set(CGLM_SDK_PATH "C:/Developer/cglm")
 
