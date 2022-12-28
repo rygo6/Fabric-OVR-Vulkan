@@ -29,8 +29,8 @@ static void initEntities(FbrApp *pApp) {
     // entities
     fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", FALSE);
-    fbrCreateTexture(pApp->pVulkan, &pApp->pExternalTextureTest, "textures/test.jpg", TRUE);
+    fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", false);
+    fbrCreateTexture(pApp->pVulkan, &pApp->pExternalTextureTest, "textures/test.jpg", true);
 
     // Pipeline
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);

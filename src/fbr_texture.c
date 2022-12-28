@@ -5,7 +5,14 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+#if WIN32
 #include <vulkan/vulkan_win32.h>
+#endif
+
+#if X11
+#include <vulkan/vulkan_xlib.h>
+#endif
 
 static void copyBufferToImage(const FbrVulkan *pVulkan,
                        VkBuffer buffer,
@@ -158,6 +165,7 @@ static void createTexture(const FbrVulkan *pVulkan,
     vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0);
 
     if (external) {
+#if WIN32
         VkMemoryGetWin32HandleInfoKHR memoryInfo = {
                 .sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
                 .pNext =   NULL,
@@ -173,6 +181,7 @@ static void createTexture(const FbrVulkan *pVulkan,
         if (getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, &pTexture->sharedMemory) != VK_SUCCESS) {
             FBR_LOG_DEBUG("Failed to get external handle!");
         }
+#endif
     }
 }
 

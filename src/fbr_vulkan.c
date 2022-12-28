@@ -2,8 +2,16 @@
 #include "fbr_log.h"
 
 #include <string.h>
+
+#ifdef WIN32
 #include <windows.h>
 #include <vulkan/vulkan_win32.h>
+#endif
+
+#ifdef X11
+#include <X11/Xlib.h>
+#include <vulkan/vulkan_xlib.h>
+#endif
 
 //#define FBR_LOG_VULKAN_CAPABILITIES
 
@@ -26,9 +34,16 @@ const char *pRequiredDeviceExtensions[] = {
         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
+#ifdef WIN32
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME
+#endif
+#ifdef X11
+        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME
+#endif
 };
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -281,7 +296,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
             .robustBufferAccess = true
     };
 
-#if FBR_LOG_VULKAN_CAPABILITIES
+#ifdef FBR_LOG_VULKAN_CAPABILITIES
     uint32_t availableExtensionCount = 0;
     if (vkEnumerateDeviceExtensionProperties(pVulkan->physicalDevice, NULL, &availableExtensionCount, NULL ) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Could not get the number of device extensions!");
