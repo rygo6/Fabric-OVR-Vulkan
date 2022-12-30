@@ -73,4 +73,6 @@ if (UNIX AND NOT APPLE)
             )
 endif()
 
+file(COPY shaders DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY textures DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
