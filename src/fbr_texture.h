@@ -23,6 +23,8 @@ typedef struct FbrTexture {
 
 void fbrCreateTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
 
+void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE handle);
+
 void fbrCleanupTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 
 #endif //FABRIC_TEXTURE_H
