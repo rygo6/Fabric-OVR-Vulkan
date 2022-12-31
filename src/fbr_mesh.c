@@ -3,19 +3,20 @@
 #include "fbr_buffer.h"
 #include "fbr_vulkan.h"
 
-const Vertex vertices[] = {
+const Vertex vertices[4] = {
         {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
         {{0.5f,  -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
         {{0.5f,  0.5f},  {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
         {{-0.5f, 0.5f},  {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
-const uint16_t indices[] = {
+const uint16_t indices[6] = {
         0, 1, 2, 2, 3, 0
 };
 
 static void createVertexBuffer(const FbrVulkan *pVulkan, FbrMesh *pMeshState) {
-    VkDeviceSize bufferSize = (sizeof(Vertex) * FBR_TEST_VERTICES_COUNT);
+    pMeshState->vertexCount = 4;
+    VkDeviceSize bufferSize = (sizeof(Vertex) * pMeshState->vertexCount);
     fbrCreatePopulateBufferViaStaging(pVulkan,
                                       vertices,
                                       VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -25,7 +26,8 @@ static void createVertexBuffer(const FbrVulkan *pVulkan, FbrMesh *pMeshState) {
 }
 
 static void createIndexBuffer(const FbrVulkan *pVulkan, FbrMesh *pMeshState) {
-    VkDeviceSize bufferSize = (sizeof(uint16_t) * FBR_TEST_INDICES_COUNT);
+    pMeshState->indexCount = 6;
+    VkDeviceSize bufferSize = (sizeof(uint16_t) * pMeshState->indexCount);
     fbrCreatePopulateBufferViaStaging(pVulkan,
                                       indices,
                                       VK_BUFFER_USAGE_INDEX_BUFFER_BIT,

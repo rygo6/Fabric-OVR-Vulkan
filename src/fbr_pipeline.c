@@ -190,7 +190,7 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
             {
                     .binding = 0,
                     .location = 2,
-                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .format = VK_FORMAT_R32G32_SFLOAT,
                     .offset = offsetof(Vertex, texCoord),
             }
     };

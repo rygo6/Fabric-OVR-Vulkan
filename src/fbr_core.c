@@ -90,18 +90,13 @@ static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
     VkBuffer vertexBuffers[] = {pMesh->vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(pVulkan->commandBuffer, pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-//    mat4 viewProj;
-//    glm_mat4_mul(pCamera->proj, pCamera->transform.matrix, viewProj);
-//    mat4 mvp;
-//    glm_mat4_mul(viewProj, pMesh->transform.matrix, mvp);
+    vkCmdBindIndexBuffer(pVulkan->commandBuffer, pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     //upload the matrix to the GPU via push constants
     vkCmdPushConstants(pVulkan->commandBuffer, pPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
 
-
-    vkCmdDrawIndexed(pVulkan->commandBuffer, FBR_TEST_INDICES_COUNT, 1, 0, 0, 0);
+    vkCmdDrawIndexed(pVulkan->commandBuffer, pMesh->indexCount, 1, 0, 0, 0);
 }
 
 static void endRenderPass(FbrVulkan *pVulkan, uint32_t imageIndex) {
