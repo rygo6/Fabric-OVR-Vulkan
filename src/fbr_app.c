@@ -32,9 +32,28 @@ static void initEntities(FbrApp *pApp) {
     fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);
 
+//    HANDLE currentProcess = GetCurrentProcess();
+//    HANDLE sharedMemory;
+//    DuplicateHandle(currentProcess,
+//                    pApp->pTexture->sharedMemory,
+//                    currentProcess,
+//                    &sharedMemory,
+//                    0,
+//                    FALSE,
+//                    DUPLICATE_SAME_ACCESS);
+
+//    HANDLE sharedMemory = pApp->pTexture->sharedMemory;
+
+    int handleInt = -2147471870;
+    HANDLE sharedMemory = (HANDLE) handleInt;
+
+    printf("testHandle d %d\n", sharedMemory);
+    printf("testHandle p %p\n", sharedMemory);
+
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-//    fbrCreateTexture(pApp->pVulkan, &pApp->pTextureExternalTest, "textures/test.jpg", true);
+    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
     fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
+//    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, sharedMemory);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
 }
 

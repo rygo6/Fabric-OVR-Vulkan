@@ -28,12 +28,14 @@ const char *pRequiredInstanceExtensions[] = {
         VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
 };
 
-const uint32_t requiredDeviceExtensionCount = 7;
+const uint32_t requiredDeviceExtensionCount = 9;
 const char *pRequiredDeviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
+        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+        VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 #ifdef WIN32
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
@@ -312,6 +314,11 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("Available Device Extension", extensionName, specVersion);
     }
 #endif
+
+    FBR_LOG_DEBUG("Required Device Extension Count: ", requiredDeviceExtensionCount);
+    for (int i = 0; i < requiredDeviceExtensionCount; ++i){
+        FBR_LOG_DEBUG("Required Device Extension",pRequiredDeviceExtensions[i]);
+    }
 
     VkDeviceCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

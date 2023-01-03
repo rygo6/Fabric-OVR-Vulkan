@@ -157,8 +157,8 @@ void fbrMainLoop(FbrApp *pApp) {
         fbrUpdateTransformMatrix(&pApp->pMesh->transform);
         recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pMesh);
 
-        vec3 add = {.0001f,0,0,};
-        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, add, pApp->pMeshExternalTest->transform.pos);
+//        vec3 add = {.0001f,0,0,};
+//        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, add, pApp->pMeshExternalTest->transform.pos);
         fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
         recordRenderPass(pApp->pVulkan, pApp->pPipelineExternalTest, pApp->pCamera, pApp->pMeshExternalTest);
 
