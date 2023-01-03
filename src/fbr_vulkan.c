@@ -192,9 +192,7 @@ static void createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-    if (vkCreateInstance(&createInfo, NULL, &pVulkan->instance) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("unable to initialize Vulkan!");
-    }
+    FBR_VK_CHECK(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
 }
 
 static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
@@ -215,9 +213,7 @@ static void setupDebugMessenger(FbrVulkan *pVulkan) {
 
     VkDebugUtilsMessengerCreateInfoEXT createInfo = debugMessengerCreateInfo();
 
-    if (CreateDebugUtilsMessengerEXT(pVulkan->instance, &createInfo, NULL, &pVulkan->debugMessenger) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to set up debug messenger!");
-    }
+    FBR_VK_CHECK(CreateDebugUtilsMessengerEXT(pVulkan->instance, &createInfo, NULL, &pVulkan->debugMessenger));
 }
 
 static void pickPhysicalDevice(FbrVulkan *pVulkan) {
@@ -472,9 +468,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
                capabilities.supportedCompositeAlpha);
     }
 
-    if (vkCreateSwapchainKHR(pVulkan->device, &createInfo, NULL, &pVulkan->swapChain) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create swap chain!");
-    }
+    FBR_VK_CHECK(vkCreateSwapchainKHR(pVulkan->device, &createInfo, NULL, &pVulkan->swapChain));
 
     vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapChainImageCount, NULL);
     pVulkan->pSwapChainImages = calloc(pVulkan->swapChainImageCount, sizeof(VkImage));
@@ -576,9 +570,7 @@ static void createFramebuffers(FbrVulkan *pVulkan) {
                 .layers = 1,
         };
 
-        if (vkCreateFramebuffer(pVulkan->device, &framebufferInfo, NULL, &pVulkan->pSwapChainFramebuffers[i]) != VK_SUCCESS) {
-            FBR_LOG_DEBUG("failed to create framebuffer!");
-        }
+        FBR_VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferInfo, NULL, &pVulkan->pSwapChainFramebuffers[i]));
     }
 }
 
@@ -589,9 +581,7 @@ static void createCommandPool(FbrVulkan *pVulkan) {
             .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
     };
 
-    if (vkCreateCommandPool(pVulkan->device, &poolInfo, NULL, &pVulkan->commandPool) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create command pool!");
-    }
+    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device, &poolInfo, NULL, &pVulkan->commandPool));
 }
 
 static void createDescriptorPool(FbrVulkan *pVulkan) {
@@ -628,9 +618,8 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
             .commandBufferCount = 1,
     };
 
-    if (vkAllocateCommandBuffers(pVulkan->device, &allocInfo, &pVulkan->commandBuffer) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(pVulkan->device, &allocInfo, &pVulkan->commandBuffer) != VK_SUCCESS)
         FBR_LOG_DEBUG("failed to allocate command buffers!");
-    }
 }
 
 static void createSyncObjects(FbrVulkan *pVulkan) {

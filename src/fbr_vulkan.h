@@ -3,7 +3,14 @@
 
 #include "fbr_app.h"
 
-#define VK_CHECK(alloc_expression) if (alloc_expression) != VK_SUCCESS) { FBR_LOG_DEBUG("Failed #alloc_expression"); }
+#define FBR_VK_CHECK(command)\
+    do {\
+        VkResult result = command;\
+        if (result != VK_SUCCESS) {\
+            const char* expression = #command; \
+            printf("VKCheck Fail! - %s - %s : %d\n", __FUNCTION__, expression, result);\
+            }\
+    } while (0)
 
 typedef struct FbrVulkan {
     int screenWidth;

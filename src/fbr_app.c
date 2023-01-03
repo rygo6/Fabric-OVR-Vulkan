@@ -44,11 +44,11 @@ static void initEntities(FbrApp *pApp) {
 
 //    HANDLE sharedMemory = pApp->pTexture->sharedMemory;
 
-    int handleInt = -2147471870;
-    HANDLE sharedMemory = (HANDLE) handleInt;
-
-    printf("testHandle d %d\n", sharedMemory);
-    printf("testHandle p %p\n", sharedMemory);
+//    int handleInt = -2147471870;
+//    HANDLE sharedMemory = (HANDLE) handleInt;
+//
+//    printf("testHandle d %d\n", sharedMemory);
+//    printf("testHandle p %p\n", sharedMemory);
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
     glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
