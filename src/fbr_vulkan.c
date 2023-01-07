@@ -342,8 +342,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
 static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableFormats, uint32_t formatCount) {
     // Favor sRGB if it's available
     for (int i = 0; i < formatCount; ++i) {
-        if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
-            availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+        if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB || availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
             return availableFormats[i];
         }
     }
@@ -383,6 +382,7 @@ static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availableP
 
 static VkExtent2D chooseSwapExtent(FbrVulkan *pVulkan, const VkSurfaceCapabilitiesKHR capabilities) {
     // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
+    // Don't know why I can't just use screenwdith/height??
     VkExtent2D extents;
     if (capabilities.currentExtent.width == -1) {
         // If the surface size is undefined, the size is set to the size of the images requested.
@@ -393,41 +393,35 @@ static VkExtent2D chooseSwapExtent(FbrVulkan *pVulkan, const VkSurfaceCapabiliti
         extents = capabilities.currentExtent;
     }
 
+    FBR_LOG_DEBUG("SwapChain Extents", extents.width, extents.height);
+
     return extents;
 }
 
 static void createSwapChain(FbrVulkan *pVulkan) {
     // Logic from OVR Vulkan example
     VkSurfaceCapabilitiesKHR capabilities;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pVulkan->physicalDevice, pVulkan->surface, &capabilities);
+    FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pVulkan->physicalDevice, pVulkan->surface, &capabilities));
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, NULL);
+    FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, NULL));
     VkSurfaceFormatKHR formats[formatCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, (VkSurfaceFormatKHR *) &formats);
+    FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, (VkSurfaceFormatKHR *) &formats));
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, NULL);
+    FBR_VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, NULL));
     VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, (VkPresentModeKHR *) &presentModes);
+    FBR_VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, (VkPresentModeKHR *) &presentModes));
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
     VkExtent2D extent = chooseSwapExtent(pVulkan, capabilities);
 
-    FBR_LOG_DEBUG("min swap count", capabilities.minImageCount);
-    FBR_LOG_DEBUG("max swap count", capabilities.maxImageCount);
-
-    // Have a swap queue depth of at least three frames
-    pVulkan->swapChainImageCount = capabilities.minImageCount;
-    if (pVulkan->swapChainImageCount < 2) {
-        pVulkan->swapChainImageCount = 2;
+    // I am setting this to 2 on the premise you get the least latency in VR.
+    pVulkan->swapchainImageCount = 2;
+    if (pVulkan->swapchainImageCount < capabilities.minImageCount) {
+        FBR_LOG_DEBUG("swapchainImageCount is less than minImageCount", pVulkan->swapchainImageCount, capabilities.minImageCount);
     }
-    if ((capabilities.maxImageCount > 0) && (pVulkan->swapChainImageCount > capabilities.maxImageCount)) {
-        // Application must settle for fewer images than desired:
-        pVulkan->swapChainImageCount = capabilities.maxImageCount;
-    }
-    FBR_LOG_DEBUG("swapChainImageCount selected count", pVulkan->swapChainImageCount);
 
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
@@ -446,7 +440,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = pVulkan->surface,
-            .minImageCount = pVulkan->swapChainImageCount,
+            .minImageCount = pVulkan->swapchainImageCount,
             .imageFormat = surfaceFormat.format,
             .imageColorSpace = surfaceFormat.colorSpace,
             .imageExtent = extent,
@@ -464,24 +458,29 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     } else if ((capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) != 0) {
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
     } else {
-        printf("Unexpected value for VkSurfaceCapabilitiesKHR.compositeAlpha: %x\n",
-               capabilities.supportedCompositeAlpha);
+        printf("Unexpected value for VkSurfaceCapabilitiesKHR.compositeAlpha: %x\n", capabilities.supportedCompositeAlpha);
     }
 
     FBR_VK_CHECK(vkCreateSwapchainKHR(pVulkan->device, &createInfo, NULL, &pVulkan->swapChain));
 
-    vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapChainImageCount, NULL);
-    pVulkan->pSwapChainImages = calloc(pVulkan->swapChainImageCount, sizeof(VkImage));
-    vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapChainImageCount, pVulkan->pSwapChainImages);
+    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, NULL));
+    pVulkan->pSwapChainImages = calloc(pVulkan->swapchainImageCount, sizeof(VkImage));
+    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, pVulkan->pSwapChainImages));
+
+    if (pVulkan->swapchainImageCount != 2) {
+        FBR_LOG_ERROR("Resulting swapchain count is not 2! Was planning on this always being 2. What device disallows 2!?");
+    }
 
     pVulkan->swapChainImageFormat = surfaceFormat.format;
     pVulkan->swapChainExtent = extent;
+
+    FBR_LOG_DEBUG("swapchain created", pVulkan->swapchainImageCount, surfaceFormat.format, extent.width, extent.height);
 }
 
 static void createImageViews(FbrVulkan *pVulkan) {
-    pVulkan->pSwapChainImageViews = calloc(pVulkan->swapChainImageCount, sizeof(VkImageView));
+    pVulkan->pSwapChainImageViews = calloc(pVulkan->swapchainImageCount, sizeof(VkImageView));
 
-    for (size_t i = 0; i < pVulkan->swapChainImageCount; i++) {
+    for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
         VkImageViewCreateInfo createInfo = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 .image = pVulkan->pSwapChainImages[i],
@@ -498,9 +497,7 @@ static void createImageViews(FbrVulkan *pVulkan) {
                 .subresourceRange.layerCount = 1,
         };
 
-        if (vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapChainImageViews[i]) != VK_SUCCESS) {
-            FBR_LOG_DEBUG("failed to create image views!");
-        }
+        FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapChainImageViews[i]));
     }
 }
 
@@ -512,6 +509,7 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            // different in OVR example
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     };
@@ -543,19 +541,18 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             .pAttachments = &colorAttachment,
             .subpassCount = 1,
             .pSubpasses = &subpass,
+            // OVR example doesn't have this
             .dependencyCount = 1,
             .pDependencies = &dependency,
     };
 
-    if (vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create render pass!");
-    }
+    FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));
 }
 
 static void createFramebuffers(FbrVulkan *pVulkan) {
-    pVulkan->pSwapChainFramebuffers = calloc(pVulkan->swapChainImageCount, sizeof(VkFramebuffer));
+    pVulkan->pSwapChainFramebuffers = calloc(pVulkan->swapchainImageCount, sizeof(VkFramebuffer));
 
-    for (size_t i = 0; i < pVulkan->swapChainImageCount; i++) {
+    for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
         VkImageView attachments[] = {
                 pVulkan->pSwapChainImageViews[i]
         };
@@ -645,7 +642,34 @@ static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
     }
 }
 
-void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
+static void createTextureSampler(FbrVulkan *pVulkan){
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &properties);
+    FBR_LOG_DEBUG("Max Anisotropy!", properties.limits.maxSamplerAnisotropy);
+
+    VkSamplerCreateInfo samplerInfo = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter = VK_FILTER_LINEAR,
+            .minFilter = VK_FILTER_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE,
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .mipLodBias = 0.0f,
+            .minLod = 0.0f,
+            .maxLod = 0.0f,
+    };
+
+    FBR_VK_CHECK(vkCreateSampler(pVulkan->device, &samplerInfo, NULL, &pVulkan->sampler));
+}
+
+static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     FBR_LOG_DEBUG("initializing vulkan!");
 
     // app
@@ -666,6 +690,8 @@ void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     createCommandBuffer(pVulkan);
     createSyncObjects(pVulkan);
     createDescriptorPool(pVulkan);
+
+    createTextureSampler(pVulkan);
 }
 
 void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWidth, int screenHeight, bool enableValidationLayers) {
@@ -686,24 +712,16 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     }
 }
 
-static void cleanupSwapChain(FbrVulkan *pVulkan) {
-    FBR_LOG_DEBUG("cleaning up swapchain!");
-
-    for (int i = 0; i < pVulkan->swapChainImageCount; ++i) {
+void fbrCleanupVulkan(FbrVulkan *pVulkan) {
+    for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
         vkDestroyFramebuffer(pVulkan->device, pVulkan->pSwapChainFramebuffers[i], NULL);
     }
 
-    for (int i = 0; i < pVulkan->swapChainImageCount; ++i) {
+    for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
         vkDestroyImageView(pVulkan->device, pVulkan->pSwapChainImageViews[i], NULL);
     }
 
     vkDestroySwapchainKHR(pVulkan->device, pVulkan->swapChain, NULL);
-}
-
-void fbrCleanupVulkan(FbrVulkan *pVulkan) {
-    FBR_LOG_DEBUG("cleaning up!");
-
-    cleanupSwapChain(pVulkan);
 
     vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, NULL);
 
@@ -717,6 +735,8 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     vkDestroyFence(pVulkan->device, pVulkan->inFlightFence, NULL);
 
     vkDestroyCommandPool(pVulkan->device, pVulkan->commandPool, NULL);
+
+    vkDestroySampler(pVulkan->device, pVulkan->sampler, NULL);
 
     vkDestroyDevice(pVulkan->device, NULL);
 

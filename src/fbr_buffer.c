@@ -1,5 +1,6 @@
 #include "fbr_buffer.h"
 #include "fbr_vulkan.h"
+#include "fbr_log.h"
 #include <stdio.h>
 #include <memory.h>
 
@@ -14,6 +15,43 @@ uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
     }
 
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
+}
+
+void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
+                             VkDeviceSize size,
+                             VkBufferUsageFlags usage,
+                             VkMemoryPropertyFlags properties,
+                             VkBuffer *buffer,
+                             VkDeviceMemory *bufferMemory) {
+
+    VkExternalMemoryHandleTypeFlags sharedHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT;
+    VkExternalMemoryBufferCreateInfoKHR externalMemoryBufferCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .handleTypes = sharedHandleType
+    };
+    VkBufferCreateInfo bufferCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .pNext = &externalMemoryBufferCreateInfo,
+            .size = size,
+            .usage = usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+    };
+
+    FBR_VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, buffer));
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(pVulkan->device, *buffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
+    };
+
+    FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, bufferMemory));
+
+    vkBindBufferMemory(pVulkan->device, *buffer, *bufferMemory, 0);
 }
 
 void fbrCreateBuffer(const FbrVulkan *pVulkan,
@@ -41,8 +79,7 @@ void fbrCreateBuffer(const FbrVulkan *pVulkan,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
     };
-
-    // this need to be made to vulkan memory allocator, read conclusion https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    
     if (vkAllocateMemory(pVulkan->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
         printf("%s - failed to allocate buffer memory!\n", __FUNCTION__);
     }
@@ -84,6 +121,64 @@ VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer c
     vkQueueWaitIdle(pVulkan->queue); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, &commandBuffer);
+}
+
+void fbrTransitionImageLayout(const FbrVulkan *pVulkan,
+                              VkImage image,
+                              VkFormat format,
+                              VkImageLayout oldLayout,
+                              VkImageLayout newLayout) {
+    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pVulkan);
+
+    VkImageMemoryBarrier barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .oldLayout = oldLayout,
+            .newLayout = newLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+            .srcAccessMask = 0, // TODO
+            .dstAccessMask = 0, // TODO
+    };
+
+    VkPipelineStageFlags sourceStage;
+    VkPipelineStageFlags destinationStage;
+
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    } else {
+        FBR_LOG_DEBUG("%s - unsupported layout transition!");
+    }
+
+    vkCmdPipelineBarrier(
+            commandBuffer,
+            sourceStage,
+            destinationStage,
+            0,
+            0, NULL,
+            0, NULL,
+            1, &barrier
+    );
+
+    fbrEndBufferCommands(pVulkan, commandBuffer);
 }
 
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {

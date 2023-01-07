@@ -11,6 +11,7 @@ typedef struct FbrMesh FbrMesh;
 typedef struct FbrPipeline FbrPipeline;
 typedef struct FbrTexture FbrTexture;
 typedef struct FbrVulkan FbrVulkan;
+typedef struct FbrFramebuffer FbrFramebuffer;
 
 typedef struct FbrTimeState {
     double currentTime;
@@ -23,6 +24,7 @@ typedef struct FbrApp {
     FbrCamera *pCamera;
     FbrTime *pTime;
 
+    FbrFramebuffer *pFramebuffer;
 
     FbrMesh *pMesh;
     FbrTexture *pTexture;

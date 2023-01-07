@@ -15,6 +15,12 @@ VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer c
 
 uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
+void fbrTransitionImageLayout(const FbrVulkan *pVulkan,
+                              VkImage image,
+                              VkFormat format,
+                              VkImageLayout oldLayout,
+                              VkImageLayout newLayout);
+
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
 void fbrCreateBuffer(const FbrVulkan *pVulkan,

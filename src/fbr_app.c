@@ -5,6 +5,8 @@
 #include "fbr_texture.h"
 #include "fbr_pipeline.h"
 #include "fbr_vulkan.h"
+#include "fbr_framebuffer.h"
+
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
 #define FBR_DEFAULT_SCREEN_HEIGHT 600
@@ -30,7 +32,7 @@ static void initEntities(FbrApp *pApp) {
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
     fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture, &pApp->pPipeline);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, &pApp->pPipeline);
 
 //    HANDLE currentProcess = GetCurrentProcess();
 //    HANDLE sharedMemory;
@@ -50,11 +52,15 @@ static void initEntities(FbrApp *pApp) {
 //    printf("testHandle d %d\n", sharedMemory);
 //    printf("testHandle p %p\n", sharedMemory);
 
+    fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
+
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
     glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
-//    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, sharedMemory);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
+//    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, &pApp->pPipelineExternalTest);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->imageView, &pApp->pPipelineExternalTest);
+
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
 }
 
 void fbrCreateApp(FbrApp **ppAllocApp) {
@@ -78,6 +84,9 @@ void fbrCleanup(FbrApp *pApp) {
     fbrCleanupMesh(pApp->pVulkan, pApp->pMeshExternalTest);
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipelineExternalTest);
+
+    fbrDestroyFramebuffer(pApp->pVulkan, pApp->pFramebuffer);
+
     fbrCleanupVulkan(pApp->pVulkan);
     glfwDestroyWindow(pApp->pWindow);
     free(pApp);

@@ -6,10 +6,8 @@
 #define FBR_VK_CHECK(command)\
     do {\
         VkResult result = command;\
-        if (result != VK_SUCCESS) {\
-            const char* expression = #command; \
-            printf("VKCheck Fail! - %s - %s : %d\n", __FUNCTION__, expression, result);\
-            }\
+        if (result != VK_SUCCESS)\
+            printf("VKCheck Fail! - %s - %s : %d\n", __FUNCTION__, #command, result);\
     } while (0)
 
 typedef struct FbrVulkan {
@@ -29,7 +27,7 @@ typedef struct FbrVulkan {
     uint32_t graphicsQueueFamilyIndex;
 
     VkSwapchainKHR swapChain;
-    uint32_t swapChainImageCount;
+    uint32_t swapchainImageCount;
     VkImage *pSwapChainImages;
     VkImageView *pSwapChainImageViews;
     VkFormat swapChainImageFormat;
@@ -48,6 +46,7 @@ typedef struct FbrVulkan {
     VkSemaphore renderFinishedSemaphore;
     VkFence inFlightFence;
 
+    VkSampler sampler;
 
 } FbrVulkan;
 

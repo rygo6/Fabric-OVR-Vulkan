@@ -87,12 +87,10 @@ static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline)
             .pushConstantRangeCount  = 1
     };
 
-    if (vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Failed to create pipeline layout!");
-    }
+    FBR_VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout));
 }
 
-static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCameraState, const FbrTexture *pTexture, FbrPipeline *pPipeline) {
+static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCameraState, const VkImageView imageView, FbrPipeline *pPipeline) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pVulkan->descriptorPool,
@@ -100,9 +98,7 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
             .pSetLayouts = &pPipeline->descriptorSetLayout,
     };
 
-    if (vkAllocateDescriptorSets(pVulkan->device, &allocInfo, &pPipeline->descriptorSet) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Failed to allocate descriptor sets!");
-    }
+    FBR_VK_CHECK(vkAllocateDescriptorSets(pVulkan->device, &allocInfo, &pPipeline->descriptorSet));
 
     VkDescriptorBufferInfo bufferInfo = {
             .buffer = pCameraState->gpuUBO.uniformBuffer,
@@ -112,8 +108,8 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
 
     VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pTexture->imageView,
-            .sampler = pTexture->sampler,
+            .imageView = imageView,
+            .sampler = pVulkan->sampler,
     };
 
     /// realy you only need to switch the descriptor set to change the texture
@@ -289,13 +285,13 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        const FbrCamera *pCameraState,
-                       const FbrTexture *pTexture,
+                       const VkImageView imageView,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
 
     initDescriptorSetLayout(pVulkan, pPipeline);
-    initDescriptorSets(pVulkan, pCameraState, pTexture, pPipeline);
+    initDescriptorSets(pVulkan, pCameraState, imageView, pPipeline);
 
     initPipelineLayout(pVulkan, pPipeline);
     initPipeline(pVulkan, pPipeline);

@@ -15,7 +15,7 @@ typedef struct FbrTexture {
     VkImage image;
     VkImageView imageView;
     VkDeviceMemory deviceMemory;
-    VkSampler sampler;
+//    VkSampler sampler;
 #ifdef WIN32
     HANDLE sharedMemory;
 #endif

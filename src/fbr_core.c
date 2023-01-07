@@ -6,6 +6,7 @@
 #include "fbr_log.h"
 #include "fbr_vulkan.h"
 #include "fbr_input.h"
+#include "fbr_framebuffer.h"
 
 #include "cglm/cglm.h"
 
@@ -37,13 +38,9 @@ static uint32_t beginRenderPass(FbrVulkan *pVulkan) {
     VkCommandBufferBeginInfo beginInfo = {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
-
-    if (vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to begin recording command buffer!");
-    }
+    FBR_VK_CHECK(vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo));
 
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-
     VkRenderPassBeginInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .renderPass = pVulkan->renderPass,
@@ -53,7 +50,6 @@ static uint32_t beginRenderPass(FbrVulkan *pVulkan) {
             .clearValueCount = 1,
             .pClearValues = &clearColor,
     };
-
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport = {
@@ -102,9 +98,7 @@ static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
 static void endRenderPass(FbrVulkan *pVulkan, uint32_t imageIndex) {
     vkCmdEndRenderPass(pVulkan->commandBuffer);
 
-    if (vkEndCommandBuffer(pVulkan->commandBuffer) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to record command buffer!");
-    }
+    FBR_VK_CHECK(vkEndCommandBuffer(pVulkan->commandBuffer));
 
     VkSemaphore waitSemaphores[] = {pVulkan->imageAvailableSemaphore};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -120,9 +114,7 @@ static void endRenderPass(FbrVulkan *pVulkan, uint32_t imageIndex) {
             .pSignalSemaphores = signalSemaphores,
     };
 
-    if (vkQueueSubmit(pVulkan->queue, 1, &submitInfo, pVulkan->inFlightFence) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to submit draw command buffer!");
-    }
+    FBR_VK_CHECK(vkQueueSubmit(pVulkan->queue, 1, &submitInfo, pVulkan->inFlightFence));
 
     VkSwapchainKHR swapChains[] = {pVulkan->swapChain};
     VkPresentInfoKHR presentInfo = {
@@ -157,8 +149,8 @@ void fbrMainLoop(FbrApp *pApp) {
         fbrUpdateTransformMatrix(&pApp->pMesh->transform);
         recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pMesh);
 
-//        vec3 add = {.0001f,0,0,};
-//        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, add, pApp->pMeshExternalTest->transform.pos);
+//        fbrTransitionImageLayout(pApp->pVulkan, pApp->pFramebuffer->image, pApp->pFramebuffer->imageFormat, )
+//        pApp->pFramebuffer->imageView
         fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
         recordRenderPass(pApp->pVulkan, pApp->pPipelineExternalTest, pApp->pCamera, pApp->pMeshExternalTest);
 

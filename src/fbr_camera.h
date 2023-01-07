@@ -15,6 +15,7 @@ typedef struct FbrCamera {
     FbrEntity entity;
     FbrTransform transform;
     mat4 proj;
+
     FbrCameraGpuData gpuData;
     UniformBufferObject gpuUBO;
 } FbrCamera;
