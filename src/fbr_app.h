@@ -25,6 +25,7 @@ typedef struct FbrApp {
     FbrTime *pTime;
 
     FbrFramebuffer *pFramebuffer;
+    FbrPipeline *pTestPipline;
 
     FbrMesh *pMesh;
     FbrTexture *pTexture;

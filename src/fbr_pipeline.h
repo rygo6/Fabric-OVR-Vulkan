@@ -12,7 +12,8 @@ typedef struct FbrPipeline {
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        const FbrCamera *pCameraState,
-                       const VkImageView imageView,
+                       VkImageView imageView,
+                       VkRenderPass renderPass,
                        FbrPipeline **ppAllocPipeline);
 
 void fbrCleanupPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline);

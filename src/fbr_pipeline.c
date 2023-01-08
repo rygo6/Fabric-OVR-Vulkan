@@ -137,7 +137,7 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
     vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
 }
 
-static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
+static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrPipeline *pPipeline) {
     uint32_t vertLength;
     char *vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
     uint32_t fragLength;
@@ -268,7 +268,7 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
             .layout = pPipeline->pipelineLayout,
-            .renderPass = pVulkan->renderPass,
+            .renderPass = renderPass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
     };
@@ -285,7 +285,8 @@ static void initPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        const FbrCamera *pCameraState,
-                       const VkImageView imageView,
+                       VkImageView imageView,
+                       VkRenderPass renderPass,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
@@ -294,7 +295,7 @@ void fbrCreatePipeline(const FbrVulkan *pVulkan,
     initDescriptorSets(pVulkan, pCameraState, imageView, pPipeline);
 
     initPipelineLayout(pVulkan, pPipeline);
-    initPipeline(pVulkan, pPipeline);
+    initPipeline(pVulkan, renderPass, pPipeline);
 }
 
 void fbrCleanupPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {

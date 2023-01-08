@@ -32,7 +32,8 @@ static void initEntities(FbrApp *pApp) {
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
     fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, &pApp->pPipeline);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+
 
 //    HANDLE currentProcess = GetCurrentProcess();
 //    HANDLE sharedMemory;
@@ -53,12 +54,14 @@ static void initEntities(FbrApp *pApp) {
 //    printf("testHandle p %p\n", sharedMemory);
 
     fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipline);
+
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
     glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
 //    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
 //    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, &pApp->pPipelineExternalTest);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->imageView, &pApp->pPipelineExternalTest);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
 //    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
 }
