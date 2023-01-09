@@ -4,7 +4,12 @@
 #include <stdio.h>
 #include <memory.h>
 
+#if WIN32
+#include <vulkan/vulkan_win32.h>
+#endif
+
 uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    // should use one from framebuffer from Valve? Valve is probably more correct than vulkan tutorial. Also todo cache MemProperties
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
@@ -21,14 +26,15 @@ void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
                              VkDeviceSize size,
                              VkBufferUsageFlags usage,
                              VkMemoryPropertyFlags properties,
-                             VkBuffer *buffer,
-                             VkDeviceMemory *bufferMemory) {
+                             VkBuffer *pBuffer,
+                             VkDeviceMemory *pBufferMemory,
+                             HANDLE *pSharedMemory) {
 
-    VkExternalMemoryHandleTypeFlags sharedHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT;
+    VkExternalMemoryHandleTypeFlagsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
     VkExternalMemoryBufferCreateInfoKHR externalMemoryBufferCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
+            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR,
             .pNext = VK_NULL_HANDLE,
-            .handleTypes = sharedHandleType
+            .handleTypes = externalHandleType
     };
     VkBufferCreateInfo bufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -38,20 +44,30 @@ void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    FBR_VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, buffer));
+    FBR_VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(pVulkan->device, *buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(pVulkan->device, *pBuffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
     };
+    FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, pBufferMemory));
+    vkBindBufferMemory(pVulkan->device, *pBuffer, *pBufferMemory, 0);
 
-    FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, bufferMemory));
-
-    vkBindBufferMemory(pVulkan->device, *buffer, *bufferMemory, 0);
+    VkMemoryGetWin32HandleInfoKHR memoryInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
+            .pNext = NULL,
+            .memory = *pBufferMemory,
+            .handleType = externalHandleType
+    };
+    PFN_vkGetMemoryWin32HandleKHR getMemoryWin32HandleFunc = (PFN_vkGetMemoryWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetMemoryWin32HandleKHR");
+    if (getMemoryWin32HandleFunc == NULL) {
+        FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+    }
+    FBR_VK_CHECK(getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, pSharedMemory));
 }
 
 void fbrCreateBuffer(const FbrVulkan *pVulkan,
@@ -239,12 +255,31 @@ void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
     vkFreeMemory(pVulkan->device, stagingBufferMemory, NULL);
 }
 
-void fbrCreateUniformBuffers(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize) {
+void fbrCreateUniformBuffer(const FbrVulkan *pVulkan,
+                            UniformBufferObject *pUniformBufferObject,
+                            VkDeviceSize bufferSize) {
     fbrCreateBuffer(pVulkan, bufferSize,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     &pUniformBufferObject->uniformBuffer,
                     &pUniformBufferObject->uniformBufferMemory);
+    vkMapMemory(pVulkan->device,
+                pUniformBufferObject->uniformBufferMemory,
+                0,
+                bufferSize,
+                0,
+                &pUniformBufferObject->pUniformBufferMapped);
+}
+
+void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan,
+                                    UniformBufferObject *pUniformBufferObject,
+                                    VkDeviceSize bufferSize) {
+    fbrCreateExternalBuffer(pVulkan, bufferSize,
+                            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            &pUniformBufferObject->uniformBuffer,
+                            &pUniformBufferObject->uniformBufferMemory,
+                            &pUniformBufferObject->sharedMemory);
     vkMapMemory(pVulkan->device,
                 pUniformBufferObject->uniformBufferMemory,
                 0,

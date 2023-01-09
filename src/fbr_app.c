@@ -6,6 +6,7 @@
 #include "fbr_pipeline.h"
 #include "fbr_vulkan.h"
 #include "fbr_framebuffer.h"
+#include "fbr_process.h"
 
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
@@ -19,7 +20,15 @@ static void initWindow(FbrApp *pApp) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    pApp->pWindow = glfwCreateWindow(FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT, "Fabric", NULL, NULL);
+    if (pApp->isChild){
+        pApp->pWindow = glfwCreateWindow(FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT, "Fabric Child", NULL, NULL);
+        glfwSetWindowPos(pApp->pWindow, 100 + FBR_DEFAULT_SCREEN_WIDTH, 100);
+    }
+    else {
+        pApp->pWindow = glfwCreateWindow(FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT, "Fabric", NULL, NULL);
+        glfwSetWindowPos(pApp->pWindow, 100, 100);
+    }
+
     if (pApp->pWindow == NULL) {
         FBR_LOG_ERROR("unable to initialize GLFW Window!");
     }
@@ -54,7 +63,7 @@ static void initEntities(FbrApp *pApp) {
 //    printf("testHandle p %p\n", sharedMemory);
 
     fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipline);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline);
 
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
@@ -64,12 +73,17 @@ static void initEntities(FbrApp *pApp) {
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
 //    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
+
+    if (!pApp->isChild)
+        fbrCreateProcess(&pApp->pTestProcess);
 }
 
-void fbrCreateApp(FbrApp **ppAllocApp) {
+void fbrCreateApp(FbrApp **ppAllocApp, bool isChild) {
     *ppAllocApp = calloc(1, sizeof(FbrApp));
     FbrApp *pApp = *ppAllocApp;
     pApp->pTime = calloc(1, sizeof(FbrTime));
+    pApp->isChild = isChild;
+
 
     initWindow(pApp);
     fbrInitInput(pApp);

@@ -20,7 +20,26 @@ static void waitForLastFrame(FbrVulkan *pVulkan) {
 static void processInputFrame(FbrApp *pApp) {
     fbrProcessInput();
     for (int i = 0; i < fbrInputEventCount(); ++i) {
-        fbrUpdateCamera(pApp->pCamera, fbrGetKeyEvent(i), pApp->pTime);
+        const FbrInputEvent *pInputEvent = fbrGetKeyEvent(i);
+
+        switch (pInputEvent->type) {
+            case FBR_NO_INPUT:
+                break;
+            case FBR_KEY_INPUT: {
+                if (pInputEvent->keyInput.action != GLFW_RELEASE && pInputEvent->keyInput.key == GLFW_KEY_ESCAPE){
+                    pApp->exiting = true;
+                }
+                break;
+            }
+            case FBR_MOUSE_POS_INPUT: {
+                break;
+            }
+            case FBR_MOUSE_BUTTON_INPUT: {
+                break;
+            }
+        }
+
+        fbrUpdateCamera(pApp->pCamera, pInputEvent, pApp->pTime);
     }
 }
 
@@ -113,7 +132,7 @@ void fbrMainLoop(FbrApp *pApp) {
 
     double lastFrameTime = glfwGetTime();
 
-    while (!glfwWindowShouldClose(pApp->pWindow)) {
+    while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         pApp->pTime->currentTime = glfwGetTime();
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
@@ -159,7 +178,7 @@ void fbrMainLoop(FbrApp *pApp) {
         beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pTestPipline, pApp->pMesh);
+        recordRenderPass(pApp->pVulkan, pApp->pTestPipeline, pApp->pMesh);
 
         vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
         fbrTransitionForDisplay(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);

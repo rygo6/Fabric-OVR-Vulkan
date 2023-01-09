@@ -12,6 +12,7 @@ typedef struct FbrPipeline FbrPipeline;
 typedef struct FbrTexture FbrTexture;
 typedef struct FbrVulkan FbrVulkan;
 typedef struct FbrFramebuffer FbrFramebuffer;
+typedef struct FbrProcess FbrProcess;
 
 typedef struct FbrTimeState {
     double currentTime;
@@ -19,13 +20,19 @@ typedef struct FbrTimeState {
 } FbrTime;
 
 typedef struct FbrApp {
+    bool exiting;
+
+    bool isChild;
+
     GLFWwindow *pWindow;
     FbrVulkan *pVulkan;
     FbrCamera *pCamera;
     FbrTime *pTime;
 
     FbrFramebuffer *pFramebuffer;
-    FbrPipeline *pTestPipline;
+
+    FbrPipeline *pTestPipeline;
+    FbrProcess *pTestProcess;
 
     FbrMesh *pMesh;
     FbrTexture *pTexture;
@@ -37,7 +44,7 @@ typedef struct FbrApp {
 
 } FbrApp;
 
-void fbrCreateApp(FbrApp **ppAllocApp);
+void fbrCreateApp(FbrApp **ppAllocApp, bool isChild);
 
 void fbrCleanup(FbrApp *pApp);
 

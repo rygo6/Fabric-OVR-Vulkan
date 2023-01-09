@@ -36,9 +36,9 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             break;
         }
         case FBR_MOUSE_POS_INPUT: {
-            float yRot = (float) -pInputEvent->mousePosInput.xDelta / 100.0f;
+            float yRot = (float) -pInputEvent->mousePosInput.xDelta / 10.0f;
             versor rotQ;
-            glm_quatv(rotQ, yRot, GLM_YUP);
+            glm_quatv(rotQ, glm_rad(yRot), GLM_YUP);
             glm_quat_mul(pCamera->transform.rot, rotQ, pCamera->transform.rot);
 
             fbrUpdateTransformMatrix(&pCamera->transform);
@@ -51,22 +51,21 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
     }
 }
 
-void fbrInitCamera(const FbrVulkan *pVulkan, FbrCamera *pCamera) {
+void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
+    *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
+    FbrCamera *pCamera = *ppAllocCameraState;
+
     fbrInitTransform(&pCamera->transform);
-    vec3 pos = {0, 0, -1};
-    glm_vec3_copy(pos, pCamera->transform.pos);
+    glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
+    glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
     glm_perspective(90, 1, .01f, 10, pCamera->proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
-    fbrCreateUniformBuffers(pVulkan, &pCamera->gpuUBO, sizeof(FbrCameraGpuData));
+//    fbrCreateUniformBuffer(pVulkan, &pCamera->gpuUBO, sizeof(FbrCameraGpuData));
+    fbrCreateExternalUniformBuffer(pVulkan, &pCamera->gpuUBO, sizeof(FbrCameraGpuData));
+
     glm_perspective(90, 1, .01f, 10, pCamera->gpuData.proj);
     fbrUpdateCameraUBO(pCamera);
-}
-
-void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
-    *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
-    FbrCamera *pCameraState = *ppAllocCameraState;
-    fbrInitCamera(pVulkan, pCameraState);
 }
 
 void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {

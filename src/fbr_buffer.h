@@ -3,10 +3,17 @@
 
 #include "fbr_app.h"
 
+#if WIN32
+#include <windows.h>
+#endif
+
 typedef struct UniformBufferObject {
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
     void *pUniformBufferMapped;
+#ifdef WIN32
+    HANDLE sharedMemory;
+#endif
 } UniformBufferObject;
 
 VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan);
@@ -43,7 +50,9 @@ void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
                                        VkDeviceMemory *bufferMemory,
                                        VkDeviceSize bufferSize);
 
-void fbrCreateUniformBuffers(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+void fbrCreateUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+
+void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
 
 void fbrCleanupUniformBuffers(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject);
 
