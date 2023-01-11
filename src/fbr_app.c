@@ -34,10 +34,55 @@ static void initWindow(FbrApp *pApp) {
     }
 }
 
-static void initEntities(FbrApp *pApp) {
+static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     FBR_LOG_DEBUG("initializing vulkan!");
 
     fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
+
+    if (!pApp->isChild) {
+
+        fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
+        fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+
+        printf("testHandle d %d\n", pApp->pTexture->sharedMemory);
+        printf("testHandle p %p\n", pApp->pTexture->sharedMemory);
+
+        long long handleLongLong = (long long) pApp->pTexture->sharedMemory;
+        HANDLE sharedMemory = (HANDLE) handleLongLong;
+
+        printf("handleLongLong d %d\n", sharedMemory);
+        printf("handleLongLong p %p\n", sharedMemory);
+
+        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
+        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+
+        fbrCreateProcess(&pApp->pTestProcess, pApp->pTexture->sharedMemory, pApp->pCamera->ubo.sharedMemory);
+    } else {
+
+        printf("testHandle d %d\n", externalTextureTest);
+        printf("testHandle p %p\n", externalTextureTest);
+
+        HANDLE sharedMemory = (HANDLE) externalTextureTest;
+
+        printf("testHandle d %d\n", externalTextureTest);
+        printf("testHandle p %p\n", externalTextureTest);
+
+        fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
+        fbrImportTexture(pApp->pVulkan, &pApp->pTexture, sharedMemory);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+
+
+        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, sharedMemory);
+        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+    }
+
+
+    return;
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
     fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
@@ -62,8 +107,8 @@ static void initEntities(FbrApp *pApp) {
 //    printf("testHandle d %d\n", sharedMemory);
 //    printf("testHandle p %p\n", sharedMemory);
 
-    fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline);
+//    fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline);
 
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
@@ -72,13 +117,11 @@ static void initEntities(FbrApp *pApp) {
 //    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, &pApp->pPipelineExternalTest);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest, &pApp->pPipelineExternalTest);
-
-    if (!pApp->isChild)
-        fbrCreateProcess(&pApp->pTestProcess);
+//    if (!pApp->isChild)
+//        fbrCreateProcess(&pApp->pTestProcess, pApp->pCamera->ubo.sharedMemory);
 }
 
-void fbrCreateApp(FbrApp **ppAllocApp, bool isChild) {
+void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest) {
     *ppAllocApp = calloc(1, sizeof(FbrApp));
     FbrApp *pApp = *ppAllocApp;
     pApp->pTime = calloc(1, sizeof(FbrTime));
@@ -89,7 +132,7 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild) {
     fbrInitInput(pApp);
     fbrCreateVulkan(pApp, &pApp->pVulkan, FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT, true);
 
-    initEntities(pApp);
+    initEntities(pApp, externalTextureTest);
 }
 
 void fbrCleanup(FbrApp *pApp) {

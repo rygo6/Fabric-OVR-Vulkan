@@ -24,6 +24,8 @@ typedef struct FbrApp {
 
     bool isChild;
 
+    long long externalTexture;
+
     GLFWwindow *pWindow;
     FbrVulkan *pVulkan;
     FbrCamera *pCamera;
@@ -44,7 +46,7 @@ typedef struct FbrApp {
 
 } FbrApp;
 
-void fbrCreateApp(FbrApp **ppAllocApp, bool isChild);
+void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest);
 
 void fbrCleanup(FbrApp *pApp);
 

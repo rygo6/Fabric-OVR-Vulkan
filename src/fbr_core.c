@@ -174,14 +174,14 @@ void fbrMainLoop(FbrApp *pApp) {
         vkCmdSetScissor(pApp->pVulkan->commandBuffer, 0, 1, &scissor);
 
 
-        fbrTransitionForRender(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
-        beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
-        //cube 1
-        fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pTestPipeline, pApp->pMesh);
-
-        vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
-        fbrTransitionForDisplay(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
+//        fbrTransitionForRender(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
+//        beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
+//        //cube 1
+//        fbrUpdateTransformMatrix(&pApp->pMesh->transform);
+//        recordRenderPass(pApp->pVulkan, pApp->pTestPipeline, pApp->pMesh);
+//
+//        vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+//        fbrTransitionForDisplay(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
 
 
         //swap pass

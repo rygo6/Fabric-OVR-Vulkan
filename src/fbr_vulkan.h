@@ -7,7 +7,7 @@
     do {\
         VkResult result = command;\
         if (result != VK_SUCCESS)\
-            printf("VKCheck Fail! - %s - %s : %d\n", __FUNCTION__, #command, result);\
+            printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);\
     } while (0)
 
 typedef struct FbrVulkan {

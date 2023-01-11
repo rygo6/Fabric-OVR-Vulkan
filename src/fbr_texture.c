@@ -92,14 +92,12 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
             .handleType = sharedHandleType,
             .handle = sharedHandle,
     };
-
     VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
             .pNext = &importMemoryInfo,
             .image = pTexture->image,
             .buffer = VK_NULL_HANDLE
     };
-
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
@@ -130,8 +128,8 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
                           VkImageUsageFlags usage,
                           VkMemoryPropertyFlags properties) {
 
-    VkExternalMemoryHandleTypeFlagBits externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
-    VkExternalMemoryImageCreateInfo externalImageInfo = {
+    VkExternalMemoryHandleTypeFlagBitsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
+    VkExternalMemoryImageCreateInfoKHR externalImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,
             .handleTypes = externalHandleType,
@@ -155,14 +153,14 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
 
     FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pTexture->image));
 
-    VkImageMemoryRequirementsInfo2 memoryRequirementsInfo = {
+    VkImageMemoryRequirementsInfo2KHR memoryRequirementsInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2_KHR,
             .image = pTexture->image,
     };
-    VkMemoryDedicatedRequirements memoryDedicatedRequirements = {
+    VkMemoryDedicatedRequirementsKHR memoryDedicatedRequirements = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR,
     };
-    VkMemoryRequirements2 memRequirements2 = {
+    VkMemoryRequirements2KHR memRequirements2 = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR,
             .pNext = &memoryDedicatedRequirements,
     };
@@ -174,20 +172,20 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     FBR_LOG_DEBUG("prefersDedicatedAllocation", memoryDedicatedRequirements.prefersDedicatedAllocation);
     FBR_LOG_DEBUG("requiresDedicatedAllocation", memoryDedicatedRequirements.requiresDedicatedAllocation);
 
+    VkMemoryRequirements memRequirements = {};
+    vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
+
+    // not sure if dedicated is needed???
     VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
             .image = pTexture->image,
             .buffer = VK_NULL_HANDLE,
     };
     VkExportMemoryAllocateInfo exportAllocInfo = {
-            VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-            &dedicatedAllocInfo,
-            externalHandleType
+            .sType =VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
+            .pNext =&dedicatedAllocInfo,
+            .handleTypes = externalHandleType
     };
-
-    VkMemoryRequirements memRequirements = {};
-    vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
-
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements2.memoryRequirements.size,

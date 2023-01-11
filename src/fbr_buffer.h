@@ -16,6 +16,11 @@ typedef struct UniformBufferObject {
 #endif
 } UniformBufferObject;
 
+bool fbrMemoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
+                                 uint32_t nMemoryTypeBits,
+                                 VkMemoryPropertyFlags nMemoryProperties,
+                                 uint32_t *pTypeIndexOut);
+
 VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan);
 
 VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer commandBuffer);

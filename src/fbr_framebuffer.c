@@ -3,25 +3,6 @@
 #include "fbr_buffer.h"
 #include "fbr_log.h"
 
-// From OVR Vulkan example. Is this better/same as vulkan tutorial!?
-static bool memoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
-                                     uint32_t nMemoryTypeBits,
-                                     VkMemoryPropertyFlags nMemoryProperties,
-                                     uint32_t *pTypeIndexOut) {
-    for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
-        if ((nMemoryTypeBits & 1) == 1) {
-            // Type is available, does it match user properties?
-            if ((memoryProperties.memoryTypes[i].propertyFlags & nMemoryProperties) == nMemoryProperties) {
-                *pTypeIndexOut = i;
-                return VK_SUCCESS;
-            }
-        }
-        nMemoryTypeBits >>= 1;
-    }
-
-    return VK_ERROR_FORMAT_NOT_SUPPORTED;
-}
-
 static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBuffer) {
     VkImageCreateInfo imageCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -50,10 +31,10 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size
     };
-    FBR_VK_CHECK(memoryTypeFromProperties(memProperties,
-                                          memRequirements.memoryTypeBits,
-                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                          &allocInfo.memoryTypeIndex ));
+    FBR_VK_CHECK(fbrMemoryTypeFromProperties(memProperties,
+                                             memRequirements.memoryTypeBits,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                             &allocInfo.memoryTypeIndex));
 
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pFrameBuffer->deviceMemory));
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pFrameBuffer->image, pFrameBuffer->deviceMemory, 0));

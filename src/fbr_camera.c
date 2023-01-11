@@ -2,11 +2,12 @@
 #include "fbr_buffer.h"
 #include "fbr_log.h"
 
+#include <windows.h>
 #include <memory.h>
 
 void fbrUpdateCameraUBO(FbrCamera *pCamera) {
-    glm_mat4_copy(pCamera->transform.matrix, pCamera->gpuData.view);
-    memcpy(pCamera->gpuUBO.pUniformBufferMapped, &pCamera->gpuData, sizeof(FbrCameraGpuData));
+    glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.view);
+    memcpy(pCamera->ubo.pUniformBufferMapped, &pCamera->uboData, sizeof(FbrCameraUBO));
 }
 
 void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState) {
@@ -61,14 +62,16 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     glm_perspective(90, 1, .01f, 10, pCamera->proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
-//    fbrCreateUniformBuffer(pVulkan, &pCamera->gpuUBO, sizeof(FbrCameraGpuData));
-    fbrCreateExternalUniformBuffer(pVulkan, &pCamera->gpuUBO, sizeof(FbrCameraGpuData));
+//    fbrCreateUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO));
+    fbrCreateExternalUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO));
 
-    glm_perspective(90, 1, .01f, 10, pCamera->gpuData.proj);
+    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateCameraUBO(pCamera);
 }
 
 void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
-    fbrCleanupUniformBuffers(pVulkan, &pCameraState->gpuUBO);
+    fbrCleanupUniformBuffers(pVulkan, &pCameraState->ubo);
+    if (pCameraState->ubo.sharedMemory != NULL)
+        CloseHandle(pCameraState->ubo.sharedMemory);
     free(pCameraState);
 }

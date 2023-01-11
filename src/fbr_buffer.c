@@ -8,6 +8,26 @@
 #include <vulkan/vulkan_win32.h>
 #endif
 
+// From OVR Vulkan example. Is this better/same as vulkan tutorial!?
+bool fbrMemoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
+                                 uint32_t nMemoryTypeBits,
+                                 VkMemoryPropertyFlags nMemoryProperties,
+                                 uint32_t *pTypeIndexOut) {
+    for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
+        if ((nMemoryTypeBits & 1) == 1) {
+            // Type is available, does it match user properties?
+            if ((memoryProperties.memoryTypes[i].propertyFlags & nMemoryProperties) == nMemoryProperties) {
+                *pTypeIndexOut = i;
+                return VK_SUCCESS;
+            }
+        }
+        nMemoryTypeBits >>= 1;
+    }
+
+    FBR_LOG_DEBUG("Can't find memory type.", nMemoryProperties, nMemoryProperties);
+    return VK_ERROR_FORMAT_NOT_SUPPORTED;
+}
+
 uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     // should use one from framebuffer from Valve? Valve is probably more correct than vulkan tutorial. Also todo cache MemProperties
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -20,6 +40,7 @@ uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter,
     }
 
     printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
+    return 0;
 }
 
 void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
@@ -30,9 +51,10 @@ void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
                              VkDeviceMemory *pBufferMemory,
                              HANDLE *pSharedMemory) {
 
-    VkExternalMemoryHandleTypeFlagsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
+//    VkExternalMemoryHandleTypeFlagsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
+    VkExternalMemoryHandleTypeFlagsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
     VkExternalMemoryBufferCreateInfoKHR externalMemoryBufferCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR,
+            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR,
             .pNext = VK_NULL_HANDLE,
             .handleTypes = externalHandleType
     };
@@ -46,13 +68,32 @@ void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
 
     FBR_VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
 
-    VkMemoryRequirements memRequirements;
+    VkMemoryRequirements memRequirements = {};
     vkGetBufferMemoryRequirements(pVulkan->device, *pBuffer, &memRequirements);
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &memProperties);
+    uint32_t memTypeIndex;
+    FBR_VK_CHECK(fbrMemoryTypeFromProperties(memProperties,
+                                             memRequirements.memoryTypeBits,
+                                             properties,
+                                             &memTypeIndex));
 
+    // dedicated needed??
+//    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
+//            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
+//            .image = VK_NULL_HANDLE,
+//            .buffer = *pBuffer,
+//    };
+    VkExportMemoryAllocateInfo exportAllocInfo = {
+            .sType =VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
+//            .pNext = &dedicatedAllocInfo,
+            .handleTypes = externalHandleType
+    };
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = memTypeIndex,
+            .pNext = &exportAllocInfo
     };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, pBufferMemory));
     vkBindBufferMemory(pVulkan->device, *pBuffer, *pBufferMemory, 0);

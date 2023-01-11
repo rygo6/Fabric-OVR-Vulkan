@@ -1,8 +1,9 @@
 #include "fbr_process.h"
+#include "fbr_log.h"
 #include <stdio.h>
 #include <tchar.h>
 
-void fbrCreateProcess(FbrProcess **ppAllocProcess) {
+void fbrCreateProcess(FbrProcess **ppAllocProcess, HANDLE textureSharedMemory, HANDLE cameraSharedMemory) {
     *ppAllocProcess = calloc(1, sizeof(FbrProcess));
     FbrProcess *pProcess = *ppAllocProcess;
 
@@ -13,8 +14,15 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
+    long long cameraHandle = (long long) cameraSharedMemory;
+    long long textureHandle = (long long) textureSharedMemory;
+
+    char buf[256];
+    snprintf(buf, sizeof(buf), "fabric.exe -child -texture %d -camera %d", textureHandle, cameraHandle);
+    FBR_LOG_DEBUG("Process Command", buf);
+
     if (!CreateProcess(NULL,   // No module name (use command line)
-                       "fabric.exe -child",        // Command line
+                       buf,        // Command line
                        NULL,           // Process handle not inheritable
                        NULL,           // Thread handle not inheritable
                        FALSE,          // Set handle inheritance to FALSE
