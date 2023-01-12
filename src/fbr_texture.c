@@ -86,23 +86,23 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
     VkMemoryRequirements memRequirements = {};
     vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
 
+//    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
+//            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
+//            .pNext = VK_NULL_HANDLE,
+//            .image = pTexture->image,
+//            .buffer = VK_NULL_HANDLE
+//    };
     VkImportMemoryWin32HandleInfoKHR importMemoryInfo = {
             .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR,
-            .pNext = NULL,
+//            .pNext = &dedicatedAllocInfo,
             .handleType = sharedHandleType,
             .handle = sharedHandle,
-    };
-    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
-            .pNext = &importMemoryInfo,
-            .image = pTexture->image,
-            .buffer = VK_NULL_HANDLE
     };
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
-            .pNext = &dedicatedAllocInfo
+            .pNext = &importMemoryInfo
     };
 
     VkResult result = vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory);
@@ -176,14 +176,14 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
 
     // not sure if dedicated is needed???
-    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
-            .image = pTexture->image,
-            .buffer = VK_NULL_HANDLE,
-    };
+//    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
+//            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
+//            .image = pTexture->image,
+//            .buffer = VK_NULL_HANDLE,
+//    };
     VkExportMemoryAllocateInfo exportAllocInfo = {
             .sType =VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-            .pNext =&dedicatedAllocInfo,
+//            .pNext =&dedicatedAllocInfo,
             .handleTypes = externalHandleType
     };
     VkMemoryAllocateInfo allocInfo = {
@@ -295,16 +295,7 @@ static void createPopulateTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture
 
     stbi_image_free(pixels);
 
-    if (!external) {
-        createTexture(pVulkan,
-                      pTexture,
-                      texWidth,
-                      texHeight,
-                      VK_FORMAT_R8G8B8A8_SRGB,
-                      VK_IMAGE_TILING_OPTIMAL,
-                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    } else {
+    if (external) {
         createExternalTexture(pVulkan,
                               pTexture,
                               texWidth,
@@ -313,6 +304,15 @@ static void createPopulateTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture
                               VK_IMAGE_TILING_OPTIMAL,
                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    } else {
+        createTexture(pVulkan,
+                      pTexture,
+                      texWidth,
+                      texHeight,
+                      VK_FORMAT_R8G8B8A8_SRGB,
+                      VK_IMAGE_TILING_OPTIMAL,
+                      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     }
 
     fbrTransitionImageLayout(pVulkan,
