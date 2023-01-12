@@ -45,14 +45,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
-        printf("testHandle d %d\n", pApp->pTexture->sharedMemory);
-        printf("testHandle p %p\n", pApp->pTexture->sharedMemory);
-
-        long long handleLongLong = (long long) pApp->pTexture->sharedMemory;
-        HANDLE sharedMemory = (HANDLE) handleLongLong;
-
-        printf("handleLongLong d %d\n", sharedMemory);
-        printf("handleLongLong p %p\n", sharedMemory);
+        printf("external texture handle d %d\n", pApp->pTexture->sharedMemory);
+        printf("external texture handle p %p\n", pApp->pTexture->sharedMemory);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
         fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
@@ -62,13 +56,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateProcess(&pApp->pTestProcess, pApp->pTexture->sharedMemory, pApp->pCamera->ubo.sharedMemory);
     } else {
 
-        printf("testHandle d %d\n", externalTextureTest);
-        printf("testHandle p %p\n", externalTextureTest);
-
         HANDLE sharedMemory = (HANDLE) externalTextureTest;
 
-        printf("testHandle d %d\n", externalTextureTest);
-        printf("testHandle p %p\n", externalTextureTest);
+        printf("external texture handle d %d\n", sharedMemory);
+        printf("external texture handle p %p\n", sharedMemory);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
         fbrImportTexture(pApp->pVulkan, &pApp->pTexture, sharedMemory);
@@ -80,45 +71,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
     }
-
-
-    return;
-
-    fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
-
-
-//    HANDLE currentProcess = GetCurrentProcess();
-//    HANDLE sharedMemory;
-//    DuplicateHandle(currentProcess,
-//                    pApp->pTexture->sharedMemory,
-//                    currentProcess,
-//                    &sharedMemory,
-//                    0,
-//                    FALSE,
-//                    DUPLICATE_SAME_ACCESS);
-
-//    HANDLE sharedMemory = pApp->pTexture->sharedMemory;
-
-//    int handleInt = -2147471870;
-//    HANDLE sharedMemory = (HANDLE) handleInt;
-//
-//    printf("testHandle d %d\n", sharedMemory);
-//    printf("testHandle p %p\n", sharedMemory);
-
-//    fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline);
-
-
-    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, &pApp->pPipelineExternalTest);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
-
-//    if (!pApp->isChild)
-//        fbrCreateProcess(&pApp->pTestProcess, pApp->pCamera->ubo.sharedMemory);
 }
 
 void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest) {
