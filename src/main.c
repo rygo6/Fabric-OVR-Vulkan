@@ -6,8 +6,6 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-
-
     FBR_LOG_DEBUG("starting!");
 
     bool isChild = false;

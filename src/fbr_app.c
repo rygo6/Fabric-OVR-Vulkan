@@ -7,6 +7,7 @@
 #include "fbr_vulkan.h"
 #include "fbr_framebuffer.h"
 #include "fbr_process.h"
+#include "fbr_ipc.h"
 
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
@@ -53,6 +54,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
+        if (fbrCreateProducerIPC(&pApp->pIPC) != 0) {
+            return;
+        }
+
         fbrCreateProcess(&pApp->pTestProcess, pApp->pTexture->sharedMemory, pApp->pCamera->ubo.sharedMemory);
     } else {
 
@@ -70,6 +75,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, sharedMemory);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+
+        fbrCreateReceiverIPC(&pApp->pIPC);
     }
 }
 
@@ -89,6 +96,8 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
 
 void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
+    fbrDestroyIPC(pApp->pIPC);
+
     fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
     fbrCleanupTexture(pApp->pVulkan, pApp->pTexture);
     fbrCleanupTexture(pApp->pVulkan, pApp->pTextureExternalTest);

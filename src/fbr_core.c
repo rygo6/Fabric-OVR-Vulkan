@@ -10,8 +10,6 @@
 
 #include "cglm/cglm.h"
 
-#include <stdio.h>
-
 static void waitForLastFrame(FbrVulkan *pVulkan) {
     vkWaitForFences(pVulkan->device, 1, &pVulkan->inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(pVulkan->device, 1, &pVulkan->inFlightFence);

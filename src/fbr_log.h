@@ -1,6 +1,8 @@
 #ifndef FABRIC_LOG_H
 #define FABRIC_LOG_H
 
+#include <stdio.h>
+
 #define FBR_LOG_TYPE_SPECIFIER(x) _Generic((x), \
     _Bool: "%d", \
     unsigned char: "%hhu", \

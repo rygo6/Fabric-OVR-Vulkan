@@ -1,8 +1,6 @@
 #include "fbr_buffer.h"
 #include "fbr_vulkan.h"
 #include "fbr_log.h"
-#include <stdio.h>
-#include <memory.h>
 
 #if WIN32
 #include <vulkan/vulkan_win32.h>

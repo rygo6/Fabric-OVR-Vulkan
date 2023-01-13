@@ -13,6 +13,7 @@ typedef struct FbrTexture FbrTexture;
 typedef struct FbrVulkan FbrVulkan;
 typedef struct FbrFramebuffer FbrFramebuffer;
 typedef struct FbrProcess FbrProcess;
+typedef struct FbrIPC FbrIPC;
 
 typedef struct FbrTimeState {
     double currentTime;
@@ -25,6 +26,7 @@ typedef struct FbrApp {
     bool isChild;
 
     long long externalTexture;
+    FbrIPC *pIPC;
 
     GLFWwindow *pWindow;
     FbrVulkan *pVulkan;
