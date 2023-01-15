@@ -55,7 +55,7 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
                           VkMemoryPropertyFlags properties,
                           HANDLE sharedHandle) {
 
-    VkExternalMemoryHandleTypeFlags sharedHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
+    VkExternalMemoryHandleTypeFlags sharedHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
     VkExternalMemoryImageCreateInfoKHR externalImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR,
             .pNext = VK_NULL_HANDLE,
@@ -128,7 +128,7 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
                           VkImageUsageFlags usage,
                           VkMemoryPropertyFlags properties) {
 
-    VkExternalMemoryHandleTypeFlagBitsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT_KHR;
+    VkExternalMemoryHandleTypeFlagBitsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
     VkExternalMemoryImageCreateInfoKHR externalImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,

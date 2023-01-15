@@ -7,7 +7,7 @@ char szMsg[] = "Message from first process.";
 
 int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
     HANDLE hMapFile;
-    LPCTSTR pBuf;
+    LPVOID pBuf;
 
     hMapFile = CreateFileMapping(
             INVALID_HANDLE_VALUE,    // use paging file
@@ -21,11 +21,12 @@ int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
         FBR_LOG_DEBUG("Could not create file mapping object (%lu)", GetLastError());
         return 1;
     }
-    pBuf = (LPTSTR) MapViewOfFile(hMapFile,   // handle to map object
+    pBuf = MapViewOfFile(hMapFile,   // handle to map object
                                   FILE_MAP_ALL_ACCESS, // read/write permission
                                   0,
                                   0,
                                   BUF_SIZE);
+    memset(pBuf, 0, BUF_SIZE);
 
     if (pBuf == NULL) {
         printf(TEXT("Could not map view of file (%lu).\n"), GetLastError());
@@ -36,7 +37,12 @@ int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
     *ppAllocIPC = calloc(1, sizeof(FbrIPC));
     FbrIPC *pIPC = *ppAllocIPC;
 
-    CopyMemory((PVOID) pBuf, szMsg, (sizeof(szMsg) * sizeof(char)));
+//    FBR_LOG_DEBUG("sizes", sizeof(szMsg), sizeof(int));
+
+//    memcpy((void*) pBuf, szMsg, sizeof(szMsg));
+
+//    int test = 12345789;
+//    memcpy(pBuf, &test, sizeof(int));
 
     pIPC->hMapFile = hMapFile;
     pIPC->pBuf = pBuf;
@@ -46,7 +52,7 @@ int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
 
 int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
     HANDLE hMapFile;
-    LPCTSTR pBuf;
+    LPVOID pBuf;
 
     hMapFile = OpenFileMapping(
             FILE_MAP_ALL_ACCESS,   // read/write access
@@ -54,23 +60,29 @@ int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
             szName);               // name of mapping object
 
     if (hMapFile == NULL) {
-        FBR_LOG_DEBUG("Could not create file mapping object (%lu)", GetLastError());
+        FBR_LOG_DEBUG("Could not create file mapping object", GetLastError());
         return 1;
     }
 
-    pBuf = (LPTSTR) MapViewOfFile(hMapFile, // handle to map object
+    pBuf = MapViewOfFile(hMapFile, // handle to map object
                                   FILE_MAP_ALL_ACCESS,  // read/write permission
                                   0,
                                   0,
                                   BUF_SIZE);
 
     if (pBuf == NULL) {
-        printf(TEXT("Could not map view of file (%lu).\n"), GetLastError());
+        FBR_LOG_DEBUG("Could not map view of file", GetLastError());
         CloseHandle(hMapFile);
         return 1;
     }
 
-    FBR_LOG_DEBUG(pBuf);
+//    while(*(int*)pBuf == 0) {
+//        printf("Wait Message: %d\n", pBuf);
+//    }
+//
+//    int test;
+//    memcpy(&test, pBuf, sizeof(int));
+//    printf("Message: %d\n", test);
 
     *ppAllocIPC = calloc(1, sizeof(FbrIPC));
     FbrIPC *pIPC = *ppAllocIPC;

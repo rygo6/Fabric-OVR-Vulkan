@@ -5,7 +5,7 @@
 
 typedef struct FbrIPC {
     HANDLE hMapFile;
-    LPCTSTR pBuf;
+    void* pBuf;
 } FbrIPC;
 
 int fbrCreateProducerIPC(FbrIPC **ppAllocIPC);

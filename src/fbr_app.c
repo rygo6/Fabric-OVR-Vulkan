@@ -46,7 +46,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
-        printf("external texture handle d %d\n", pApp->pTexture->sharedMemory);
+        printf("external texture handle d %lld\n", pApp->pTexture->sharedMemory);
         printf("external texture handle p %p\n", pApp->pTexture->sharedMemory);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
@@ -59,11 +59,30 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         }
 
         fbrCreateProcess(&pApp->pTestProcess, pApp->pTexture->sharedMemory, pApp->pCamera->ubo.sharedMemory);
+
+        HANDLE dupHandle;
+        DuplicateHandle(GetCurrentProcess(), pApp->pTexture->sharedMemory, pApp->pTestProcess->pi.hProcess, &dupHandle, 0, false, DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("Handles", pApp->pTexture->sharedMemory, dupHandle);
+
+        long long test = (long long) dupHandle;
+        memcpy(pApp->pIPC->pBuf, &test, sizeof(long long));
+
+
     } else {
 
-        HANDLE sharedMemory = (HANDLE) externalTextureTest;
+        fbrCreateReceiverIPC(&pApp->pIPC);
 
-        printf("external texture handle d %d\n", sharedMemory);
+        while(*(int*)pApp->pIPC->pBuf == 0) {
+            printf("Wait Message: %d\n", (int)pApp->pIPC->pBuf);
+        }
+
+        long long handle;
+        memcpy(&handle, pApp->pIPC->pBuf, sizeof(long long));
+        printf("Message: %lld\n", handle);
+
+        HANDLE sharedMemory = (HANDLE) handle;
+
+        printf("external texture handle d %lld\n", sharedMemory);
         printf("external texture handle p %p\n", sharedMemory);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
@@ -75,8 +94,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, sharedMemory);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
-
-        fbrCreateReceiverIPC(&pApp->pIPC);
     }
 }
 
