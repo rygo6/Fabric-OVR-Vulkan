@@ -5,41 +5,34 @@
 
 const char sharedMemoryName[] = "FbrIPC";
 
-bool fbrIPCDequeAvailable(const FbrIPC *pIPC) {
-    return pIPC->pBuffer->pRingBuffer->type != FBR_IPC_TYPE_NONE;
+bool fbrIPCDequeAvailable(const FbrIPCBuffer *pIPCBuffer) {
+    return pIPCBuffer->pRingBuffer[pIPCBuffer->head] != pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
 }
 
-int fbrIPCDeque(FbrIPCBuffer *pBuffer, void **pPtr) {
-    while (pBuffer->pRingBuffer[pBuffer->tail].type != FBR_IPC_TYPE_NONE) {
-        FbrIPCBufferElement buffer;
-        memcpy(&buffer, pBuffer + pBuffer->tail, sizeof(FbrIPCBufferElement));
-    }
+int fbrIPCDequePtr(FbrIPCBuffer *pIPCBuffer, void **pPtr) {
+    if (pIPCBuffer->pRingBuffer[pIPCBuffer->head] == pIPCBuffer->pRingBuffer[pIPCBuffer->tail])
+        return 1;
 
+    FbrIPCType type = pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
+    FBR_IPC_TARGET_NAMESPACE namespace = pIPCBuffer->pRingBuffer[pIPCBuffer->tail + 1];
+    FBR_IPC_TARGET_METHOD method = pIPCBuffer->pRingBuffer[pIPCBuffer->tail + 2];
+    FBR_IPC_TARGET_METHOD_PARAM methodParam = pIPCBuffer->pRingBuffer[pIPCBuffer->tail + 3];
+    void* ptr;
+    memcpy(&ptr, pIPCBuffer->pRingBuffer + 4, sizeof(void*));
+    *pPtr = ptr;
+
+    pIPCBuffer->tail = FBR_IPC_HEADER_SIZE + sizeof(void*);
     return 0;
 }
 
-int fbrIPCDequePtr(const FbrIPC *pIPC, void **pPtr) {
-    FbrIPCBufferElement buffer;
-    memcpy(&buffer, pIPC->pBuffer, sizeof(FbrIPCBufferElement));
-    *pPtr = buffer.ptrValue;
-    return 0;
-}
+int fbrIPCEnquePtr(FbrIPCBuffer *pIPCBuffer, void *ptr){
+    pIPCBuffer->pRingBuffer[pIPCBuffer->head] = FBR_IPC_TYPE_PTR;
+    pIPCBuffer->pRingBuffer[pIPCBuffer->head + 1] = 0;
+    pIPCBuffer->pRingBuffer[pIPCBuffer->head + 2] = 0;
+    pIPCBuffer->pRingBuffer[pIPCBuffer->head + 3] = 0;
+    memcpy(pIPCBuffer->pRingBuffer + 4, &ptr, sizeof(void*));
 
-int fbrIPCEnquePtr(const FbrIPC *pIPC, void *ptr){
-    FbrIPCBufferElement buffer = {
-            .type = FBR_IPC_TYPE_PTR,
-            .ptrValue = ptr
-    };
-    memcpy(pIPC->pBuffer, &buffer, sizeof(FbrIPCBufferElement));
-    return 0;
-}
-
-int fbrIPCEnqueInt(const FbrIPC *pIPC, int intValue){
-    FbrIPCBufferElement buffer = {
-      .type = FBR_IPC_TYPE_INT,
-      .inValue = intValue
-    };
-    memcpy(pIPC->pBuffer, &buffer, sizeof(int));
+    pIPCBuffer->head = FBR_IPC_HEADER_SIZE + sizeof(void*);
     return 0;
 }
 
@@ -79,7 +72,7 @@ int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
     FbrIPC *pIPC = *ppAllocIPC;
 
     pIPC->hMapFile = hMapFile;
-    pIPC->pBuffer = pBuf;
+    pIPC->pIPCBuffer = pBuf;
 
     return 0;
 }
@@ -114,13 +107,13 @@ int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
     FbrIPC *pIPC = *ppAllocIPC;
 
     pIPC->hMapFile = hMapFile;
-    pIPC->pBuffer = pBuf;
+    pIPC->pIPCBuffer = pBuf;
 
     return 0;
 }
 
 int fbrDestroyIPC(FbrIPC *pIPC) {
-    UnmapViewOfFile(pIPC->pBuffer);
+    UnmapViewOfFile(pIPC->pIPCBuffer);
     CloseHandle(pIPC->hMapFile);
     free(pIPC);
 

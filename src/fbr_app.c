@@ -64,18 +64,16 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         DuplicateHandle(GetCurrentProcess(), pApp->pTexture->sharedMemory, pApp->pTestProcess->pi.hProcess, &dupHandle, 0, false, DUPLICATE_SAME_ACCESS);
         FBR_LOG_DEBUG("Handles", pApp->pTexture->sharedMemory, dupHandle);
 
-        fbrIPCEnquePtr(pApp->pIPC, dupHandle);
+        fbrIPCEnquePtr(pApp->pIPC->pIPCBuffer, dupHandle);
 
     } else {
 
         fbrCreateReceiverIPC(&pApp->pIPC);
 
-        while(!fbrIPCDequeAvailable(pApp->pIPC)) {
-            printf("Wait Message: %d\n", (int)pApp->pIPC->pBuffer);
-        }
-
         HANDLE sharedMemory;
-        fbrIPCDequePtr(pApp->pIPC, &sharedMemory);
+        while(!fbrIPCDequePtr(pApp->pIPC->pIPCBuffer, &sharedMemory) != 0) {
+            printf("Wait Message\n");
+        }
 
         printf("external texture handle d %lld\n", sharedMemory);
         printf("external texture handle p %p\n", sharedMemory);

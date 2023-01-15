@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define FBR_IPC_BUFFER_COUNT 256
-#define FBR_IPC_BUFFER_SIZE FBR_IPC_BUFFER_COUNT * sizeof(FbrIPCBufferElement)
+#define FBR_IPC_BUFFER_SIZE FBR_IPC_BUFFER_COUNT * sizeof(uint8_t)
 
 typedef enum FbrIPCType {
     FBR_IPC_TYPE_NONE = 0,
@@ -16,8 +16,10 @@ typedef enum FbrIPCType {
     FBR_IPC_TYPE_LONG = 5,
 } FbrIPCType;
 
+#define FBR_IPC_HEADER_SIZE 4
 #define FBR_IPC_TYPE_BYTE uint8_t
-#define FBR_IPC_TARGET_METHOD uint16_t
+#define FBR_IPC_TARGET_NAMESPACE uint8_t
+#define FBR_IPC_TARGET_METHOD uint8_t
 #define FBR_IPC_TARGET_METHOD_PARAM uint8_t
 
 typedef struct FbrIPCBufferElement {
@@ -37,21 +39,19 @@ typedef struct FbrIPCBufferElement {
 typedef struct FbrIPCBuffer {
     uint8_t head;
     uint8_t tail;
-    FbrIPCBufferElement pRingBuffer[FBR_IPC_BUFFER_COUNT];
+    uint8_t pRingBuffer[FBR_IPC_BUFFER_COUNT];
 } FbrIPCBuffer;
 
 typedef struct FbrIPC {
     HANDLE hMapFile;
-    FbrIPCBuffer *pBuffer;
+    FbrIPCBuffer *pIPCBuffer;
 } FbrIPC;
 
-bool fbrIPCDequeAvailable(const FbrIPC *pIPC);
+bool fbrIPCDequeAvailable(const FbrIPCBuffer *pIPCBuffer);
 
-int fbrIPCDequePtr(const FbrIPC *pIPC, void **pPtr);
+int fbrIPCDequePtr(FbrIPCBuffer *pIPCBuffer, void **pPtr);
 
-int fbrIPCEnquePtr(const FbrIPC *pIPC, void *ptr);
-
-int fbrIPCEnqueInt(const FbrIPC *pIPC, int intValue);
+int fbrIPCEnquePtr(FbrIPCBuffer *pIPCBuffer, void *ptr);
 
 int fbrCreateProducerIPC(FbrIPC **ppAllocIPC);
 
