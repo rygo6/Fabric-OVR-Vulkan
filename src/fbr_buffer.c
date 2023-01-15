@@ -80,7 +80,7 @@ void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
 //            .image = VK_NULL_HANDLE,
-//            .buffer = *pBuffer,
+//            .buffer = *pRingBuffer,
 //    };
     VkExportMemoryAllocateInfo exportAllocInfo = {
             .sType =VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
