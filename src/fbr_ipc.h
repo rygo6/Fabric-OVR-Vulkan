@@ -1,40 +1,45 @@
 #ifndef FABRIC_IPC_H
 #define FABRIC_IPC_H
 
-#include <windows.h>
+#include "fbr_app.h"
+#include "fbr_macros.h"
+
 #include <stdint.h>
+
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 #define FBR_IPC_BUFFER_COUNT 256
 #define FBR_IPC_BUFFER_SIZE FBR_IPC_BUFFER_COUNT * sizeof(uint8_t)
 
-typedef enum FbrIPCType {
+typedef enum FbrIPCParamType {
     FBR_IPC_TYPE_NONE = 0,
     FBR_IPC_TYPE_INT = 1,
     FBR_IPC_TYPE_FLOAT = 2,
     FBR_IPC_TYPE_CHAR = 3,
     FBR_IPC_TYPE_PTR = 4,
     FBR_IPC_TYPE_LONG = 5,
-} FbrIPCType;
+} FbrIPCParamType;
 
-#define FBR_IPC_HEADER_SIZE 4
+#define FBR_IPC_TARGET_COUNT 1
+
+typedef enum FbrIPCTargetType {
+    FBR_IPC_TARGET_EXTERNAL_TEXTURE = 0,
+} FbrIPCTargetType;
+
+typedef struct FbrIPCExternalTextureParam {
+    HANDLE handle;
+    uint16_t width;
+    uint16_t height;
+} FbrIPCExternalTextureParam;
+
+#define FBR_IPC_TARGET_SIGNATURE(N) EXPAND_CONCAT(FBR_IPC_TARGET_SIGNATURE_, N)
+#define FBR_IPC_TARGET_SIGNATURE_0 FbrIPCExternalTextureParam
+
+#define FBR_IPC_HEADER_SIZE 2
 #define FBR_IPC_TYPE_BYTE uint8_t
-#define FBR_IPC_TARGET_NAMESPACE uint8_t
-#define FBR_IPC_TARGET_METHOD uint8_t
-#define FBR_IPC_TARGET_METHOD_PARAM uint8_t
-
-typedef struct FbrIPCBufferElement {
-    FBR_IPC_TYPE_BYTE type;
-    FBR_IPC_TARGET_METHOD targetMethod;
-    FBR_IPC_TARGET_METHOD_PARAM targetMethodParam;
-    union {
-        int inValue;
-        float floatValue;
-        char charValue;
-        void* ptrValue;
-        long longValue;
-        long long longLongValue;
-    };
-} FbrIPCBufferElement;
+#define FBR_IPC_TARGET_BYTE uint8_t
 
 typedef struct FbrIPCBuffer {
     uint8_t head;
@@ -42,16 +47,20 @@ typedef struct FbrIPCBuffer {
     uint8_t pRingBuffer[FBR_IPC_BUFFER_COUNT];
 } FbrIPCBuffer;
 
+
 typedef struct FbrIPC {
+#ifdef WIN32
     HANDLE hMapFile;
+#endif
     FbrIPCBuffer *pIPCBuffer;
+    void (*pTargetFuncs[FBR_IPC_TARGET_COUNT])( /*const*/ FbrApp*, void*);
 } FbrIPC;
 
 bool fbrIPCDequeAvailable(const FbrIPCBuffer *pIPCBuffer);
 
-int fbrIPCDequePtr(FbrIPCBuffer *pIPCBuffer, void **pPtr);
+int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC);
 
-int fbrIPCEnquePtr(FbrIPCBuffer *pIPCBuffer, void *ptr);
+void fbrIPCEnque(FbrIPCBuffer *pIPCBuffer, FbrIPCTargetType target, void *param);
 
 int fbrCreateProducerIPC(FbrIPC **ppAllocIPC);
 

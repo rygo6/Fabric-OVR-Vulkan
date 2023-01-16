@@ -3,41 +3,57 @@
 #include "fbr_ipc.h"
 #include "fbr_log.h"
 
+#include "fbr_mesh.h"
+#include "fbr_texture.h"
+#include "fbr_pipeline.h"
+#include "fbr_vulkan.h"
+
 const char sharedMemoryName[] = "FbrIPC";
 
-bool fbrIPCDequeAvailable(const FbrIPCBuffer *pIPCBuffer) {
-    return pIPCBuffer->pRingBuffer[pIPCBuffer->head] != pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
+const int FbrIPCTargetParamSize[] = {
+        sizeof(FBR_IPC_TARGET_SIGNATURE(0)),
+};
+
+static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pParam){
+
+    printf("external texture handle d %lld\n", pParam->handle);
+    printf("external texture handle p %p\n", pParam->handle);
+
+    fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
+    fbrImportTexture(pApp->pVulkan, &pApp->pTexture, pParam->handle, pParam->width, pParam->height);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+
+    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
+    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 }
 
-int fbrIPCDequePtr(FbrIPCBuffer *pIPCBuffer, void **pPtr) {
-    if (pIPCBuffer->pRingBuffer[pIPCBuffer->head] == pIPCBuffer->pRingBuffer[pIPCBuffer->tail])
+int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
+    FbrIPCBuffer *pIPCBuffer = pIPC->pIPCBuffer;
+
+    if (pIPCBuffer->head == pIPCBuffer->tail)
         return 1;
 
-    FbrIPCType type = pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
-    FBR_IPC_TARGET_NAMESPACE namespace = pIPCBuffer->pRingBuffer[pIPCBuffer->tail + 1];
-    FBR_IPC_TARGET_METHOD method = pIPCBuffer->pRingBuffer[pIPCBuffer->tail + 2];
-    FBR_IPC_TARGET_METHOD_PARAM methodParam = pIPCBuffer->pRingBuffer[pIPCBuffer->tail + 3];
-    void* ptr;
-    memcpy(&ptr, pIPCBuffer->pRingBuffer + 4, sizeof(void*));
-    *pPtr = ptr;
+    FbrIPCTargetType target = pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
 
-    pIPCBuffer->tail = FBR_IPC_HEADER_SIZE + sizeof(void*);
+    void *param;
+    memcpy(param, pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE, FbrIPCTargetParamSize[target]);
+    pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_TEXTURE](pApp, param);
+
+    pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + FbrIPCTargetParamSize[target];;
+
     return 0;
 }
 
-int fbrIPCEnquePtr(FbrIPCBuffer *pIPCBuffer, void *ptr){
-    pIPCBuffer->pRingBuffer[pIPCBuffer->head] = FBR_IPC_TYPE_PTR;
-    pIPCBuffer->pRingBuffer[pIPCBuffer->head + 1] = 0;
-    pIPCBuffer->pRingBuffer[pIPCBuffer->head + 2] = 0;
-    pIPCBuffer->pRingBuffer[pIPCBuffer->head + 3] = 0;
-    memcpy(pIPCBuffer->pRingBuffer + 4, &ptr, sizeof(void*));
-
-    pIPCBuffer->head = FBR_IPC_HEADER_SIZE + sizeof(void*);
-    return 0;
+void fbrIPCEnque(FbrIPCBuffer *pIPCBuffer, FbrIPCTargetType target, void *param) {
+    pIPCBuffer->pRingBuffer[pIPCBuffer->head] = target;
+    memcpy(pIPCBuffer->pRingBuffer + pIPCBuffer->head + FBR_IPC_HEADER_SIZE, param, FbrIPCTargetParamSize[target]);
+    pIPCBuffer->head = pIPCBuffer->head + FBR_IPC_HEADER_SIZE + FbrIPCTargetParamSize[target];;
 }
 
 int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
-    FBR_LOG_DEBUG("Creating Producer IPC", FBR_IPC_BUFFER_SIZE, sizeof(FbrIPCBufferElement));
+    FBR_LOG_DEBUG("Creating Producer IPC", FBR_IPC_BUFFER_SIZE, FBR_IPC_BUFFER_COUNT);
 
     HANDLE hMapFile;
     LPVOID pBuf;
@@ -108,6 +124,8 @@ int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
 
     pIPC->hMapFile = hMapFile;
     pIPC->pIPCBuffer = pBuf;
+
+    pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_TEXTURE] = (void (*)(FbrApp *, void *)) externalTextureTarget;
 
     return 0;
 }

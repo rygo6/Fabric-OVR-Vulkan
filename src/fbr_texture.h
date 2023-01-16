@@ -15,7 +15,8 @@ typedef struct FbrTexture {
     VkImage image;
     VkImageView imageView;
     VkDeviceMemory deviceMemory;
-//    VkSampler sampler;
+    int width;
+    int height;
 #ifdef WIN32
     HANDLE sharedMemory;
 #endif
@@ -23,7 +24,7 @@ typedef struct FbrTexture {
 
 void fbrCreateTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
 
-void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE handle);
+void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE sharedMemory, int width, int height);
 
 void fbrCleanupTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 

@@ -1,6 +1,8 @@
 #ifndef FABRIC_LOG_H
 #define FABRIC_LOG_H
 
+#include "fbr_macros.h"
+
 #include <stdio.h>
 
 #define FBR_LOG_TYPE_SPECIFIER(x) _Generic((x), \
@@ -28,11 +30,9 @@
 // https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/preprocessor/macros/__VA_ARGS__/count-arguments
 #define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
 #define COUNT_ARGUMENTS(...) ELEVENTH_ARGUMENT(dummy, ## __VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#define CONCAT(a, b) a ## b
-#define CONCAT2(a, b) CONCAT(a, b)
 
 #define FBR_LOG_ERROR(m) (printf("ERROR! %s - %s\n", __FUNCTION__, m))
-#define FBR_LOG_DEBUG(m, ...) CONCAT2(FBR_LOG_DEBUG_, COUNT_ARGUMENTS(__VA_ARGS__))(m, ##__VA_ARGS__)
+#define FBR_LOG_DEBUG(m, ...) EXPAND_CONCAT(FBR_LOG_DEBUG_, COUNT_ARGUMENTS(__VA_ARGS__))(m, ##__VA_ARGS__)
 #define FBR_LOG_DEBUG_0(m) \
     printf("%s - %s\n", __FUNCTION__, m)
 #define FBR_LOG_DEBUG_1(m, i0) \

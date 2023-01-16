@@ -46,11 +46,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
-        printf("external texture handle d %lld\n", pApp->pTexture->sharedMemory);
-        printf("external texture handle p %p\n", pApp->pTexture->sharedMemory);
-
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory);
+        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory, pApp->pTexture->width, pApp->pTexture->height);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
@@ -62,31 +59,24 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         HANDLE dupHandle;
         DuplicateHandle(GetCurrentProcess(), pApp->pTexture->sharedMemory, pApp->pTestProcess->pi.hProcess, &dupHandle, 0, false, DUPLICATE_SAME_ACCESS);
-        FBR_LOG_DEBUG("Handles", pApp->pTexture->sharedMemory, dupHandle);
 
-        fbrIPCEnquePtr(pApp->pIPC->pIPCBuffer, dupHandle);
+        FbrIPCExternalTextureParam param =  {
+                .handle = dupHandle,
+                .width = pApp->pTexture->width,
+                .height = pApp->pTexture->height
+        };
+
+        fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_TEXTURE, &param);
 
     } else {
 
         fbrCreateReceiverIPC(&pApp->pIPC);
 
-        HANDLE sharedMemory;
-        while(!fbrIPCDequePtr(pApp->pIPC->pIPCBuffer, &sharedMemory) != 0) {
-            printf("Wait Message\n");
+        // for debugging ipc now
+        while(fbrIPCPollDeque(pApp, pApp->pIPC) != 0) {
+            FBR_LOG_DEBUG("Wait Message", pApp->pIPC->pIPCBuffer->tail, pApp->pIPC->pIPCBuffer->head);
+            Sleep(1000);
         }
-
-        printf("external texture handle d %lld\n", sharedMemory);
-        printf("external texture handle p %p\n", sharedMemory);
-
-        fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-        fbrImportTexture(pApp->pVulkan, &pApp->pTexture, sharedMemory);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
-
-
-        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, sharedMemory);
-        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
     }
 }
 
