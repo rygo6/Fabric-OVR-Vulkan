@@ -52,6 +52,22 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
     }
 }
 
+void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory) {
+    *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
+    FbrCamera *pCamera = *ppAllocCameraState;
+
+    fbrInitTransform(&pCamera->transform);
+    glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
+    glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
+    glm_perspective(90, 1, .01f, 10, pCamera->proj);
+    fbrUpdateTransformMatrix(&pCamera->transform);
+
+    fbrImportUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO), externalMemory);
+
+    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
+    fbrUpdateCameraUBO(pCamera);
+}
+
 void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
@@ -71,7 +87,7 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
 
 void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
     fbrCleanupUniformBuffers(pVulkan, &pCameraState->ubo);
-    if (pCameraState->ubo.sharedMemory != NULL)
-        CloseHandle(pCameraState->ubo.sharedMemory);
+    if (pCameraState->ubo.externalMemory != NULL)
+        CloseHandle(pCameraState->ubo.externalMemory);
     free(pCameraState);
 }

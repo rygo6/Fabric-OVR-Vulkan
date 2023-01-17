@@ -38,16 +38,19 @@ static void initWindow(FbrApp *pApp) {
 static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     FBR_LOG_DEBUG("initializing vulkan!");
 
-    fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
+//    FbrCamera *pTestCamera;
+//    fbrImportCamera(pApp->pVulkan, &pTestCamera, pApp->pCamera->ubo.externalMemory);
 
     if (!pApp->isChild) {
+
+        fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
         fbrCreateTexture(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->sharedMemory, pApp->pTexture->width, pApp->pTexture->height);
+        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
@@ -55,18 +58,28 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
             return;
         }
 
-        fbrCreateProcess(&pApp->pTestProcess, pApp->pTexture->sharedMemory, pApp->pCamera->ubo.sharedMemory);
+        fbrCreateProcess(&pApp->pTestProcess, pApp->pTexture->externalMemory, pApp->pCamera->ubo.externalMemory);
 
-        HANDLE dupHandle;
-        DuplicateHandle(GetCurrentProcess(), pApp->pTexture->sharedMemory, pApp->pTestProcess->pi.hProcess, &dupHandle, 0, false, DUPLICATE_SAME_ACCESS);
 
-        FbrIPCExternalTextureParam param =  {
-                .handle = dupHandle,
+        HANDLE camDupHandle;
+        DuplicateHandle(GetCurrentProcess(), pApp->pCamera->ubo.externalMemory, pApp->pTestProcess->pi.hProcess, &camDupHandle, 0, false, DUPLICATE_SAME_ACCESS);
+        FbrIPCExternalCameraUBO camParam =  {
+                .handle = camDupHandle,
+        };
+        fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_CAMERA_UBO, &camParam);
+        printf("external camera handle d %lld\n", camParam.handle);
+        printf("external camera handle p %p\n", camParam.handle);
+
+        HANDLE texDupHandle;
+        DuplicateHandle(GetCurrentProcess(), pApp->pTexture->externalMemory, pApp->pTestProcess->pi.hProcess, &texDupHandle, 0, false, DUPLICATE_SAME_ACCESS);
+        FbrIPCExternalTextureParam texParam =  {
+                .handle = texDupHandle,
                 .width = pApp->pTexture->width,
                 .height = pApp->pTexture->height
         };
-
-        fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_TEXTURE, &param);
+        fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_TEXTURE, &texParam);
+        printf("external texture handle d %lld\n", texParam.handle);
+        printf("external texture handle p %p\n", texParam.handle);
 
     } else {
 
@@ -75,7 +88,12 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         // for debugging ipc now
         while(fbrIPCPollDeque(pApp, pApp->pIPC) != 0) {
             FBR_LOG_DEBUG("Wait Message", pApp->pIPC->pIPCBuffer->tail, pApp->pIPC->pIPCBuffer->head);
-            Sleep(1000);
+//            Sleep(1000);
+        }
+
+        while(fbrIPCPollDeque(pApp, pApp->pIPC) != 0) {
+            FBR_LOG_DEBUG("Wait Message", pApp->pIPC->pIPCBuffer->tail, pApp->pIPC->pIPCBuffer->head);
+//            Sleep(1000);
         }
     }
 }

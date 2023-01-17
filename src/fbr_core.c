@@ -138,7 +138,8 @@ void fbrMainLoop(FbrApp *pApp) {
         waitForLastFrame(pApp->pVulkan);
         processInputFrame(pApp);
 
-        fbrUpdateCameraUBO(pApp->pCamera);
+        if (!pApp->isChild)
+            fbrUpdateCameraUBO(pApp->pCamera);
 
         // Get open swap image
         uint32_t swapIndex;

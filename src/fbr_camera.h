@@ -24,6 +24,8 @@ void fbrUpdateCameraUBO(FbrCamera *pCamera);
 
 void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState);
 
+void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory);
+
 void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState);
 
 void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);

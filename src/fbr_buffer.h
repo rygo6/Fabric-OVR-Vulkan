@@ -12,7 +12,7 @@ typedef struct UniformBufferObject {
     VkDeviceMemory uniformBufferMemory;
     void *pUniformBufferMapped;
 #ifdef WIN32
-    HANDLE sharedMemory;
+    HANDLE externalMemory;
 #endif
 } UniformBufferObject;
 
@@ -20,6 +20,14 @@ bool fbrMemoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryPr
                                  uint32_t nMemoryTypeBits,
                                  VkMemoryPropertyFlags nMemoryProperties,
                                  uint32_t *pTypeIndexOut);
+
+void fbrImportBuffer(const FbrVulkan *pVulkan,
+                     VkDeviceSize size,
+                     VkBufferUsageFlags usage,
+                     VkMemoryPropertyFlags properties,
+                     HANDLE externalMemory,
+                     VkBuffer *pBuffer,
+                     VkDeviceMemory *pBufferMemory);
 
 VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan);
 
@@ -56,6 +64,11 @@ void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
                                        VkDeviceSize bufferSize);
 
 void fbrCreateUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+
+void fbrImportUniformBuffer(const FbrVulkan *pVulkan,
+                            UniformBufferObject *pUniformBufferObject,
+                            VkDeviceSize bufferSize,
+                            HANDLE externalMemory);
 
 void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
 

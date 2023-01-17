@@ -7,12 +7,26 @@
 #include "fbr_texture.h"
 #include "fbr_pipeline.h"
 #include "fbr_vulkan.h"
+#include "fbr_camera.h"
 
 const char sharedMemoryName[] = "FbrIPC";
 
+//const int FbrIPCTargetParamSize[] = {
+//        sizeof(FBR_IPC_TARGET_SIGNATURE(0)),
+//        sizeof(FBR_IPC_TARGET_SIGNATURE(1)),
+//};
+
 const int FbrIPCTargetParamSize[] = {
-        sizeof(FBR_IPC_TARGET_SIGNATURE(0)),
+        sizeof(FbrIPCExternalTextureParam),
+        sizeof(FbrIPCExternalCameraUBO),
 };
+
+static void externalCameraUBOTarget(FbrApp *pApp, FbrIPCExternalCameraUBO *pParam){
+    printf("external camera handle d %lld\n", pParam->handle);
+    printf("external camera handle p %p\n", pParam->handle);
+
+    fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
+}
 
 static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pParam){
 
@@ -35,13 +49,17 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
     if (pIPCBuffer->head == pIPCBuffer->tail)
         return 1;
 
+    FBR_LOG_DEBUG("IPC Polling.", pIPCBuffer->head, pIPCBuffer->tail);
+
     FbrIPCTargetType target = pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
 
     void *param;
     memcpy(param, pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE, FbrIPCTargetParamSize[target]);
-    pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_TEXTURE](pApp, param);
+    pIPC->pTargetFuncs[target](pApp, param);
 
     pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + FbrIPCTargetParamSize[target];;
+
+    FBR_LOG_DEBUG("IPC Polling.", pIPCBuffer->head, pIPCBuffer->tail);
 
     return 0;
 }
@@ -126,6 +144,7 @@ int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
     pIPC->pIPCBuffer = pBuf;
 
     pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_TEXTURE] = (void (*)(FbrApp *, void *)) externalTextureTarget;
+    pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_CAMERA_UBO] = (void (*)(FbrApp *, void *)) externalCameraUBOTarget;
 
     return 0;
 }

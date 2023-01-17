@@ -18,13 +18,13 @@ typedef struct FbrTexture {
     int width;
     int height;
 #ifdef WIN32
-    HANDLE sharedMemory;
+    HANDLE externalMemory;
 #endif
 } FbrTexture;
 
 void fbrCreateTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
 
-void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE sharedMemory, int width, int height);
+void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
 
 void fbrCleanupTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 
