@@ -48,6 +48,9 @@ typedef struct FbrVulkan {
 
     VkSampler sampler;
 
+    VkMemoryRequirements memRequirements;
+    VkPhysicalDeviceMemoryProperties memProperties;
+
 } FbrVulkan;
 
 void fbrCreateVulkan(const FbrApp *pApp,

@@ -24,18 +24,19 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
     FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pFrameBuffer->image));
 
     VkMemoryRequirements memRequirements = {};
-    vkGetImageMemoryRequirements(pVulkan->device, pFrameBuffer->image, &memRequirements);
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &memProperties);
+    uint32_t memTypeIndex;
+    FBR_VK_CHECK(fbrImageMemoryTypeFromProperties(pVulkan,
+                                                  pFrameBuffer->image,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                  &memRequirements,
+                                                  &memTypeIndex));
+
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = memRequirements.size
-    };
-    FBR_VK_CHECK(fbrMemoryTypeFromProperties(memProperties,
-                                             memRequirements.memoryTypeBits,
-                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                             &allocInfo.memoryTypeIndex));
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = memTypeIndex
 
+    };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pFrameBuffer->deviceMemory));
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pFrameBuffer->image, pFrameBuffer->deviceMemory, 0));
 

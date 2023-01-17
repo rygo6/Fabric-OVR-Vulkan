@@ -84,7 +84,12 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pTexture->image));
 
     VkMemoryRequirements memRequirements = {};
-    vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
+    uint32_t memTypeIndex;
+    FBR_VK_CHECK(fbrImageMemoryTypeFromProperties(pVulkan,
+                                                  pTexture->image,
+                                                  properties,
+                                                  &memRequirements,
+                                                  &memTypeIndex));
 
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
@@ -101,7 +106,7 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = memTypeIndex,
             .pNext = &importMemoryInfo
     };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
@@ -116,6 +121,27 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
     pTexture->externalMemory = externalMemory;
     pTexture->width = width;
     pTexture->height = height;
+}
+
+static void checkPreferredDecicated(const FbrVulkan *pVulkan, const FbrTexture *pTexture){
+    VkImageMemoryRequirementsInfo2KHR memoryRequirementsInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2_KHR,
+            .image = pTexture->image,
+    };
+    VkMemoryDedicatedRequirementsKHR memoryDedicatedRequirements = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR,
+    };
+    VkMemoryRequirements2KHR memRequirements2 = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR,
+            .pNext = &memoryDedicatedRequirements,
+    };
+    PFN_vkGetImageMemoryRequirements2KHR getImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2KHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetImageMemoryRequirements2KHR");
+    if (getImageMemoryRequirements2 == NULL) {
+        FBR_LOG_DEBUG("Failed to get PFN_vkGetImageMemoryRequirements2KHR!");
+    }
+    getImageMemoryRequirements2(pVulkan->device, &memoryRequirementsInfo, &memRequirements2);
+    FBR_LOG_DEBUG("prefersDedicatedAllocation", memoryDedicatedRequirements.prefersDedicatedAllocation);
+    FBR_LOG_DEBUG("requiresDedicatedAllocation", memoryDedicatedRequirements.requiresDedicatedAllocation);
 }
 
 static void createExternalTexture(const FbrVulkan *pVulkan,
@@ -152,27 +178,13 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
 
     FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pTexture->image));
 
-    VkImageMemoryRequirementsInfo2KHR memoryRequirementsInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2_KHR,
-            .image = pTexture->image,
-    };
-    VkMemoryDedicatedRequirementsKHR memoryDedicatedRequirements = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR,
-    };
-    VkMemoryRequirements2KHR memRequirements2 = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR,
-            .pNext = &memoryDedicatedRequirements,
-    };
-    PFN_vkGetImageMemoryRequirements2KHR getImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2KHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetImageMemoryRequirements2KHR");
-    if (getImageMemoryRequirements2 == NULL) {
-        FBR_LOG_DEBUG("Failed to get PFN_vkGetImageMemoryRequirements2KHR!");
-    }
-    getImageMemoryRequirements2(pVulkan->device, &memoryRequirementsInfo, &memRequirements2);
-    FBR_LOG_DEBUG("prefersDedicatedAllocation", memoryDedicatedRequirements.prefersDedicatedAllocation);
-    FBR_LOG_DEBUG("requiresDedicatedAllocation", memoryDedicatedRequirements.requiresDedicatedAllocation);
-
     VkMemoryRequirements memRequirements = {};
-    vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
+    uint32_t memTypeIndex;
+    FBR_VK_CHECK(fbrImageMemoryTypeFromProperties(pVulkan,
+                                             pTexture->image,
+                                             properties,
+                                             &memRequirements,
+                                             &memTypeIndex));
 
     // not sure if dedicated is needed???
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
@@ -187,8 +199,8 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     };
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = memRequirements2.memoryRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = memTypeIndex,
             .pNext = &exportAllocInfo
     };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
@@ -241,14 +253,18 @@ static void createTexture(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pTexture->image));
 
     VkMemoryRequirements memRequirements = {};
-    vkGetImageMemoryRequirements(pVulkan->device, pTexture->image, &memRequirements);
+    uint32_t memTypeIndex;
+    FBR_VK_CHECK(fbrImageMemoryTypeFromProperties(pVulkan,
+                                                  pTexture->image,
+                                                  properties,
+                                                  &memRequirements,
+                                                  &memTypeIndex));
 
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = memTypeIndex,
     };
-
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
 
     vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0);

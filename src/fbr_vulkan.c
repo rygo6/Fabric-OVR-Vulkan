@@ -218,18 +218,18 @@ static void setupDebugMessenger(FbrVulkan *pVulkan) {
 
 static void pickPhysicalDevice(FbrVulkan *pVulkan) {
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, NULL);
-
+    FBR_VK_CHECK(vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, NULL));
     if (deviceCount == 0) {
         FBR_LOG_DEBUG("failed to find GPUs with Vulkan support!");
     }
-
     VkPhysicalDevice devices[deviceCount];
-    vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, devices);
+    FBR_VK_CHECK(vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, devices));
 
     // Todo Implement Query OpenVR for the physical device to use
-    // If no OVR fallback to first one. OVR Vulkan used this logic, its much simpler than vulkan example, is it correct? Seemed to be on my 6950xt
+    // If no OVR fallback to first one. OVR Vulkan used this logic, its much simpler than vulkan example, is it correct? Seemed to be on my 6950xt and 4090
     pVulkan->physicalDevice = devices[0];
+
+    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &pVulkan->memProperties);
 }
 
 static void findQueueFamilies(FbrVulkan *pVulkan) {

@@ -7,38 +7,47 @@
 #endif
 
 // From OVR Vulkan example. Is this better/same as vulkan tutorial!?
-bool fbrMemoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
-                                 uint32_t nMemoryTypeBits,
-                                 VkMemoryPropertyFlags nMemoryProperties,
-                                 uint32_t *pTypeIndexOut) {
+static VkResult memoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
+                                         uint32_t memoryTypeBits,
+                                         VkMemoryPropertyFlags properties,
+                                         uint32_t *pMemoryTypeBits) {
     for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
-        if ((nMemoryTypeBits & 1) == 1) {
+        if ((memoryTypeBits & 1) == 1) {
             // Type is available, does it match user properties?
-            if ((memoryProperties.memoryTypes[i].propertyFlags & nMemoryProperties) == nMemoryProperties) {
-                *pTypeIndexOut = i;
+            if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+                *pMemoryTypeBits = i;
                 return VK_SUCCESS;
             }
         }
-        nMemoryTypeBits >>= 1;
+        memoryTypeBits >>= 1;
     }
 
-    FBR_LOG_DEBUG("Can't find memory type.", nMemoryProperties, nMemoryProperties);
+    FBR_LOG_DEBUG("Can't find memory type.", properties, properties);
     return VK_ERROR_FORMAT_NOT_SUPPORTED;
 }
 
-uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-    // should use one from framebuffer from Valve? Valve is probably more correct than vulkan tutorial. Also todo cache MemProperties
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+VkResult fbrImageMemoryTypeFromProperties(const FbrVulkan *pVulkan,
+                                          VkImage image,
+                                          VkMemoryPropertyFlags properties,
+                                          VkMemoryRequirements *pMemRequirements,
+                                          uint32_t *pMemoryTypeBits) {
+    vkGetImageMemoryRequirements(pVulkan->device, image, pMemRequirements);
+    return memoryTypeFromProperties(pVulkan->memProperties,
+                                    pMemRequirements->memoryTypeBits,
+                                    properties,
+                                    pMemoryTypeBits);
+}
 
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    printf("%s - failed to find suitable memory type!\n", __FUNCTION__);
-    return 0;
+VkResult fbrBufferMemoryTypeFromProperties(const FbrVulkan *pVulkan,
+                                           VkBuffer buffer,
+                                           VkMemoryPropertyFlags properties,
+                                           VkMemoryRequirements *pMemRequirements,
+                                           uint32_t *pMemoryTypeBits) {
+    vkGetBufferMemoryRequirements(pVulkan->device, buffer, pMemRequirements);
+    return memoryTypeFromProperties(pVulkan->memProperties,
+                                    pMemRequirements->memoryTypeBits,
+                                    properties,
+                                    pMemoryTypeBits);
 }
 
 void fbrImportBuffer(const FbrVulkan *pVulkan,
@@ -67,14 +76,12 @@ void fbrImportBuffer(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
 
     VkMemoryRequirements memRequirements = {};
-    vkGetBufferMemoryRequirements(pVulkan->device, *pBuffer, &memRequirements);
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &memProperties);
     uint32_t memTypeIndex;
-    FBR_VK_CHECK(fbrMemoryTypeFromProperties(memProperties,
-                                             memRequirements.memoryTypeBits,
-                                             properties,
-                                             &memTypeIndex));
+    FBR_VK_CHECK(fbrBufferMemoryTypeFromProperties(pVulkan,
+                                                   *pBuffer,
+                                                   properties,
+                                                   &memRequirements,
+                                                   &memTypeIndex));
 
     // dedicated?
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
@@ -126,14 +133,12 @@ void fbrCreateExternalBuffer(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
 
     VkMemoryRequirements memRequirements = {};
-    vkGetBufferMemoryRequirements(pVulkan->device, *pBuffer, &memRequirements);
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &memProperties);
     uint32_t memTypeIndex;
-    FBR_VK_CHECK(fbrMemoryTypeFromProperties(memProperties,
-                                             memRequirements.memoryTypeBits,
-                                             properties,
-                                             &memTypeIndex));
+    FBR_VK_CHECK(fbrBufferMemoryTypeFromProperties(pVulkan,
+                                                   *pBuffer,
+                                                   properties,
+                                                   &memRequirements,
+                                                   &memTypeIndex));
 
     // dedicated needed??
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
@@ -173,7 +178,7 @@ void fbrCreateBuffer(const FbrVulkan *pVulkan,
                      VkDeviceSize size,
                      VkBufferUsageFlags usage,
                      VkMemoryPropertyFlags properties,
-                     VkBuffer *buffer,
+                     VkBuffer *pBuffer,
                      VkDeviceMemory *bufferMemory) {
     VkBufferCreateInfo bufferInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -182,24 +187,26 @@ void fbrCreateBuffer(const FbrVulkan *pVulkan,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    if (vkCreateBuffer(pVulkan->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+    if (vkCreateBuffer(pVulkan->device, &bufferInfo, NULL, pBuffer) != VK_SUCCESS) {
         printf("%s - failed to create buffer!\n", __FUNCTION__);
     }
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(pVulkan->device, *buffer, &memRequirements);
+    VkMemoryRequirements memRequirements = {};
+    uint32_t memTypeIndex;
+    FBR_VK_CHECK(fbrBufferMemoryTypeFromProperties(pVulkan,
+                                                   *pBuffer,
+                                                   properties,
+                                                   &memRequirements,
+                                                   &memTypeIndex));
 
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
             .allocationSize = memRequirements.size,
-            .memoryTypeIndex = fbrFindMemoryType(pVulkan->physicalDevice, memRequirements.memoryTypeBits, properties),
+            .memoryTypeIndex = memTypeIndex
     };
-    
-    if (vkAllocateMemory(pVulkan->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
-        printf("%s - failed to allocate buffer memory!\n", __FUNCTION__);
-    }
+    FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, bufferMemory));
 
-    vkBindBufferMemory(pVulkan->device, *buffer, *bufferMemory, 0);
+    vkBindBufferMemory(pVulkan->device, *pBuffer, *bufferMemory, 0);
 }
 
 VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan) {

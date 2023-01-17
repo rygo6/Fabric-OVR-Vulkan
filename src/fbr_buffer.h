@@ -16,10 +16,17 @@ typedef struct UniformBufferObject {
 #endif
 } UniformBufferObject;
 
-bool fbrMemoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
-                                 uint32_t nMemoryTypeBits,
-                                 VkMemoryPropertyFlags nMemoryProperties,
-                                 uint32_t *pTypeIndexOut);
+VkResult fbrImageMemoryTypeFromProperties(const FbrVulkan *pVulkan,
+                                          VkImage image,
+                                          VkMemoryPropertyFlags properties,
+                                          VkMemoryRequirements *pMemRequirements,
+                                          uint32_t *pMemoryTypeBits);
+
+VkResult fbrBufferMemoryTypeFromProperties(const FbrVulkan *pVulkan,
+                                           VkBuffer image,
+                                           VkMemoryPropertyFlags properties,
+                                           VkMemoryRequirements *pMemRequirements,
+                                           uint32_t *pMemoryTypeBits);
 
 void fbrImportBuffer(const FbrVulkan *pVulkan,
                      VkDeviceSize size,
@@ -32,8 +39,6 @@ void fbrImportBuffer(const FbrVulkan *pVulkan,
 VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan);
 
 VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer commandBuffer);
-
-uint32_t fbrFindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 void fbrTransitionImageLayout(const FbrVulkan *pVulkan,
                               VkImage image,
