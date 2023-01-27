@@ -46,17 +46,22 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
-        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-        fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
-        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
-
-//        fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
-//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline); // is this pipeline needed!?
-//
+        // render texture
 //        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+//        fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
 //        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+
+
+        //render to framebuffer
+        fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline); // is this pipeline needed!?
+
+        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+
+
 
         if (fbrCreateProducerIPC(&pApp->pIPC) != 0) {
             return;
@@ -75,11 +80,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         printf("external camera handle p %p\n", camParam.handle);
 
         HANDLE texDupHandle;
-        DuplicateHandle(GetCurrentProcess(), pApp->pTexture->externalMemory, pApp->pTestProcess->pi.hProcess, &texDupHandle, 0, false, DUPLICATE_SAME_ACCESS);
+        DuplicateHandle(GetCurrentProcess(), pApp->pFramebuffer->pTexture->externalMemory, pApp->pTestProcess->pi.hProcess, &texDupHandle, 0, false, DUPLICATE_SAME_ACCESS);
         FbrIPCExternalTextureParam texParam =  {
                 .handle = texDupHandle,
-                .width = pApp->pTexture->width,
-                .height = pApp->pTexture->height
+                .width = pApp->pFramebuffer->pTexture->width,
+                .height = pApp->pFramebuffer->pTexture->height
         };
         fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_TEXTURE, &texParam);
         printf("external pTexture handle d %lld\n", texParam.handle);
@@ -107,7 +112,6 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
     FbrApp *pApp = *ppAllocApp;
     pApp->pTime = calloc(1, sizeof(FbrTime));
     pApp->isChild = isChild;
-
 
     initWindow(pApp);
     fbrInitInput(pApp);

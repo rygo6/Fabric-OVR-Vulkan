@@ -29,6 +29,8 @@ void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFra
 
 void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer);
 
+void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height);
+
 void fbrDestroyFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer);
 
 #endif //FABRIC_FBR_FRAMEBUFFER_H

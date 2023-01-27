@@ -172,16 +172,16 @@ void fbrMainLoop(FbrApp *pApp) {
         };
         vkCmdSetScissor(pApp->pVulkan->commandBuffer, 0, 1, &scissor);
 
+        if (pApp->isChild) {
+            fbrTransitionForRender(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
+            beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
+            //cube 1
+            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pTestPipeline, pApp->pMesh);
 
-//        fbrTransitionForRender(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
-//        beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
-//        //cube 1
-//        fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-//        recordRenderPass(pApp->pVulkan, pApp->pTestPipeline, pApp->pMesh);
-//
-//        vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
-//        fbrTransitionForDisplay(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
-
+            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+            fbrTransitionForDisplay(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
+        }
 
         //swap pass
         beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);

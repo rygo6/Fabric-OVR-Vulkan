@@ -216,6 +216,20 @@ void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
 //    createSyncObjects(pVulkan, pFramebuffer);
 }
 
+void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height) {
+    *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
+    FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
+    pFramebuffer->extent.width = width;
+    pFramebuffer->extent.height = height;
+    pFramebuffer->imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+    pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
+
+//    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
+    fbrCreateFramebufferTextureFromExternalMemory(pVulkan, &pFramebuffer->pTexture, externalMemory, 800, 600);
+    createFramebuffer(pVulkan, pFramebuffer);
+//    createSyncObjects(pVulkan, pFramebuffer);
+}
+
 void fbrDestroyFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer) {
     fbrDestroyTexture(pVulkan, pFramebuffer->pTexture);
 

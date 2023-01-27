@@ -8,6 +8,7 @@
 #include "fbr_pipeline.h"
 #include "fbr_vulkan.h"
 #include "fbr_camera.h"
+#include "fbr_framebuffer.h"
 
 const char sharedMemoryName[] = "FbrIPC";
 
@@ -32,14 +33,25 @@ static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pPar
     printf("external pTexture handle d %lld\n", pParam->handle);
     printf("external pTexture handle p %p\n", pParam->handle);
 
+    printf("WIDTH %d\n", pParam->width);
+    printf("HEIGHT %d\n", pParam->height);
+
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTexture, pParam->handle, pParam->width, pParam->height);
+    fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
+//    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+//    fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
+//    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+
+    //render to framebuffer
+    fbrCreateFramebufferFromExternalMemory(pApp->pVulkan, &pApp->pFramebuffer, pParam->handle, pParam->width, pParam->height);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline); // is this pipeline needed!?
+
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-    fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
     glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 }
 
 int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {

@@ -358,6 +358,8 @@ void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocText
 void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
+    pTexture->width = width;
+    pTexture->height = height;
     createTextureFromExternal(pVulkan,
                               width,
                               height,
@@ -373,6 +375,8 @@ void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **p
 void fbrCreateFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
+    pTexture->width = width;
+    pTexture->height = height;
     createTextureFromExternal(pVulkan,
                               width,
                               height,
@@ -388,6 +392,8 @@ void fbrCreateFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, Fbr
 void fbrCreateFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
+    pTexture->width = width;
+    pTexture->height = height;
     createExternalTexture(pVulkan,
                           width,
                           height,

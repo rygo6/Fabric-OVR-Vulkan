@@ -72,24 +72,6 @@ static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipe
     }
 }
 
-static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
-    VkPushConstantRange pushConstant = {
-        .offset = 0,
-        .size = sizeof(mat4),
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-    };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = &pPipeline->descriptorSetLayout,
-            .pPushConstantRanges = &pushConstant,
-            .pushConstantRangeCount  = 1
-    };
-
-    FBR_VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout));
-}
-
 static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCameraState, const VkImageView imageView, FbrPipeline *pPipeline) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -134,7 +116,27 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
             },
     };
 
+    // TODO you dont need a pipeline for ever descriptor set, on the descriptorset layout!
+
     vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
+}
+
+static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
+    VkPushConstantRange pushConstant = {
+            .offset = 0,
+            .size = sizeof(mat4),
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+    };
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 1,
+            .pSetLayouts = &pPipeline->descriptorSetLayout,
+            .pPushConstantRanges = &pushConstant,
+            .pushConstantRangeCount  = 1
+    };
+
+    FBR_VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout));
 }
 
 static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrPipeline *pPipeline) {
