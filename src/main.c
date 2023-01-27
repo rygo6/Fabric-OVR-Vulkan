@@ -15,10 +15,10 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "-child") == 0) {
             isChild = true;
             FBR_LOG_DEBUG("Is Child Process", isChild);
-        } else if (strcmp(argv[i], "-texture") == 0) {
+        } else if (strcmp(argv[i], "-pTexture") == 0) {
             i++;
             externalTextureTest = strtoll(argv[i], NULL, 10);
-            FBR_LOG_DEBUG("-texture", argv[i], externalTextureTest);
+            FBR_LOG_DEBUG("-pTexture", argv[i], externalTextureTest);
         }
     }
 

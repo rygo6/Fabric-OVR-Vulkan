@@ -22,10 +22,14 @@ typedef struct FbrTexture {
 #endif
 } FbrTexture;
 
-void fbrCreateTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
+void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
 
-void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
+void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
 
-void fbrCleanupTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
+void fbrCreateFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
+
+void fbrCreateFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
+
+void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 
 #endif //FABRIC_TEXTURE_H

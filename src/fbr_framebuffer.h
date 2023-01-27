@@ -2,11 +2,15 @@
 #define FABRIC_FBR_FRAMEBUFFER_H
 
 #include "fbr_app.h"
+#include "fbr_texture.h"
 
 typedef struct FbrFramebuffer {
-    VkImage image;
-    VkImageView imageView;
-    VkDeviceMemory deviceMemory;
+//    VkImage image;
+//    VkImageView imageView;
+//    VkDeviceMemory deviceMemory;
+
+    FbrTexture *pTexture;
+
     VkFormat imageFormat;
     VkExtent2D extent;
     VkSampleCountFlagBits samples;

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <tchar.h>
 
-void fbrCreateProcess(FbrProcess **ppAllocProcess, HANDLE textureSharedMemory, HANDLE cameraSharedMemory) {
+void fbrCreateProcess(FbrProcess **ppAllocProcess) {
     *ppAllocProcess = calloc(1, sizeof(FbrProcess));
     FbrProcess *pProcess = *ppAllocProcess;
 
@@ -12,13 +12,15 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess, HANDLE textureSharedMemory, H
 
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
+
     ZeroMemory(&pi, sizeof(pi));
 
-    long long cameraHandle = (long long) cameraSharedMemory;
-    long long textureHandle = (long long) textureSharedMemory;
+//    long long cameraHandle = (long long) cameraSharedMemory;
+//    long long textureHandle = (long long) textureSharedMemory;
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "fabric.exe -child -texture %d -camera %d", textureHandle, cameraHandle);
+//    snprintf(buf, sizeof(buf), "fabric.exe -child -pTexture %d -camera %d", textureHandle, cameraHandle);
+    snprintf(buf, sizeof(buf), "fabric.exe -child");
     FBR_LOG_DEBUG("Process Command", buf);
 
     if (!CreateProcess(NULL,   // No module name (use command line)

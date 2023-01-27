@@ -21,24 +21,23 @@ const int FbrIPCTargetParamSize[] = {
         sizeof(FbrIPCExternalCameraUBO),
 };
 
-static void externalCameraUBOTarget(FbrApp *pApp, FbrIPCExternalCameraUBO *pParam){
+static void externalCameraUBOTarget(FbrApp *pApp, FbrIPCExternalCameraUBO *pParam) {
     printf("external camera handle d %lld\n", pParam->handle);
     printf("external camera handle p %p\n", pParam->handle);
 
     fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
 }
 
-static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pParam){
-
-    printf("external texture handle d %lld\n", pParam->handle);
-    printf("external texture handle p %p\n", pParam->handle);
+static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pParam) {
+    printf("external pTexture handle d %lld\n", pParam->handle);
+    printf("external pTexture handle p %p\n", pParam->handle);
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    fbrImportTexture(pApp->pVulkan, &pApp->pTexture, pParam->handle, pParam->width, pParam->height);
+    fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTexture, pParam->handle, pParam->width, pParam->height);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
+    fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
     glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 }

@@ -25,9 +25,6 @@ typedef struct FbrApp {
 
     bool isChild;
 
-    long long externalTexture;
-    FbrIPC *pIPC;
-
     GLFWwindow *pWindow;
     FbrVulkan *pVulkan;
     FbrCamera *pCamera;
@@ -35,16 +32,16 @@ typedef struct FbrApp {
 
     FbrFramebuffer *pFramebuffer;
 
-    FbrPipeline *pTestPipeline;
-    FbrProcess *pTestProcess;
-
     FbrMesh *pMesh;
     FbrTexture *pTexture;
     FbrPipeline *pPipeline;
 
+    FbrIPC *pIPC;
+    FbrProcess *pTestProcess;
     FbrMesh *pMeshExternalTest;
     FbrTexture *pTextureExternalTest;
     FbrPipeline *pPipelineExternalTest;
+    FbrPipeline *pTestPipeline;
 
 } FbrApp;
 

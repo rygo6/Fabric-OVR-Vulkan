@@ -112,7 +112,7 @@ static void initDescriptorSets(const FbrVulkan *pVulkan, const FbrCamera *pCamer
             .sampler = pVulkan->sampler,
     };
 
-    /// realy you only need to switch the descriptor set to change the texture
+    /// realy you only need to switch the descriptor set to change the pTexture
     VkWriteDescriptorSet descriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

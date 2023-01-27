@@ -12,6 +12,6 @@ typedef struct FbrProcess {
 
 } FbrProcess;
 
-void fbrCreateProcess(FbrProcess **ppAllocProcess, HANDLE textureSharedMemory, HANDLE cameraSharedMemory);
+void fbrCreateProcess(FbrProcess **ppAllocProcess);
 
 #endif //FABRIC_FBR_PROCESS_H
