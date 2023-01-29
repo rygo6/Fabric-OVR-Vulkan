@@ -14,12 +14,13 @@
 #include <vulkan/vulkan_xlib.h>
 #endif
 
-static void copyBufferToImage(const FbrVulkan *pVulkan,
+static VkResult copyBufferToImage(const FbrVulkan *pVulkan,
                        VkBuffer buffer,
                        VkImage image,
                        uint32_t width,
                        uint32_t height) {
-    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pVulkan);
+    VkCommandBuffer commandBuffer;
+    FBR_VK_CHECK_RETURN(fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer));
 
     VkBufferImageCopy region = {
             .bufferOffset = 0,
@@ -42,7 +43,7 @@ static void copyBufferToImage(const FbrVulkan *pVulkan,
             &region
     );
 
-    fbrEndBufferCommands(pVulkan, commandBuffer);
+    FBR_VK_CHECK_RETURN(fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer));
 }
 
 static void createTextureFromExternal(const FbrVulkan *pVulkan,

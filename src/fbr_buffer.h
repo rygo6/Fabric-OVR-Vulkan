@@ -36,9 +36,9 @@ void fbrImportBuffer(const FbrVulkan *pVulkan,
                      VkBuffer *pBuffer,
                      VkDeviceMemory *pBufferMemory);
 
-VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan);
+VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer);
 
-VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer commandBuffer);
+VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer);
 
 void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
                                        VkImage image,

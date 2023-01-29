@@ -209,7 +209,7 @@ void fbrCreateBuffer(const FbrVulkan *pVulkan,
     vkBindBufferMemory(pVulkan->device, *pBuffer, *bufferMemory, 0);
 }
 
-VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan) {
+VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -217,32 +217,33 @@ VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan) {
             .commandBufferCount = 1,
     };
 
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(pVulkan->device, &allocInfo, &commandBuffer);
+    FBR_VK_CHECK_RETURN(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
 
     VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    FBR_VK_CHECK_RETURN(vkBeginCommandBuffer(*pCommandBuffer, &beginInfo));
 
-    return commandBuffer;
+    return VK_SUCCESS;
 }
 
-VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer commandBuffer) {
-    vkEndCommandBuffer(commandBuffer);
+VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
+    vkEndCommandBuffer(*pCommandBuffer);
 
     VkSubmitInfo submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .commandBufferCount = 1,
-            .pCommandBuffers = &commandBuffer,
+            .pCommandBuffers = pCommandBuffer,
     };
 
-    vkQueueSubmit(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(pVulkan->queue); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    FBR_VK_CHECK_RETURN(vkQueueSubmit(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
+    FBR_VK_CHECK_RETURN(vkQueueWaitIdle(pVulkan->queue)); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
-    vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
+
+    return VK_SUCCESS;
 }
 
 void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
@@ -253,7 +254,9 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
                                        VkAccessFlags dstAccessMask,
                                        VkPipelineStageFlags srcStageMask,
                                        VkPipelineStageFlags dstStageMask) {
-    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pVulkan);
+
+    VkCommandBuffer commandBuffer;
+    fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
     VkImageMemoryBarrier barrier = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -279,11 +282,12 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
             1, &barrier
     );
 
-    fbrEndBufferCommands(pVulkan, commandBuffer);
+    fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
 
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = fbrBeginBufferCommands(pVulkan);
+    VkCommandBuffer commandBuffer;
+    fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
     VkBufferCopy copyRegion = {
             .srcOffset = 0, // Optional
@@ -292,7 +296,7 @@ void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuf
     };
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    fbrEndBufferCommands(pVulkan, commandBuffer);
+    fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
 
 void fbrCreateStagingBuffer(const FbrVulkan *pVulkan,

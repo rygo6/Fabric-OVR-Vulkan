@@ -11,6 +11,7 @@
             }\
     } while (0)
 
+// todo there needs to be some mechanic of dealloc if this fails
 #define FBR_VK_CHECK_RETURN(command)\
     do { \
         VkResult result = command;\
