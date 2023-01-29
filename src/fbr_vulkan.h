@@ -4,10 +4,20 @@
 #include "fbr_app.h"
 
 #define FBR_VK_CHECK(command)\
-    do {\
+    do { \
         VkResult result = command;\
-        if (result != VK_SUCCESS)\
+        if (result != VK_SUCCESS) {\
             printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);\
+            }\
+    } while (0)
+
+#define FBR_VK_CHECK_RETURN(command)\
+    do { \
+        VkResult result = command;\
+        if (result != VK_SUCCESS) {\
+            printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);\
+            return result;\
+            }\
     } while (0)
 
 typedef struct FbrVulkan {

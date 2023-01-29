@@ -34,7 +34,7 @@ static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pPar
 
     fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
     glm_vec3_add(pApp->pMesh->transform.pos, (vec3) {1,0,0}, pApp->pMesh->transform.pos);
-    fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/UV_Grid_Sm.jpg", true);
+    fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/UV_Grid_Sm.jpg", false);
     fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
 
 //    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);

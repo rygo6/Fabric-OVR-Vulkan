@@ -40,11 +40,14 @@ VkCommandBuffer fbrBeginBufferCommands(const FbrVulkan *pVulkan);
 
 VkCommandBuffer fbrEndBufferCommands(const FbrVulkan *pVulkan, VkCommandBuffer commandBuffer);
 
-void fbrTransitionImageLayout(const FbrVulkan *pVulkan,
-                              VkImage image,
-                              VkFormat format,
-                              VkImageLayout oldLayout,
-                              VkImageLayout newLayout);
+void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
+                                       VkImage image,
+                                       VkImageLayout oldLayout,
+                                       VkImageLayout newLayout,
+                                       VkAccessFlags srcAccessMask,
+                                       VkAccessFlags dstAccessMask,
+                                       VkPipelineStageFlags srcStageMask,
+                                       VkPipelineStageFlags dstStageMask);
 
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 

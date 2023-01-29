@@ -40,7 +40,7 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
 //    FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pFrameBuffer->pTexture->deviceMemory));
 //    FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pFrameBuffer->pTexture->image, pFrameBuffer->pTexture->deviceMemory, 0));
 //
-//    fbrTransitionImageLayout(pVulkan, pFrameBuffer->pTexture->image,
+//    fbrTransitionImageLayoutImmediate(pVulkan, pFrameBuffer->pTexture->image,
 //                             pFrameBuffer->imageFormat,
 //                             VK_IMAGE_LAYOUT_UNDEFINED,
 //                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -147,6 +147,7 @@ static void createSyncObjects(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
 }
 
 void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
+
     VkImageMemoryBarrier barrier = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -211,9 +212,12 @@ void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateFramebufferTexture(pVulkan, &pFramebuffer->pTexture, 800, 600);
+    fbrCreateReadFramebufferTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width,
+                                    pFramebuffer->extent.height);
     createFramebuffer(pVulkan, pFramebuffer);
 //    createSyncObjects(pVulkan, pFramebuffer);
+
+    FBR_LOG_DEBUG("Created Framebuffer.");
 }
 
 void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height) {
@@ -225,7 +229,7 @@ void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebu
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateFramebufferTextureFromExternalMemory(pVulkan, &pFramebuffer->pTexture, externalMemory, 800, 600);
+    fbrCreateWriteFramebufferTextureFromExternalMemory(pVulkan, &pFramebuffer->pTexture, externalMemory, 800, 600);
     createFramebuffer(pVulkan, pFramebuffer);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }

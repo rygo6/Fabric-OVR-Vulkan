@@ -11,6 +11,8 @@
 #include <X11/Xlib.h>
 #endif
 
+#define FBR_DEFAULT_TEXTURE_FORMAT VK_FORMAT_R8G8B8A8_SRGB
+
 typedef struct FbrTexture {
     VkImage image;
     VkImageView imageView;
@@ -26,9 +28,9 @@ void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocText
 
 void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
 
-void fbrCreateFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
+void fbrCreateWriteFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
 
-void fbrCreateFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
+void fbrCreateReadFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 

@@ -113,11 +113,6 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
 
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0));
 
-    fbrTransitionImageLayout(pVulkan, pTexture->image,
-                             VK_FORMAT_R8G8B8A8_SRGB,
-                             VK_IMAGE_LAYOUT_UNDEFINED,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
     pTexture->externalMemory = externalMemory;
     pTexture->width = width;
     pTexture->height = height;
@@ -204,6 +199,8 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
             .pNext = &exportAllocInfo
     };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
+
+    FBR_LOG_DEBUG("Allocated Framebuffer of size: ", memRequirements.size);
 
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0));
 
@@ -333,16 +330,15 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
                       pTexture);
     }
 
-    fbrTransitionImageLayout(pVulkan,
-                             pTexture->image,
-                             VK_FORMAT_R8G8B8A8_SRGB,
-                             VK_IMAGE_LAYOUT_UNDEFINED,
-                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_ACCESS_NONE_KHR, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
     copyBufferToImage(pVulkan, stagingBuffer, pTexture->image, pTexture->width, pTexture->height);
-    fbrTransitionImageLayout(pVulkan, pTexture->image,
-                             VK_FORMAT_R8G8B8A8_SRGB,
-                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     vkDestroyBuffer(pVulkan->device, stagingBuffer, NULL);
     vkFreeMemory(pVulkan->device, stagingBufferMemory, NULL);
@@ -369,10 +365,14 @@ void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **p
                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                               externalMemory,
                               pTexture);
+    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
-void fbrCreateFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height) {
+void fbrCreateWriteFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     pTexture->width = width;
@@ -386,10 +386,14 @@ void fbrCreateFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, Fbr
                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                               externalMemory,
                               pTexture);
+    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
-void fbrCreateFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
+void fbrCreateReadFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     pTexture->width = width;
@@ -402,10 +406,10 @@ void fbrCreateFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocT
                           (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                           pTexture);
-    fbrTransitionImageLayout(pVulkan, pTexture->image,
-                             VK_FORMAT_R8G8B8A8_SRGB,
-                             VK_IMAGE_LAYOUT_UNDEFINED,
-                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
