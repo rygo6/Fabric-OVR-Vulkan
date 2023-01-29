@@ -55,7 +55,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         //render to framebuffer
         fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pTestPipeline); // is this pipeline needed!?
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);

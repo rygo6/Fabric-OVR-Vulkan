@@ -8,8 +8,6 @@
 typedef struct FbrProcess {
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
-
-
 } FbrProcess;
 
 void fbrCreateProcess(FbrProcess **ppAllocProcess);

@@ -41,7 +41,7 @@ typedef struct FbrApp {
     FbrMesh *pMeshExternalTest;
     FbrTexture *pTextureExternalTest;
     FbrPipeline *pPipelineExternalTest;
-    FbrPipeline *pTestPipeline;
+    FbrPipeline *pFramebufferPipeline;
 
 } FbrApp;
 

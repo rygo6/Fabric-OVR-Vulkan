@@ -10,6 +10,8 @@
 
 #include "cglm/cglm.h"
 
+#include <windows.h>
+
 static void waitForLastFrame(FbrVulkan *pVulkan) {
     vkWaitForFences(pVulkan->device, 1, &pVulkan->inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(pVulkan->device, 1, &pVulkan->inFlightFence);
@@ -135,6 +137,10 @@ void fbrMainLoop(FbrApp *pApp) {
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
+        if (pApp->isChild) {
+            Sleep(100);
+        }
+
         waitForLastFrame(pApp->pVulkan);
         processInputFrame(pApp);
 
@@ -173,26 +179,37 @@ void fbrMainLoop(FbrApp *pApp) {
         vkCmdSetScissor(pApp->pVulkan->commandBuffer, 0, 1, &scissor);
 
         if (pApp->isChild) {
+
+            // begin framebuffer pass
             fbrTransitionForRender(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
             beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
             //cube 1
             fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-            recordRenderPass(pApp->pVulkan, pApp->pTestPipeline, pApp->pMesh);
-
+            recordRenderPass(pApp->pVulkan, pApp->pFramebufferPipeline, pApp->pMesh);
+            // end framebuffer pass
             vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
             fbrTransitionForDisplay(pApp->pVulkan->commandBuffer, pApp->pFramebuffer);
-        }
 
-        //swap pass
-        beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
-        //cube 1
-        fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh);
-        //cube2
-        fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pPipelineExternalTest, pApp->pMeshExternalTest);
-        // end swap pass
-        vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+            //swap pass
+            beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
+            //cube 1
+            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh);
+            // end swap pass
+            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+
+        } else {
+            //swap pass
+            beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
+            //cube 1
+            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh);
+            //cube2
+            fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pPipelineExternalTest, pApp->pMeshExternalTest);
+            // end swap pass
+            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+        }
 
 
         FBR_VK_CHECK(vkEndCommandBuffer(pApp->pVulkan->commandBuffer));
