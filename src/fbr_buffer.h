@@ -80,6 +80,6 @@ void fbrImportUniformBuffer(const FbrVulkan *pVulkan,
 
 void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
 
-void fbrCleanupUniformBuffers(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject);
+void fbrCleanupUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject);
 
 #endif //FABRIC_BUFFER_H

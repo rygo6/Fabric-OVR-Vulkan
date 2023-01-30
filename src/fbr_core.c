@@ -139,6 +139,9 @@ void fbrMainLoop(FbrApp *pApp) {
         if (!pApp->isChild)
             fbrUpdateCameraUBO(pApp->pCamera);
 
+//        if (pApp->isChild)
+//            Sleep(1000);
+
         // begin command buffer
         vkResetCommandBuffer(pApp->pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
         VkCommandBufferBeginInfo beginInfo = {

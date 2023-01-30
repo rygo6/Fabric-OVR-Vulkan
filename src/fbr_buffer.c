@@ -285,6 +285,39 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
     fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
 
+void fbrTransitionBufferLayoutImmediate(const FbrVulkan *pVulkan,
+                                       VkBuffer buffer,
+                                       VkAccessFlags srcAccessMask,
+                                       VkAccessFlags dstAccessMask,
+                                       VkPipelineStageFlags srcStageMask,
+                                       VkPipelineStageFlags dstStageMask) {
+
+    VkCommandBuffer commandBuffer;
+    fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
+
+    VkBufferMemoryBarrier barrier = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            .pNext = NULL,
+            .srcAccessMask = srcAccessMask,
+            .dstAccessMask = dstAccessMask,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .buffer = buffer,
+            .offset = 0,
+            .size = 0
+    };
+
+    vkCmdPipelineBarrier(commandBuffer,
+                         srcStageMask, dstStageMask,
+                         0,
+                         0, NULL,
+                         1, &barrier,
+                         0, NULL
+    );
+
+    fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
+}
+
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkCommandBuffer commandBuffer;
     fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
@@ -371,17 +404,23 @@ void fbrImportUniformBuffer(const FbrVulkan *pVulkan,
                     externalMemory,
                     &pUniformBufferObject->uniformBuffer,
                     &pUniformBufferObject->uniformBufferMemory);
-    vkMapMemory(pVulkan->device,
-                pUniformBufferObject->uniformBufferMemory,
-                0,
-                bufferSize,
-                0,
-                &pUniformBufferObject->pUniformBufferMapped);
+    // don't need to set or map anything because parent does it!
+//    vkMapMemory(pVulkan->device,
+//                pUniformBufferObject->uniformBufferMemory,
+//                0,
+//                bufferSize,
+//                0,
+//                &pUniformBufferObject->pUniformBufferMapped);
+//    fbrTransitionBufferLayoutImmediate(pVulkan, pUniformBufferObject->uniformBuffer,
+//                                       VK_ACCESS_NONE_KHR, VK_ACCESS_2_HOST_READ_BIT_KHR,
+//                                       VK_PIPELINE_STAGE_NONE , VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT );
 }
 
 void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan,
                                     UniformBufferObject *pUniformBufferObject,
                                     VkDeviceSize bufferSize) {
+    // todo this should alloc/create the UBO
+
     fbrCreateExternalBuffer(pVulkan, bufferSize,
                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -394,10 +433,21 @@ void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan,
                 bufferSize,
                 0,
                 &pUniformBufferObject->pUniformBufferMapped);
+//    fbrTransitionBufferLayoutImmediate(pVulkan, pUniformBufferObject->uniformBuffer,
+//                                       VK_ACCESS_NONE_KHR, VK_ACCESS_HOST_WRITE_BIT,
+//                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT );
 }
 
-void fbrCleanupUniformBuffers(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject) {
-    vkUnmapMemory(pVulkan->device, pUniformBufferObject->uniformBufferMemory);
+void fbrCleanupUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject) {
     vkDestroyBuffer(pVulkan->device, pUniformBufferObject->uniformBuffer, NULL);
+
+    if (pUniformBufferObject->pUniformBufferMapped != NULL)
+        vkUnmapMemory(pVulkan->device, pUniformBufferObject->uniformBufferMemory);
+
     vkFreeMemory(pVulkan->device, pUniformBufferObject->uniformBufferMemory, NULL);
+
+    if (pUniformBufferObject->externalMemory != NULL)
+        CloseHandle(pUniformBufferObject->externalMemory);
+
+    free(pUniformBufferObject);
 }

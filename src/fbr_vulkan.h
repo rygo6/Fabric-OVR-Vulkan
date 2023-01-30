@@ -21,6 +21,16 @@
             }\
     } while (0)
 
+#define FBR_VK_CHECK_CREATE_DESTROY(createCommand, destroyCommand, destroyChain)\
+    do { \
+        VkResult result = createCommand;\
+        if (result != VK_SUCCESS) {\
+            printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #createCommand, result);\
+            return result;\
+            }                                                                   \
+        destroyChain                                                                        \
+    } while (0)
+
 typedef struct FbrVulkan {
     int screenWidth;
     int screenHeight;
@@ -59,10 +69,14 @@ typedef struct FbrVulkan {
 
     VkSampler sampler;
 
-    VkMemoryRequirements memRequirements;
     VkPhysicalDeviceMemoryProperties memProperties;
 
 } FbrVulkan;
+
+typedef struct FbrVulkanDestroyChain {
+    void (*pDestroyCommand)(FbrVulkan*);
+    struct FbrVulkanDestroyChain *pNext;
+} FbrVulkanDestroyChain;
 
 void fbrCreateVulkan(const FbrApp *pApp,
                      FbrVulkan **ppAllocVulkan,

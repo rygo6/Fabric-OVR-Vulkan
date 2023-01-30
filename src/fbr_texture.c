@@ -390,11 +390,11 @@ void fbrCreateWriteFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan
     fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                       VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
-void fbrCreateReadFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
+void fbrCreateReadFramebufferExternalTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     pTexture->width = width;
@@ -410,7 +410,7 @@ void fbrCreateReadFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAl
     fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                       VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
-                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 

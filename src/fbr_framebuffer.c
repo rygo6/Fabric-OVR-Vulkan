@@ -160,13 +160,13 @@ void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFram
             .subresourceRange.levelCount = 1,
             .subresourceRange.baseArrayLayer = 0,
             .subresourceRange.layerCount = 1,
-            .srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+            .srcAccessMask = VK_ACCESS_SHADER_READ_BIT,
             .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
     };
 
     vkCmdPipelineBarrier(
             commandBuffer,
-            VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             0,
             0, NULL,
@@ -212,8 +212,8 @@ void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateReadFramebufferTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width,
-                                    pFramebuffer->extent.height);
+    fbrCreateReadFramebufferExternalTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width,
+                                            pFramebuffer->extent.height);
     createFramebuffer(pVulkan, pFramebuffer);
 //    createSyncObjects(pVulkan, pFramebuffer);
 

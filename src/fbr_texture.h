@@ -30,7 +30,7 @@ void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **p
 
 void fbrCreateWriteFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
 
-void fbrCreateReadFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
+void fbrCreateReadFramebufferExternalTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 

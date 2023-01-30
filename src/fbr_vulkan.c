@@ -111,16 +111,13 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
 }
 
 
-static void createInstance(FbrVulkan *pVulkan) {
+static VkResult createInstance(FbrVulkan *pVulkan) {
     if (pVulkan->enableValidationLayers) {
         uint32_t availableLayerCount = 0;
-        if (vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL) != VK_SUCCESS) {
-            FBR_LOG_DEBUG("Could not get the number of device extensions!");
-        }
+        FBR_VK_CHECK_RETURN(vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL));
         VkLayerProperties availableLayers[availableLayerCount];
-        if (vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers) != VK_SUCCESS) {
-            FBR_LOG_DEBUG("Could not enumerate device extensions!");
-        }
+        FBR_VK_CHECK_RETURN(vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers));
+
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
         FBR_LOG_DEBUG("Available Layer Count: ", availableLayerCount);
         for (int i = 0; i < availableLayerCount; ++i){
@@ -152,13 +149,9 @@ static void createInstance(FbrVulkan *pVulkan) {
 
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
     uint32_t availableExtensionCount = 0;
-    if (vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Could not get the number of instance extensions!");
-    }
+    FBR_VK_CHECK_RETURN(vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL));
     VkExtensionProperties availableExtensions[availableExtensionCount];
-    if (vkEnumerateInstanceExtensionProperties( NULL, &availableExtensionCount, availableExtensions) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Could not enumerate instance extensions!");
-    }
+    FBR_VK_CHECK_RETURN(vkEnumerateInstanceExtensionProperties( NULL, &availableExtensionCount, availableExtensions));
     FBR_LOG_DEBUG("Available Instance Extension Count: ", availableExtensionCount);
     for (int i = 0; i < availableExtensionCount; ++i){
         char* extensionName = availableExtensions[i].extensionName;
@@ -192,7 +185,16 @@ static void createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-    FBR_VK_CHECK(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
+    FbrVulkanDestroyChain destroyChain;
+
+//    FBR_VK_CHECK_CREATE_DESTROY(vkCreateInstance(&createInfo, NULL, &pVulkan->instance),
+//                                vkDestroyInstance(pVulkan->instance, NULL),
+//                                destroyChain);
+
+    FBR_VK_CHECK_RETURN(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
+
+
+    return VK_SUCCESS;
 }
 
 static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
