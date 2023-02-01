@@ -63,8 +63,8 @@ typedef struct FbrVulkan {
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    VkSemaphore acquireCompleteSemaphore;
+    VkSemaphore renderCompleteSemaphore;
     VkFence inFlightFence;
 
     VkSampler sampler;

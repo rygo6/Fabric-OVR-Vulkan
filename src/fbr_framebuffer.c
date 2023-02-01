@@ -65,7 +65,7 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
 //    FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pFrameBuffer->pTexture->imageView));
 
     VkAttachmentDescription colorAttachment = {
-            .format = pFrameBuffer->imageFormat,
+            .format = FBR_DEFAULT_TEXTURE_FORMAT,
             .samples = pFrameBuffer->samples,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -84,15 +84,8 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
 
     VkSubpassDescription subpass = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .flags = 0,
-            .inputAttachmentCount = 0,
-            .pInputAttachments = NULL,
             .colorAttachmentCount = 1,
             .pColorAttachments = &colorAttachmentRef,
-            .pResolveAttachments = NULL,
-            .pDepthStencilAttachment = NULL,
-            .preserveAttachmentCount = 0,
-            .pPreserveAttachments = NULL,
     };
 
     // OVR example doesn't have this
@@ -104,7 +97,6 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
     };
-
     VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .flags = 0,
@@ -112,8 +104,8 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .pAttachments = &colorAttachment,
             .subpassCount = 1,
             .pSubpasses = &subpass,
-            .dependencyCount = 0,
-            .pDependencies = NULL,
+            .dependencyCount = 1,
+            .pDependencies = &dependency,
     };
 
     FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pFrameBuffer->renderPass));
@@ -152,16 +144,16 @@ void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFram
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .srcQueueFamilyIndex = 0,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
             .image = pFramebuffer->pTexture->image,
             .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .subresourceRange.baseMipLevel = 0,
             .subresourceRange.levelCount = 1,
             .subresourceRange.baseArrayLayer = 0,
             .subresourceRange.layerCount = 1,
-            .srcAccessMask = VK_ACCESS_SHADER_READ_BIT,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .srcAccessMask = 0,
+            .dstAccessMask = 0,
     };
 
     vkCmdPipelineBarrier(
@@ -180,16 +172,16 @@ void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFra
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .srcQueueFamilyIndex = 0,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
             .image = pFramebuffer->pTexture->image,
             .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .subresourceRange.baseMipLevel = 0,
             .subresourceRange.levelCount = 1,
             .subresourceRange.baseArrayLayer = 0,
             .subresourceRange.layerCount = 1,
-            .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+            .srcAccessMask = 0,
+            .dstAccessMask = 0,
     };
 
     vkCmdPipelineBarrier(
@@ -208,12 +200,10 @@ void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->extent.width = 800;
     pFramebuffer->extent.height = 600;
-    pFramebuffer->imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateReadFramebufferExternalTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width,
-                                            pFramebuffer->extent.height);
+    fbrCreateReadFramebufferExternalTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width, pFramebuffer->extent.height);
     createFramebuffer(pVulkan, pFramebuffer);
 //    createSyncObjects(pVulkan, pFramebuffer);
 
@@ -225,7 +215,6 @@ void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebu
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->extent.width = width;
     pFramebuffer->extent.height = height;
-    pFramebuffer->imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));

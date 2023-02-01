@@ -62,6 +62,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
 
+//        return;
 
         if (fbrCreateProducerIPC(&pApp->pIPC) != 0) {
             return;

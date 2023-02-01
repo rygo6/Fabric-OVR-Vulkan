@@ -15,8 +15,8 @@
 
 //#define FBR_LOG_VULKAN_CAPABILITIES
 
-const uint32_t requiredValidationLayerCount = 1;
-const char *pRequiredValidationLayers[] = {
+const uint32_t requiredInstanceLayerCount = 1;
+const char *pRequiredInstanceLayers[] = {
         "VK_LAYER_KHRONOS_validation"
 };
 
@@ -31,10 +31,10 @@ const char *pRequiredInstanceExtensions[] = {
 const uint32_t requiredDeviceExtensionCount = 9;
 const char *pRequiredDeviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
-        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
 #ifdef WIN32
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
@@ -92,11 +92,11 @@ static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensio
 }
 
 static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uint32_t availableLayerCount) {
-    for (int i = 0; i < requiredValidationLayerCount; ++i) {
+    for (int i = 0; i < requiredInstanceLayerCount; ++i) {
         bool layerFound = false;
 
         for (int j = 0; j < availableLayerCount; ++j) {
-            if (strcmp(pRequiredValidationLayers[i], availableLayers[j].layerName) == 0) {
+            if (strcmp(pRequiredInstanceLayers[i], availableLayers[j].layerName) == 0) {
                 layerFound = true;
                 break;
             }
@@ -135,11 +135,11 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
 
     VkApplicationInfo appInfo = {
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pApplicationName = "Fabric Vulkan",
+            .pApplicationName = "Fabric",
             .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-            .pEngineName = NULL,
+            .pEngineName = "Fabric Vulkan",
             .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-            .apiVersion = VK_API_VERSION_1_0,
+            .apiVersion = VK_HEADER_VERSION_COMPLETE,
     };
 
     VkInstanceCreateInfo createInfo = {
@@ -175,8 +175,8 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
     createInfo.enabledLayerCount = 0;
 
     if (pVulkan->enableValidationLayers) {
-        createInfo.enabledLayerCount = requiredValidationLayerCount;
-        createInfo.ppEnabledLayerNames = pRequiredValidationLayers;
+        createInfo.enabledLayerCount = requiredInstanceLayerCount;
+        createInfo.ppEnabledLayerNames = pRequiredInstanceLayers;
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = debugMessengerCreateInfo();
         createInfo.pNext = &debugCreateInfo;
@@ -185,8 +185,7 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-    FbrVulkanDestroyChain destroyChain;
-
+//    FbrVulkanDestroyChain destroyChain;
 //    FBR_VK_CHECK_CREATE_DESTROY(vkCreateInstance(&createInfo, NULL, &pVulkan->instance),
 //                                vkDestroyInstance(pVulkan->instance, NULL),
 //                                destroyChain);
@@ -269,10 +268,11 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
 
     const uint32_t queueFamilyCount = 1;
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
-    uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex};
+    uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex };
 
     float queuePriority = 1.0f;
     for (int i = 0; i < queueFamilyCount; ++i) {
+        FBR_LOG_DEBUG("Creating queue with family.", uniqueQueueFamilies[i]);
         VkDeviceQueueCreateInfo queueCreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                 .queueFamilyIndex = uniqueQueueFamilies[i],
@@ -282,18 +282,27 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
         queueCreateInfos[i] = queueCreateInfo;
     }
 
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(pVulkan->physicalDevice, &supportedFeatures);
+//    VkPhysicalDeviceFeatures supportedFeatures;
+//    vkGetPhysicalDeviceFeatures(pVulkan->physicalDevice, &supportedFeatures);
+//    if (!supportedFeatures.robustBufferAccess)
+//        FBR_LOG_DEBUG("robustBufferAccess no support!");
+//    if (!supportedFeatures.samplerAnisotropy)
+//        FBR_LOG_DEBUG("samplerAnisotropy no support!");
 
-    if (!supportedFeatures.robustBufferAccess)
-        FBR_LOG_DEBUG("robustBufferAccess no support!");
-    if (!supportedFeatures.samplerAnisotropy)
-        FBR_LOG_DEBUG("samplerAnisotropy no support!");
-
-    //force robust buffer access??
-    VkPhysicalDeviceFeatures enabledFeatures = {
-            .samplerAnisotropy = true,
-            .robustBufferAccess = true
+    // TODO enable robust buffer access 2
+    VkPhysicalDeviceVulkan13Features enabledFeatures13 = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = true,
+            .robustImageAccess = true,
+            .pNext = NULL,
+    };
+    VkPhysicalDeviceFeatures2 enabledFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR,
+            .pNext = &enabledFeatures13,
+            .features = {
+                    .samplerAnisotropy = true,
+                    .robustBufferAccess = true
+            }
     };
 
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
@@ -322,14 +331,15 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .queueCreateInfoCount = queueFamilyCount,
             .pQueueCreateInfos = queueCreateInfos,
-            .pEnabledFeatures = &enabledFeatures,
+            .pEnabledFeatures = VK_NULL_HANDLE,
             .enabledExtensionCount = requiredDeviceExtensionCount,
             .ppEnabledExtensionNames = pRequiredDeviceExtensions,
+            .pNext = &enabledFeatures,
     };
 
     if (pVulkan->enableValidationLayers) {
-        createInfo.enabledLayerCount = requiredValidationLayerCount;
-        createInfo.ppEnabledLayerNames = pRequiredValidationLayers;
+        createInfo.enabledLayerCount = requiredInstanceLayerCount;
+        createInfo.ppEnabledLayerNames = pRequiredInstanceLayers;
     } else {
         createInfo.enabledLayerCount = 0;
     }
@@ -504,48 +514,52 @@ static void createImageViews(FbrVulkan *pVulkan) {
 }
 
 static void createRenderPass(FbrVulkan *pVulkan) {
-    VkAttachmentDescription colorAttachment = {
-            .format = pVulkan->swapChainImageFormat,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            // different in OVR example
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-    };
-
+    // supposedly most correct https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
     VkAttachmentReference colorAttachmentRef = {
             .attachment = 0,
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
-
     VkSubpassDescription subpass = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
             .colorAttachmentCount = 1,
             .pColorAttachments = &colorAttachmentRef,
     };
-
-    // OVR example doesn't have this
-    VkSubpassDependency dependency = {
-            .srcSubpass = VK_SUBPASS_EXTERNAL,
-            .dstSubpass = 0,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .srcAccessMask = 0,
-            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    VkSubpassDependency dependencies[2] = {
+            {
+                    .srcSubpass = VK_SUBPASS_EXTERNAL,
+                    .dstSubpass = 0,
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .srcAccessMask = VK_ACCESS_NONE_KHR,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dependencyFlags = 0,
+            },
+            {
+                    .srcSubpass = 0,
+                    .dstSubpass = VK_SUBPASS_EXTERNAL,
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask = VK_ACCESS_NONE_KHR,
+                    .dependencyFlags = 0,
+            },
     };
-
+    VkAttachmentDescription attachmentDescription = {
+            .format = pVulkan->swapChainImageFormat,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    };
     VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .attachmentCount = 1,
-            .pAttachments = &colorAttachment,
+            .pAttachments = &attachmentDescription,
             .subpassCount = 1,
             .pSubpasses = &subpass,
-            // OVR example doesn't have this
-            .dependencyCount = 1,
-            .pDependencies = &dependency,
+            .dependencyCount = 2,
+            .pDependencies = dependencies,
     };
 
     FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));
@@ -629,8 +643,8 @@ static void createSyncObjects(FbrVulkan *pVulkan) {
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
     };
 
-    if (vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pVulkan->imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pVulkan->renderFinishedSemaphore) != VK_SUCCESS ||
+    if (vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pVulkan->acquireCompleteSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pVulkan->renderCompleteSemaphore) != VK_SUCCESS ||
         vkCreateFence(pVulkan->device, &fenceInfo, NULL, &pVulkan->inFlightFence) != VK_SUCCESS) {
         FBR_LOG_DEBUG("failed to create synchronization objects for a frame!");
     }
@@ -730,8 +744,8 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     free(pVulkan->pSwapChainImages);
     free(pVulkan->pSwapChainImageViews);
 
-    vkDestroySemaphore(pVulkan->device, pVulkan->renderFinishedSemaphore, NULL);
-    vkDestroySemaphore(pVulkan->device, pVulkan->imageAvailableSemaphore, NULL);
+    vkDestroySemaphore(pVulkan->device, pVulkan->renderCompleteSemaphore, NULL);
+    vkDestroySemaphore(pVulkan->device, pVulkan->acquireCompleteSemaphore, NULL);
     vkDestroyFence(pVulkan->device, pVulkan->inFlightFence, NULL);
 
     vkDestroyCommandPool(pVulkan->device, pVulkan->commandPool, NULL);

@@ -11,7 +11,6 @@ typedef struct FbrFramebuffer {
 
     FbrTexture *pTexture;
 
-    VkFormat imageFormat;
     VkExtent2D extent;
     VkSampleCountFlagBits samples;
     VkRenderPass renderPass;
