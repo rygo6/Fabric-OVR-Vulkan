@@ -526,21 +526,36 @@ static void createRenderPass(FbrVulkan *pVulkan) {
     };
     VkSubpassDependency dependencies[2] = {
             {
-                    .srcSubpass = VK_SUBPASS_EXTERNAL,
+                    // https://gist.github.com/chrisvarns/b4a5dbd1a09545948261d8c650070383
+                    // In subpass zero...
                     .dstSubpass = 0,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... at this pipeline stage ...
                     .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask = VK_ACCESS_NONE_KHR,
+                    // ... wait before performing these operations ...
                     .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    // ... until all operations of that type stop ...
+                    .srcAccessMask = VK_ACCESS_NONE_KHR,
+                    // ... at that same stages ...
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... occuring in submission order prior to vkCmdBeginRenderPass ...
+                    .srcSubpass = VK_SUBPASS_EXTERNAL,
+                    // ... have completed execution.
                     .dependencyFlags = 0,
             },
             {
-                    .srcSubpass = 0,
+                    // ... Before the end of this subpass ...
                     .dstSubpass = VK_SUBPASS_EXTERNAL,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... at this pipeline stage ...
                     .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    // ... wait for all operations to stop ...
                     .dstAccessMask = VK_ACCESS_NONE_KHR,
+                    // ... of this type ...
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    // ... at that same stage ...
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... before the subpass 0 ...
+                    .srcSubpass = 0,
+                    // ... completes execution.
                     .dependencyFlags = 0,
             },
     };

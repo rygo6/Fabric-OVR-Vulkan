@@ -4,66 +4,6 @@
 #include "fbr_log.h"
 
 static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBuffer) {
-//    VkImageCreateInfo imageCreateInfo = {
-//            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-//            .imageType = VK_IMAGE_TYPE_2D,
-//            .extent.width = pFrameBuffer->extent.width,
-//            .extent.height = pFrameBuffer->extent.height,
-//            .extent.depth = 1,
-//            .mipLevels = 1,
-//            .arrayLayers = 1,
-//            .format = pFrameBuffer->imageFormat,
-//            .tiling = VK_IMAGE_TILING_OPTIMAL,
-//            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-//            .usage = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
-//            .samples = pFrameBuffer->samples,
-//            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-//            .flags = 0,
-//    };
-//
-//    FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pFrameBuffer->pTexture->image));
-//
-//    VkMemoryRequirements memRequirements = {};
-//    uint32_t memTypeIndex;
-//    FBR_VK_CHECK(fbrImageMemoryTypeFromProperties(pVulkan,
-//                                                  pFrameBuffer->pTexture->image,
-//                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-//                                                  &memRequirements,
-//                                                  &memTypeIndex));
-//
-//    VkMemoryAllocateInfo allocInfo = {
-//            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-//            .allocationSize = memRequirements.size,
-//            .memoryTypeIndex = memTypeIndex
-//
-//    };
-//    FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pFrameBuffer->pTexture->deviceMemory));
-//    FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pFrameBuffer->pTexture->image, pFrameBuffer->pTexture->deviceMemory, 0));
-//
-//    fbrTransitionImageLayoutImmediate(pVulkan, pFrameBuffer->pTexture->image,
-//                             pFrameBuffer->imageFormat,
-//                             VK_IMAGE_LAYOUT_UNDEFINED,
-//                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-//    VkImageViewCreateInfo createInfo = {
-//            .flags = 0,
-//            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-//            .image = pFrameBuffer->pTexture->image,
-//            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-//            .format = pFrameBuffer->imageFormat,
-//            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-//            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-//            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-//            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-//            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-//            .subresourceRange.baseMipLevel = 0,
-//            .subresourceRange.levelCount = 1,
-//            .subresourceRange.baseArrayLayer = 0,
-//            .subresourceRange.layerCount = 1,
-//    };
-//
-//    FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pFrameBuffer->pTexture->imageView));
-
     VkAttachmentDescription colorAttachment = {
             .format = FBR_DEFAULT_TEXTURE_FORMAT,
             .samples = pFrameBuffer->samples,

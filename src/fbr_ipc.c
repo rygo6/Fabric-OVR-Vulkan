@@ -24,6 +24,10 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
 //    memcpy(param, pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE, fbrIPCTargetParamSize(target));
     void *param = pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE;
 
+    if (pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target) > FBR_IPC_BUFFER_SIZE){
+        FBR_LOG_ERROR("IPC BYTE ARRAY REACHED END!!!");
+    }
+
     pIPC->pTargetFuncs[target](pApp, param);
 
     pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target);
