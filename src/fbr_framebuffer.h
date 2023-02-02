@@ -26,10 +26,20 @@ void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFram
 
 void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer);
 
-void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer);
+void fbrCreateFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer);
 
-void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height);
+void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height);
 
-void fbrDestroyFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer);
+void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer);
+
+// IPC
+
+typedef struct FbrImportFrameBufferIPCParam {
+    HANDLE handle;
+    uint16_t width;
+    uint16_t height;
+} FbrIPCParamImportFrameBuffer;
+
+void fbrIPCTargetImportFrameBuffer(FbrApp *pApp, FbrIPCParamImportFrameBuffer *pParam);
 
 #endif //FABRIC_FBR_FRAMEBUFFER_H

@@ -8,6 +8,7 @@
 #include "fbr_framebuffer.h"
 #include "fbr_process.h"
 #include "fbr_ipc.h"
+#include "fbr_ipc_targets.h"
 
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
@@ -48,63 +49,65 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         // render texture
 //        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-//        fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
+//        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
 //        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
 //        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
 
         //render to framebuffer
-        fbrCreateFramebuffer(pApp->pVulkan, &pApp->pFramebuffer);
+        fbrCreateFrameBuffer(pApp->pVulkan, &pApp->pFramebuffer);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
         fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
-
-//        return;
-
-        if (fbrCreateProducerIPC(&pApp->pIPC) != 0) {
-            return;
-        }
-
         fbrCreateProcess(&pApp->pTestProcess);
 
 
         HANDLE camDupHandle;
         DuplicateHandle(GetCurrentProcess(), pApp->pCamera->ubo.externalMemory, pApp->pTestProcess->pi.hProcess, &camDupHandle, 0, false, DUPLICATE_SAME_ACCESS);
-        FbrIPCExternalCameraUBO camParam =  {
+        FbrIPCParamImportCamera camParam =  {
                 .handle = camDupHandle,
         };
-        fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_CAMERA_UBO, &camParam);
+        fbrIPCEnque(pApp->pTestProcess->pProducerIPC, FBR_IPC_TARGET_IMPORT_CAMERA, &camParam);
         printf("external camera handle d %lld\n", camParam.handle);
         printf("external camera handle p %p\n", camParam.handle);
 
+
         HANDLE texDupHandle;
         DuplicateHandle(GetCurrentProcess(), pApp->pFramebuffer->pTexture->externalMemory, pApp->pTestProcess->pi.hProcess, &texDupHandle, 0, false, DUPLICATE_SAME_ACCESS);
-        FbrIPCExternalTextureParam texParam =  {
+        FbrIPCParamImportFrameBuffer texParam =  {
                 .handle = texDupHandle,
                 .width = pApp->pFramebuffer->pTexture->width,
                 .height = pApp->pFramebuffer->pTexture->height
         };
-        fbrIPCEnque(pApp->pIPC->pIPCBuffer, FBR_IPC_TARGET_EXTERNAL_TEXTURE, &texParam);
+        fbrIPCEnque(pApp->pTestProcess->pProducerIPC, FBR_IPC_TARGET_IMPORT_FRAMEBUFFER, &texParam);
         printf("external pTexture handle d %lld\n", texParam.handle);
         printf("external pTexture handle p %p\n", texParam.handle);
 
     } else {
 
-        fbrCreateReceiverIPC(&pApp->pIPC);
+        fbrCreateReceiverIPC(&pApp->pParentProcessReceiverIPC);
 
-        // for debugging ipc now
-        while(fbrIPCPollDeque(pApp, pApp->pIPC) != 0) {
-            FBR_LOG_DEBUG("Wait Message", pApp->pIPC->pIPCBuffer->tail, pApp->pIPC->pIPCBuffer->head);
+        // for debugging ipc now, wait for camera
+        while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
+            FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
 //            Sleep(1000);
         }
 
-        while(fbrIPCPollDeque(pApp, pApp->pIPC) != 0) {
-            FBR_LOG_DEBUG("Wait Message", pApp->pIPC->pIPCBuffer->tail, pApp->pIPC->pIPCBuffer->head);
+        // for debugging ipc now, wait for framebuffer
+        while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
+            FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
 //            Sleep(1000);
         }
+
+        fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
+        glm_vec3_add(pApp->pMesh->transform.pos, (vec3) {1,0,0}, pApp->pMesh->transform.pos);
+        fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/UV_Grid_Sm.jpg", false);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
     }
 }
 
@@ -123,7 +126,7 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
 
 void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
-    fbrDestroyIPC(pApp->pIPC);
+    fbrDestroyIPC(pApp->pParentProcessReceiverIPC);
 
     fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
     fbrDestroyTexture(pApp->pVulkan, pApp->pTexture);
@@ -133,7 +136,7 @@ void fbrCleanup(FbrApp *pApp) {
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipelineExternalTest);
 
-    fbrDestroyFramebuffer(pApp->pVulkan, pApp->pFramebuffer);
+    fbrDestroyFrameBuffer(pApp->pVulkan, pApp->pFramebuffer);
 
     fbrCleanupVulkan(pApp->pVulkan);
     glfwDestroyWindow(pApp->pWindow);

@@ -52,6 +52,13 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
     }
 }
 
+void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
+    printf("external camera handle d %lld\n", pParam->handle);
+    printf("external camera handle p %p\n", pParam->handle);
+
+    fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
+}
+
 void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;

@@ -26,11 +26,11 @@ typedef struct FbrTexture {
 
 void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
 
-void fbrCreateTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
+void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
 
-void fbrCreateWriteFramebufferTextureFromExternalMemory(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
-
-void fbrCreateReadFramebufferExternalTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
+// TODO consolidate these into fbr_framebuffer
+void fbrImportFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
+void fbrCreateExternalFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 

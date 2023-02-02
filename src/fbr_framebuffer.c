@@ -195,7 +195,7 @@ void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFra
     );
 }
 
-void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer) {
+void fbrCreateFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->extent.width = 800;
@@ -203,14 +203,15 @@ void fbrCreateFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateReadFramebufferExternalTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width, pFramebuffer->extent.height);
+    fbrCreateExternalFramebufferTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width,
+                                        pFramebuffer->extent.height);
     createFramebuffer(pVulkan, pFramebuffer);
 //    createSyncObjects(pVulkan, pFramebuffer);
 
     FBR_LOG_DEBUG("Created Framebuffer.");
 }
 
-void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height) {
+void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->extent.width = width;
@@ -218,12 +219,12 @@ void fbrCreateFramebufferFromExternalMemory(const FbrVulkan *pVulkan, FbrFramebu
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
 //    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateWriteFramebufferTextureFromExternalMemory(pVulkan, &pFramebuffer->pTexture, externalMemory, 800, 600);
+    fbrImportFramebufferTexture(pVulkan, &pFramebuffer->pTexture, externalMemory, 800, 600);
     createFramebuffer(pVulkan, pFramebuffer);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }
 
-void fbrDestroyFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer) {
+void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer) {
     fbrDestroyTexture(pVulkan, pFramebuffer->pTexture);
 
     vkDestroyFramebuffer(pVulkan->device, pFramebuffer->framebuffer, NULL);
@@ -235,4 +236,25 @@ void fbrDestroyFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffe
     vkDestroyFence(pVulkan->device, pFramebuffer->inFlightFence, NULL);
 
     free(pFramebuffer);
+}
+
+void fbrIPCTargetImportFrameBuffer(FbrApp *pApp, FbrIPCParamImportFrameBuffer *pParam) {
+    printf("external pTexture handle d %lld\n", pParam->handle);
+    printf("external pTexture handle p %p\n", pParam->handle);
+
+    printf("WIDTH %d\n", pParam->width);
+    printf("HEIGHT %d\n", pParam->height);
+
+//    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+//    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
+//    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+
+    //render to framebuffer
+    fbrImportFrameBuffer(pApp->pVulkan, &pApp->pFramebuffer, pParam->handle, pParam->width, pParam->height);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
+
+//    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
+//    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 }

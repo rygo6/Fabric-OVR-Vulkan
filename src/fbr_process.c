@@ -7,6 +7,12 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
     *ppAllocProcess = calloc(1, sizeof(FbrProcess));
     FbrProcess *pProcess = *ppAllocProcess;
 
+    if (fbrCreateProducerIPC(&pProcess->pProducerIPC) != 0){
+        FBR_LOG_ERROR("fbrCreateProducerIPC fail");
+        return;
+    }
+    // todo create receiverIPC
+
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
 
@@ -15,11 +21,8 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
 
     ZeroMemory(&pi, sizeof(pi));
 
-//    long long cameraHandle = (long long) cameraSharedMemory;
-//    long long textureHandle = (long long) textureSharedMemory;
-
     char buf[256];
-//    snprintf(buf, sizeof(buf), "fabric.exe -child -pTexture %d -camera %d", textureHandle, cameraHandle);
+
     snprintf(buf, sizeof(buf), "fabric.exe -child");
     FBR_LOG_DEBUG("Process Command", buf);
 
@@ -34,7 +37,7 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
                        &si,            // Pointer to STARTUPINFO structure
                        &pi)           // Pointer to PROCESS_INFORMATION structure
             ) {
-        printf("CreateProcess failed (%lu).\n", GetLastError());
+        FBR_LOG_ERROR("CreateProcess fail");
     }
 
     pProcess->pi = pi;
@@ -48,4 +51,7 @@ void fbrDestroyProcess(FbrProcess *pProcess) {
     // Close process and thread handles.
     CloseHandle(pProcess->pi.hProcess);
     CloseHandle(pProcess->pi.hThread);
+
+    fbrDestroyIPC(pProcess->pProducerIPC);
+//    fbrDestroyIPC(pProcess->pReceiverIPC);
 }

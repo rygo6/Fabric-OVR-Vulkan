@@ -239,10 +239,10 @@ void fbrMainLoop(FbrApp *pApp) {
                     .commandBufferInfoCount = 1,
                     .pCommandBufferInfos = &commandBufferInfo,
             };
-            FBR_VK_CHECK(vkQueueSubmit2(pApp->pVulkan->queue,
+            vkQueueSubmit2(pApp->pVulkan->queue,
                                            1,
                                            &submitInfo,
-                                           pApp->pVulkan->inFlightFence));
+                                           pApp->pVulkan->inFlightFence);
 
             VkPresentInfoKHR presentInfo = {
                     .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -252,10 +252,7 @@ void fbrMainLoop(FbrApp *pApp) {
                     .pSwapchains = &pApp->pVulkan->swapChain,
                     .pImageIndices = &swapIndex,
             };
-            FBR_VK_CHECK(vkQueuePresentKHR(pApp->pVulkan->queue, &presentInfo));
-
-//            vkEndCommandBuffer(pApp->pVulkan->commandBuffer);
-//            submitAndPresentSwapChain(pApp->pVulkan, swapIndex);
+            vkQueuePresentKHR(pApp->pVulkan->queue, &presentInfo);
         }
     }
 

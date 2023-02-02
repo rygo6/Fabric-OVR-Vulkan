@@ -30,4 +30,12 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState);
 
 void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);
 
+// IPC
+
+typedef struct FbrIPCParamImportCamera {
+    HANDLE handle;
+} FbrIPCParamImportCamera;
+
+void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam);
+
 #endif //FABRIC_CAMERA_H

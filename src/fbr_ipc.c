@@ -1,58 +1,12 @@
 #include <assert.h>
-#include <stdbool.h>
 #include "fbr_ipc.h"
 #include "fbr_log.h"
-
-#include "fbr_mesh.h"
-#include "fbr_texture.h"
-#include "fbr_pipeline.h"
-#include "fbr_vulkan.h"
-#include "fbr_camera.h"
-#include "fbr_framebuffer.h"
+#include "fbr_ipc_targets.h"
 
 const char sharedMemoryName[] = "FbrIPC";
 
-const int FbrIPCTargetParamSize[] = {
-        sizeof(FbrIPCExternalTextureParam),
-        sizeof(FbrIPCExternalCameraUBO),
-};
-
-// below two  methods need to go somewehre else
-static void externalCameraUBOTarget(FbrApp *pApp, FbrIPCExternalCameraUBO *pParam) {
-    printf("external camera handle d %lld\n", pParam->handle);
-    printf("external camera handle p %p\n", pParam->handle);
-
-    fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
-}
-
-static void externalTextureTarget(FbrApp *pApp, FbrIPCExternalTextureParam *pParam) {
-    printf("external pTexture handle d %lld\n", pParam->handle);
-    printf("external pTexture handle p %p\n", pParam->handle);
-
-    printf("WIDTH %d\n", pParam->width);
-    printf("HEIGHT %d\n", pParam->height);
-
-    fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-    glm_vec3_add(pApp->pMesh->transform.pos, (vec3) {1,0,0}, pApp->pMesh->transform.pos);
-    fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/UV_Grid_Sm.jpg", false);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
-
-//    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-//    fbrCreateTextureFromExternalMemory(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
-//    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
-
-    //render to framebuffer
-    fbrCreateFramebufferFromExternalMemory(pApp->pVulkan, &pApp->pFramebuffer, pParam->handle, pParam->width, pParam->height);
-    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
-
-//    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
-//    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
-}
-
 int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
-    // this needs to actually cycle around the ring buffer, this is only half done
+    // TODO this needs to actually cycle around the ring buffer, this is only half done
 
     FbrIPCBuffer *pIPCBuffer = pIPC->pIPCBuffer;
 
@@ -63,21 +17,25 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
 
     FbrIPCTargetType target = pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
 
-    void *param;
-    memcpy(param, pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE, FbrIPCTargetParamSize[target]);
+    // TODO do you copy it out of the IPC or just send that chunk of shared memory on through?
+    // If consumer consumes too slow then producer might run out of data in a stream?
+    // From trusted parent app sending shared memory through is probably fine
+//    void *param = malloc(fbrIPCTargetParamSize(target));
+//    memcpy(param, pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE, fbrIPCTargetParamSize(target));
+    void *param = pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE;
+
     pIPC->pTargetFuncs[target](pApp, param);
 
-    pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + FbrIPCTargetParamSize[target];;
-
-    FBR_LOG_DEBUG("IPC Polling.", pIPCBuffer->head, pIPCBuffer->tail);
+    pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target);
 
     return 0;
 }
 
-void fbrIPCEnque(FbrIPCBuffer *pIPCBuffer, FbrIPCTargetType target, void *param) {
+void fbrIPCEnque(FbrIPC *pIPC, FbrIPCTargetType target, void *param) {
+    FbrIPCBuffer *pIPCBuffer = pIPC->pIPCBuffer;
     pIPCBuffer->pRingBuffer[pIPCBuffer->head] = target;
-    memcpy(pIPCBuffer->pRingBuffer + pIPCBuffer->head + FBR_IPC_HEADER_SIZE, param, FbrIPCTargetParamSize[target]);
-    pIPCBuffer->head = pIPCBuffer->head + FBR_IPC_HEADER_SIZE + FbrIPCTargetParamSize[target];;
+    memcpy(pIPCBuffer->pRingBuffer + pIPCBuffer->head + FBR_IPC_HEADER_SIZE, param, fbrIPCTargetParamSize(target));
+    pIPCBuffer->head = pIPCBuffer->head + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target);
 }
 
 int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
@@ -153,8 +111,7 @@ int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
     pIPC->hMapFile = hMapFile;
     pIPC->pIPCBuffer = pBuf;
 
-    pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_TEXTURE] = (void (*)(FbrApp *, void *)) externalTextureTarget;
-    pIPC->pTargetFuncs[FBR_IPC_TARGET_EXTERNAL_CAMERA_UBO] = (void (*)(FbrApp *, void *)) externalCameraUBOTarget;
+    fbrIPCSetTargets(pIPC);
 
     return 0;
 }

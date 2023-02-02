@@ -14,6 +14,7 @@ typedef struct FbrVulkan FbrVulkan;
 typedef struct FbrFramebuffer FbrFramebuffer;
 typedef struct FbrProcess FbrProcess;
 typedef struct FbrIPC FbrIPC;
+typedef enum FbrIPCTargetType FbrIPCTargetType;
 
 typedef struct FbrTimeState {
     double currentTime;
@@ -36,7 +37,8 @@ typedef struct FbrApp {
     FbrTexture *pTexture;
     FbrPipeline *pPipeline;
 
-    FbrIPC *pIPC;
+    FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
+
     FbrProcess *pTestProcess;
     FbrMesh *pMeshExternalTest;
     FbrTexture *pTextureExternalTest;
