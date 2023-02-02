@@ -209,6 +209,7 @@ void fbrCreateBuffer(const FbrVulkan *pVulkan,
     vkBindBufferMemory(pVulkan->device, *pBuffer, *bufferMemory, 0);
 }
 
+// TODO this immediate command buffer creating destroy a whole command buffer and waiting each frame is horribly inefficient
 VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -232,20 +233,26 @@ VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffe
 VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
     vkEndCommandBuffer(*pCommandBuffer);
 
-    VkSubmitInfo submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers = pCommandBuffer,
+    VkCommandBufferSubmitInfo commandBufferInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
+            .commandBuffer = *pCommandBuffer,
+    };
+    VkSubmitInfo2 submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .commandBufferInfoCount = 1,
+            .pCommandBufferInfos = &commandBufferInfo,
     };
 
-    FBR_VK_CHECK_RETURN(vkQueueSubmit(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
-    FBR_VK_CHECK_RETURN(vkQueueWaitIdle(pVulkan->queue)); // could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    FBR_VK_CHECK_RETURN(vkQueueSubmit2(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
+    FBR_VK_CHECK_RETURN(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
 
     return VK_SUCCESS;
 }
 
+// TODO implemented for unified graphics + transfer only right now
+//  https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#transfer-dependencies
 void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
                                        VkImage image,
                                        VkImageLayout oldLayout,
@@ -258,8 +265,10 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
     VkCommandBuffer commandBuffer;
     fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
-    VkImageMemoryBarrier barrier = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+    VkImageMemoryBarrier2 barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .dstStageMask = dstStageMask,
+            .dstAccessMask = dstAccessMask,
             .oldLayout = oldLayout,
             .newLayout = newLayout,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -270,17 +279,13 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
             .subresourceRange.levelCount = 1,
             .subresourceRange.baseArrayLayer = 0,
             .subresourceRange.layerCount = 1,
-            .srcAccessMask = srcAccessMask,
-            .dstAccessMask = dstAccessMask,
     };
-
-    vkCmdPipelineBarrier(commandBuffer,
-            srcStageMask, dstStageMask,
-            0,
-            0, NULL,
-            0, NULL,
-            1, &barrier
-    );
+    VkDependencyInfo dependencyInfo = {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .imageMemoryBarrierCount = 1,
+            .pImageMemoryBarriers = &barrier,
+    };
+    vkCmdPipelineBarrier2(commandBuffer,&dependencyInfo);
 
     fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
@@ -295,7 +300,7 @@ void fbrTransitionBufferLayoutImmediate(const FbrVulkan *pVulkan,
     VkCommandBuffer commandBuffer;
     fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
-    VkBufferMemoryBarrier barrier = {
+    VkBufferMemoryBarrier2 barrier = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
             .pNext = NULL,
             .srcAccessMask = srcAccessMask,
@@ -306,14 +311,12 @@ void fbrTransitionBufferLayoutImmediate(const FbrVulkan *pVulkan,
             .offset = 0,
             .size = 0
     };
-
-    vkCmdPipelineBarrier(commandBuffer,
-                         srcStageMask, dstStageMask,
-                         0,
-                         0, NULL,
-                         1, &barrier,
-                         0, NULL
-    );
+    VkDependencyInfo dependencyInfo = {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .bufferMemoryBarrierCount = 1,
+            .pBufferMemoryBarriers = &barrier,
+    };
+    vkCmdPipelineBarrier2(commandBuffer,&dependencyInfo);
 
     fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
@@ -332,6 +335,7 @@ void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuf
     fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
 
+//TODO reuse staging buffers
 void fbrCreateStagingBuffer(const FbrVulkan *pVulkan,
                             const void *srcData,
                             VkBuffer *stagingBuffer,
@@ -348,6 +352,9 @@ void fbrCreateStagingBuffer(const FbrVulkan *pVulkan,
     vkMapMemory(pVulkan->device, *stagingBufferMemory, 0, bufferSize, 0, &dstData);
     memcpy(dstData, srcData, bufferSize);
     vkUnmapMemory(pVulkan->device, *stagingBufferMemory);
+
+    // Flush the memory range
+    // If the memory type of stagingMemory includes VK_MEMORY_PROPERTY_HOST_COHERENT, skip this step
 }
 
 void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
