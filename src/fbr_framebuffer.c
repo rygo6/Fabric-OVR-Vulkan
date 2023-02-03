@@ -28,14 +28,41 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .pColorAttachments = &colorAttachmentRef,
     };
 
-    // OVR example doesn't have this
-    VkSubpassDependency dependency = {
-            .srcSubpass = VK_SUBPASS_EXTERNAL,
-            .dstSubpass = 0,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .srcAccessMask = 0,
-            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    VkSubpassDependency dependencies[2] = {
+            {
+                    // https://gist.github.com/chrisvarns/b4a5dbd1a09545948261d8c650070383
+                    // In subpass zero...
+                    .dstSubpass = 0,
+                    // ... at this pipeline stage ...
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... wait before performing these operations ...
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    // ... until all operations of that type stop ...
+                    .srcAccessMask = VK_ACCESS_NONE_KHR,
+                    // ... at that same stages ...
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... occuring in submission order prior to vkCmdBeginRenderPass ...
+                    .srcSubpass = VK_SUBPASS_EXTERNAL,
+                    // ... have completed execution.
+                    .dependencyFlags = 0,
+            },
+            {
+                    // ... In the external scope after the subpass ...
+                    .dstSubpass = VK_SUBPASS_EXTERNAL,
+                    // ... before anything can occur with this pipeline stage ...
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... wait for all operations to stop ...
+                    .dstAccessMask = VK_ACCESS_NONE_KHR,
+                    // ... of this type ...
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    // ... at this stage ...
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    // ... in subpass 0 ...
+                    .srcSubpass = 0,
+                    // ... before it can execute and signal the semaphore rendering complete semaphore
+                    // set to VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR on vkQueueSubmit2KHR  .
+                    .dependencyFlags = 0,
+            },
     };
     VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -44,8 +71,8 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .pAttachments = &colorAttachment,
             .subpassCount = 1,
             .pSubpasses = &subpass,
-            .dependencyCount = 1,
-            .pDependencies = &dependency,
+            .dependencyCount = 2,
+            .pDependencies = dependencies,
     };
 
     FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pFrameBuffer->renderPass));
