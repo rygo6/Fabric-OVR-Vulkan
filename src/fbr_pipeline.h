@@ -7,12 +7,18 @@ typedef struct FbrPipeline {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorSet descriptorSet;
+//    VkDescriptorSet descriptorSet;
 } FbrPipeline;
+
+void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
+                          const FbrPipeline *pPipeline,
+                          const FbrCamera *pCameraState,
+                          VkImageView imageView,
+                          VkDescriptorSet *descriptorSet);
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        const FbrCamera *pCameraState,
-                       VkImageView imageView,
+//                       VkImageView imageView,
                        VkRenderPass renderPass,
                        FbrPipeline **ppAllocPipeline);
 

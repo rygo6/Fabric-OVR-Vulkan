@@ -39,11 +39,12 @@ typedef struct FbrApp {
 
     FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
 
+    VkDescriptorSet testProcessDescriptorSet;
     FbrProcess *pTestProcess;
     FbrMesh *pMeshExternalTest;
     FbrTexture *pTextureExternalTest;
-    FbrPipeline *pPipelineExternalTest;
-    FbrPipeline *pFramebufferPipeline;
+//    FbrPipeline *pPipelineExternalTest;
+//    FbrPipeline *pFramebufferPipeline;
 
 } FbrApp;
 

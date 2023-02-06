@@ -5,9 +5,6 @@
 #include "fbr_texture.h"
 
 typedef struct FbrFramebuffer {
-//    VkImage image;
-//    VkImageView imageView;
-//    VkDeviceMemory deviceMemory;
 
     FbrTexture *pTexture;
 

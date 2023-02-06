@@ -55,8 +55,8 @@ typedef struct FbrVulkan {
     VkExtent2D swapChainExtent;
 
     VkFramebuffer *pSwapChainFramebuffers;
-
-    VkRenderPass renderPass;
+    VkRenderPass swapRenderPass;
+    VkDescriptorSet swapDescriptorSet;
 
     VkDescriptorPool descriptorPool;
 

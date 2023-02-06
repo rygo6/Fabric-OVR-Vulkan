@@ -10,8 +10,6 @@
 
 #include "cglm/cglm.h"
 
-#include <windows.h>
-
 static void waitForLastFrame(FbrVulkan *pVulkan) {
     vkWaitForFences(pVulkan->device, 1, &pVulkan->inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(pVulkan->device, 1, &pVulkan->inFlightFence);
@@ -56,7 +54,7 @@ static uint32_t beginRenderPass(const FbrVulkan *pVulkan, VkRenderPass renderPas
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrMesh *pMesh) {
+static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
     vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->graphicsPipeline);
 
     vkCmdBindDescriptorSets(pVulkan->commandBuffer,
@@ -64,7 +62,7 @@ static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
                             pPipeline->pipelineLayout,
                             0,
                             1,
-                            &pPipeline->descriptorSet,
+                            &descriptorSet,
                             0,
                             NULL);
 
@@ -188,12 +186,12 @@ static void childMainLoop(FbrApp *pApp) {
         beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pFramebufferPipeline, pApp->pMesh);
+        recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->testProcessDescriptorSet);
         // end framebuffer pass
         vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 
         //swap pass
-//            beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
+//            beginRenderPass(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
 //            //cube 1
 //            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
 //            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh);
@@ -208,6 +206,8 @@ static void childMainLoop(FbrApp *pApp) {
 
 static void parentMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
+
+    bool firstRun = true;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         pApp->pTime->currentTime = glfwGetTime();
@@ -229,20 +229,25 @@ static void parentMainLoop(FbrApp *pApp) {
                               VK_NULL_HANDLE,
                               &swapIndex);
 
-        beginFrameCommandBuffer(pApp);
+        // TODO this should be possible
+//        if (firstRun) {
+//            firstRun = false;
 
-        //swap pass
-        beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
-        //cube 1
-        fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh);
-        //cube2
-        fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pPipelineExternalTest, pApp->pMeshExternalTest);
-        // end swap pass
-        vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+            beginFrameCommandBuffer(pApp);
 
-        vkEndCommandBuffer(pApp->pVulkan->commandBuffer);
+            //swap pass
+            beginRenderPass(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
+            //cube 1
+            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);
+            //cube2
+            fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMeshExternalTest, pApp->testProcessDescriptorSet);
+            // end swap pass
+            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+
+            vkEndCommandBuffer(pApp->pVulkan->commandBuffer);
+//        }
 
         submitQueueAndPresent(pApp, swapIndex);
     }

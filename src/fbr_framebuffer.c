@@ -215,13 +215,13 @@ void fbrIPCTargetImportFrameBuffer(FbrApp *pApp, FbrIPCParamImportFrameBuffer *p
 //    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
 //    fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pParam->handle, pParam->width, pParam->height);
 //    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->swapRenderPass, &pApp->pPipelineExternalTest);
 
     //render to framebuffer
     fbrImportFrameBuffer(pApp->pVulkan, &pApp->pFramebuffer, pParam->handle, pParam->width, pParam->height);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->swapRenderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
 
 //    fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
 //    glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+//    fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->swapRenderPass, &pApp->pPipelineExternalTest);
 }

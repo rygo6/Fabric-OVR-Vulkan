@@ -45,22 +45,24 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
         fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pVulkan->swapRenderPass, &pApp->pPipeline);
+        fbrInitDescriptorSet(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pTexture->imageView, &pApp->pVulkan->swapDescriptorSet);
 
         // render texture
 //        fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
 //        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
 //        glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->swapRenderPass, &pApp->pPipelineExternalTest);
 
 
         //render to framebuffer
         fbrCreateFrameBuffer(pApp->pVulkan, &pApp->pFramebuffer);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
+//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->swapRenderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pMeshExternalTest);
         glm_vec3_add(pApp->pMeshExternalTest->transform.pos, (vec3) {1,0,0}, pApp->pMeshExternalTest->transform.pos);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
+        fbrInitDescriptorSet(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, &pApp->testProcessDescriptorSet);
+//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->pTexture->imageView, pApp->pVulkan->swapRenderPass, &pApp->pPipelineExternalTest);
 
         fbrCreateProcess(&pApp->pTestProcess);
 
@@ -105,9 +107,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
         glm_vec3_add(pApp->pMesh->transform.pos, (vec3) {1,0,0}, pApp->pMesh->transform.pos);
         fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/UV_Grid_Sm.jpg", false);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pVulkan->renderPass, &pApp->pPipeline);
+//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pVulkan->swapRenderPass, &pApp->pPipeline);
+//        fbrInitDescriptorSet(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pTexture->imageView, &pApp->pVulkan->swapDescriptorSet);
 
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTexture->imageView, pApp->pFramebuffer->renderPass, &pApp->pFramebufferPipeline); // is this pipeline needed!?
+        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pFramebuffer->renderPass, &pApp->pPipeline);
+        fbrInitDescriptorSet(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pTexture->imageView, &pApp->testProcessDescriptorSet);
     }
 }
 
@@ -134,7 +138,7 @@ void fbrCleanup(FbrApp *pApp) {
     fbrCleanupMesh(pApp->pVulkan, pApp->pMesh);
     fbrCleanupMesh(pApp->pVulkan, pApp->pMeshExternalTest);
     fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
-    fbrCleanupPipeline(pApp->pVulkan, pApp->pPipelineExternalTest);
+//    fbrCleanupPipeline(pApp->pVulkan, pApp->pPipelineExternalTest);
 
     fbrDestroyFrameBuffer(pApp->pVulkan, pApp->pFramebuffer);
 

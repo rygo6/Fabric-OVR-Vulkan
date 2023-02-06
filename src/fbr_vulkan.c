@@ -578,7 +578,7 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             .pDependencies = dependencies,
     };
 
-    FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));
+    FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->swapRenderPass));
 }
 
 static void createFramebuffers(FbrVulkan *pVulkan) {
@@ -591,7 +591,7 @@ static void createFramebuffers(FbrVulkan *pVulkan) {
 
         VkFramebufferCreateInfo framebufferInfo = {
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass = pVulkan->renderPass,
+                .renderPass = pVulkan->swapRenderPass,
                 .attachmentCount = 1,
                 .pAttachments = attachments,
                 .width = pVulkan->swapChainExtent.width,
@@ -755,7 +755,7 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
     vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, NULL);
 
-    vkDestroyRenderPass(pVulkan->device, pVulkan->renderPass, NULL);
+    vkDestroyRenderPass(pVulkan->device, pVulkan->swapRenderPass, NULL);
 
     free(pVulkan->pSwapChainImages);
     free(pVulkan->pSwapChainImageViews);
