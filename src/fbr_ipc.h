@@ -40,6 +40,6 @@ int fbrCreateProducerIPC(FbrIPC **ppAllocIPC);
 
 int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC);
 
-int fbrDestroyIPC(FbrIPC *pIPC);
+void fbrDestroyIPC(FbrIPC *pIPC);
 
 #endif //FABRIC_IPC_H

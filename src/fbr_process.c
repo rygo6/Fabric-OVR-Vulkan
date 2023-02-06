@@ -7,12 +7,6 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
     *ppAllocProcess = calloc(1, sizeof(FbrProcess));
     FbrProcess *pProcess = *ppAllocProcess;
 
-    if (fbrCreateProducerIPC(&pProcess->pProducerIPC) != 0){
-        FBR_LOG_ERROR("fbrCreateProducerIPC fail");
-        return;
-    }
-    // todo create receiverIPC
-
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
 
@@ -45,6 +39,7 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
 }
 
 void fbrDestroyProcess(FbrProcess *pProcess) {
+    // TODO this is probably bad
     // Wait until child process exits.
     WaitForSingleObject(pProcess->pi.hProcess, INFINITE);
 
@@ -52,6 +47,5 @@ void fbrDestroyProcess(FbrProcess *pProcess) {
     CloseHandle(pProcess->pi.hProcess);
     CloseHandle(pProcess->pi.hThread);
 
-    fbrDestroyIPC(pProcess->pProducerIPC);
-//    fbrDestroyIPC(pProcess->pReceiverIPC);
+    free(pProcess);
 }

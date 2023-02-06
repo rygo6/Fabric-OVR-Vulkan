@@ -3,7 +3,6 @@
 #include "fbr_log.h"
 
 #include <windows.h>
-#include <memory.h>
 
 void fbrUpdateCameraUBO(FbrCamera *pCamera) {
     glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.view);
@@ -53,9 +52,7 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 }
 
 void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
-    printf("external camera handle d %lld\n", pParam->handle);
-    printf("external camera handle p %p\n", pParam->handle);
-
+    FBR_LOG_DEBUG("Importing Camera.", pParam->handle);
     fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
 }
 

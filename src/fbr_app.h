@@ -14,6 +14,8 @@ typedef struct FbrVulkan FbrVulkan;
 typedef struct FbrFramebuffer FbrFramebuffer;
 typedef struct FbrProcess FbrProcess;
 typedef struct FbrIPC FbrIPC;
+typedef struct FbrNode FbrNode;
+
 typedef enum FbrIPCTargetType FbrIPCTargetType;
 
 typedef struct FbrTimeState {
@@ -31,21 +33,19 @@ typedef struct FbrApp {
     FbrCamera *pCamera;
     FbrTime *pTime;
 
-    FbrFramebuffer *pFramebuffer;
-
     FbrMesh *pMesh;
     FbrTexture *pTexture;
     FbrPipeline *pPipeline;
 
+    // parent tests
+    FbrNode *pTestNode;
+    FbrMesh *pTestNodeDisplayMesh;
+    VkDescriptorSet testNodeDisplayDescriptorSet;
+
+    // child tests
     FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
-
-    VkDescriptorSet testProcessDescriptorSet;
-    FbrProcess *pTestProcess;
-    FbrMesh *pMeshExternalTest;
-    FbrTexture *pTextureExternalTest;
-//    FbrPipeline *pPipelineExternalTest;
-//    FbrPipeline *pFramebufferPipeline;
-
+    FbrFramebuffer *pParentProcessFramebuffer;
+    VkDescriptorSet parentFramebufferDescriptorSet;
 } FbrApp;
 
 void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest);

@@ -6,7 +6,7 @@
 #include "fbr_log.h"
 #include "fbr_vulkan.h"
 #include "fbr_input.h"
-#include "fbr_framebuffer.h"
+#include "fbr_node.h"
 
 #include "cglm/cglm.h"
 
@@ -183,10 +183,10 @@ static void childMainLoop(FbrApp *pApp) {
 
         beginFrameCommandBuffer(pApp);
 
-        beginRenderPass(pApp->pVulkan, pApp->pFramebuffer->renderPass, pApp->pFramebuffer->framebuffer);
+        beginRenderPass(pApp->pVulkan, pApp->pParentProcessFramebuffer->renderPass, pApp->pParentProcessFramebuffer->framebuffer);
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->testProcessDescriptorSet);
+        recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->parentFramebufferDescriptorSet);
         // end framebuffer pass
         vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 
@@ -241,8 +241,8 @@ static void parentMainLoop(FbrApp *pApp) {
             fbrUpdateTransformMatrix(&pApp->pMesh->transform);
             recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);
             //cube2
-            fbrUpdateTransformMatrix(&pApp->pMeshExternalTest->transform);
-            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMeshExternalTest, pApp->testProcessDescriptorSet);
+            fbrUpdateTransformMatrix(&pApp->pTestNodeDisplayMesh->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pTestNodeDisplayMesh, pApp->testNodeDisplayDescriptorSet);
             // end swap pass
             vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 

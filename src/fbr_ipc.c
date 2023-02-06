@@ -120,10 +120,8 @@ int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
     return 0;
 }
 
-int fbrDestroyIPC(FbrIPC *pIPC) {
+void fbrDestroyIPC(FbrIPC *pIPC) {
     UnmapViewOfFile(pIPC->pIPCBuffer);
     CloseHandle(pIPC->hMapFile);
     free(pIPC);
-
-    return 0;
 }

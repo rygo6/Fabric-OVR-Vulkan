@@ -23,7 +23,7 @@ void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFram
 
 void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer);
 
-void fbrCreateFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer);
+void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer);
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height);
 

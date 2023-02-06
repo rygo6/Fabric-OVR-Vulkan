@@ -110,6 +110,9 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
     return true;
 }
 
+void PrintDestroyChain(FbrVulkan *pVulkan) {
+    printf("Being Destroy Chain");
+}
 
 static VkResult createInstance(FbrVulkan *pVulkan) {
     if (pVulkan->enableValidationLayers) {
@@ -185,13 +188,18 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-//    FbrVulkanDestroyChain destroyChain;
 //    FBR_VK_CHECK_CREATE_DESTROY(vkCreateInstance(&createInfo, NULL, &pVulkan->instance),
 //                                vkDestroyInstance(pVulkan->instance, NULL),
 //                                destroyChain);
 
-    FBR_VK_CHECK_RETURN(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
+//    FbrVulkanDestroyChainNode *pDestroyChainNode = calloc(1, sizeof (FbrVulkanDestroyChainNode));
+//    pDestroyChainNode->pDestroyCommand = PrintDestroyChain;
+//
+//    FbrVulkanDestroyChainNode *pNewDestroyChainNode = calloc(1, sizeof (FbrVulkanDestroyChainNode));
+//    pDestroyChainNode->pNext = pNewDestroyChainNode;
+//    pNewDestroyChainNode->pDestroyCommand = PrintDestroyChain;
 
+    FBR_VK_CHECK_RETURN(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
 
     return VK_SUCCESS;
 }
@@ -743,6 +751,8 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 }
 
 void fbrCleanupVulkan(FbrVulkan *pVulkan) {
+    vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pVulkan->swapDescriptorSet);
+
     for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
         vkDestroyFramebuffer(pVulkan->device, pVulkan->pSwapChainFramebuffers[i], NULL);
     }

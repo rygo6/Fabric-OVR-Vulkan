@@ -71,7 +71,7 @@ static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipe
     }
 }
 
-void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrCamera *pCameraState, VkImageView imageView, VkDescriptorSet *descriptorSet) {
+void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrCamera *pCameraState, VkImageView imageView, VkDescriptorSet *pDescriptorSet) {
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pVulkan->descriptorPool,
@@ -79,7 +79,7 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline
             .pSetLayouts = &pPipeline->descriptorSetLayout,
     };
 
-    FBR_VK_CHECK(vkAllocateDescriptorSets(pVulkan->device, &allocInfo, descriptorSet));
+    FBR_VK_CHECK(vkAllocateDescriptorSets(pVulkan->device, &allocInfo, pDescriptorSet));
 
     VkDescriptorBufferInfo bufferInfo = {
             .buffer = pCameraState->ubo.uniformBuffer,
@@ -96,7 +96,7 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline
     VkWriteDescriptorSet descriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = *descriptorSet,
+                    .dstSet = *pDescriptorSet,
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -105,7 +105,7 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline
             },
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = *descriptorSet,
+                    .dstSet = *pDescriptorSet,
                     .dstBinding = 1,
                     .dstArrayElement = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

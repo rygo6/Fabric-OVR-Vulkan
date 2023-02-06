@@ -396,6 +396,7 @@ void fbrImportFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocT
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
+// todo condense to one method
 void fbrCreateExternalFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;

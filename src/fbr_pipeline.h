@@ -14,7 +14,7 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
                           const FbrPipeline *pPipeline,
                           const FbrCamera *pCameraState,
                           VkImageView imageView,
-                          VkDescriptorSet *descriptorSet);
+                          VkDescriptorSet *pDescriptorSet);
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        const FbrCamera *pCameraState,

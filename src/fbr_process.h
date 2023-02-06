@@ -10,12 +10,10 @@
 typedef struct FbrProcess {
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
-
-    FbrIPC *pProducerIPC;
-//    FbrIPC *pReceiverIPC;    // todo create receiverIPC
-
 } FbrProcess;
 
 void fbrCreateProcess(FbrProcess **ppAllocProcess);
+
+void fbrDestroyProcess(FbrProcess *pProcess);
 
 #endif //FABRIC_FBR_PROCESS_H
