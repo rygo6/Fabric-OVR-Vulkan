@@ -109,33 +109,54 @@ static void submitQueue(FbrVulkan *pVulkan) {
 }
 
 static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
-    VkSemaphoreSubmitInfo acquireCompleteInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-            .semaphore = pApp->pVulkan->acquireCompleteSemaphore,
-            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+    // https://www.khronos.org/blog/vulkan-timeline-semaphores
+    const uint64_t waitValue = pApp->pVulkan->timelineValue++;
+    const uint64_t signalValue = pApp->pVulkan->timelineValue;
+    const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfos[2] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+                    .semaphore = pApp->pVulkan->timelineSemaphore,
+                    .value = waitValue,
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+                    .semaphore = pApp->pVulkan->acquireCompleteSemaphore,
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+            }
     };
-    VkSemaphoreSubmitInfo renderingCompleteInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-            .semaphore = pApp->pVulkan->renderCompleteSemaphore,
-            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+    const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfos[2] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+                    .semaphore = pApp->pVulkan->timelineSemaphore,
+                    .value = signalValue,
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+                    .semaphore = pApp->pVulkan->renderCompleteSemaphore,
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+            }
     };
-    VkCommandBufferSubmitInfo  commandBufferInfo = {
+    const VkCommandBufferSubmitInfo commandBufferInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
             .commandBuffer = pApp->pVulkan->commandBuffer,
     };
     VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
-            .waitSemaphoreInfoCount = 1,
-            .pWaitSemaphoreInfos = &acquireCompleteInfo,
-            .signalSemaphoreInfoCount = 1,
-            .pSignalSemaphoreInfos = &renderingCompleteInfo,
+            .pNext = VK_NULL_HANDLE,
+            .waitSemaphoreInfoCount = 2,
+            .pWaitSemaphoreInfos = waitSemaphoreSubmitInfos,
+            .signalSemaphoreInfoCount = 2,
+            .pSignalSemaphoreInfos = signalSemaphoreSubmitInfos,
             .commandBufferInfoCount = 1,
             .pCommandBufferInfos = &commandBufferInfo,
     };
     vkQueueSubmit2(pApp->pVulkan->queue,
                    1,
                    &submitInfo,
-                   pApp->pVulkan->inFlightFence);
+                   VK_NULL_HANDLE);
+
 
     VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -214,7 +235,19 @@ static void parentMainLoop(FbrApp *pApp) {
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
-        waitForLastFrame(pApp->pVulkan);
+//        waitForLastFrame(pApp->pVulkan);
+        const uint64_t waitValue = pApp->pVulkan->timelineValue;
+        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .pNext = NULL,
+                .flags = 0,
+                .semaphoreCount = 1,
+                .pSemaphores = &pApp->pVulkan->timelineSemaphore,
+                .pValues = &waitValue,
+        };
+        vkWaitSemaphores(pApp->pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
+
+//        FBR_LOG_DEBUG("timeline", pApp->pVulkan->timelineValue);
 
         processInputFrame(pApp);
 

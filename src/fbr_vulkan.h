@@ -57,6 +57,9 @@ typedef struct FbrVulkan {
     VkSemaphore renderCompleteSemaphore;
     VkFence inFlightFence;
 
+    uint64_t timelineValue;
+    VkSemaphore timelineSemaphore;
+
     VkSampler sampler;
 
     VkPhysicalDeviceMemoryProperties memProperties;

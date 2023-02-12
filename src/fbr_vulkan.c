@@ -188,17 +188,6 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-//    FBR_VK_CHECK_CREATE_DESTROY(vkCreateInstance(&createInfo, NULL, &pVulkan->instance),
-//                                vkDestroyInstance(pVulkan->instance, NULL),
-//                                destroyChain);
-
-//    FbrVulkanDestroyChainNode *pDestroyChainNode = calloc(1, sizeof (FbrVulkanDestroyChainNode));
-//    pDestroyChainNode->pDestroyCommand = PrintDestroyChain;
-//
-//    FbrVulkanDestroyChainNode *pNewDestroyChainNode = calloc(1, sizeof (FbrVulkanDestroyChainNode));
-//    pDestroyChainNode->pNext = pNewDestroyChainNode;
-//    pNewDestroyChainNode->pDestroyCommand = PrintDestroyChain;
-
     FBR_VK_CHECK_RETURN(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
 
     return VK_SUCCESS;
@@ -297,16 +286,22 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
 //    if (!supportedFeatures.samplerAnisotropy)
 //        FBR_LOG_DEBUG("samplerAnisotropy no support!");
 
-    // TODO enable robust buffer access 2
+    // TODO enable robust buffer access 2 ??
     VkPhysicalDeviceVulkan13Features enabledFeatures13 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             .synchronization2 = true,
             .robustImageAccess = true,
             .pNext = NULL,
     };
+    // TODO enabel imagelessFramebuffer ?
+    VkPhysicalDeviceVulkan12Features enabledFeatures12 = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .timelineSemaphore = true,
+            .pNext = &enabledFeatures13,
+    };
     VkPhysicalDeviceFeatures2 enabledFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR,
-            .pNext = &enabledFeatures13,
+            .pNext = &enabledFeatures12,
             .features = {
                     .samplerAnisotropy = true,
                     .robustBufferAccess = true
@@ -657,21 +652,38 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("failed to allocate command buffers!");
 }
 
-static void createSyncObjects(FbrVulkan *pVulkan) {
-    VkSemaphoreCreateInfo semaphoreInfo = {
+static VkResult createSyncObjects(FbrVulkan *pVulkan) {
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
-
-    VkFenceCreateInfo fenceInfo = {
+    VkFenceCreateInfo fenceCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT,
     };
-
-    if (vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pVulkan->acquireCompleteSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pVulkan->renderCompleteSemaphore) != VK_SUCCESS ||
-        vkCreateFence(pVulkan->device, &fenceInfo, NULL, &pVulkan->inFlightFence) != VK_SUCCESS) {
+    if (vkCreateSemaphore(pVulkan->device, &semaphoreCreateInfo, NULL, &pVulkan->acquireCompleteSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(pVulkan->device, &semaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore) != VK_SUCCESS ||
+        vkCreateFence(pVulkan->device, &fenceCreateInfo, NULL, &pVulkan->inFlightFence) != VK_SUCCESS) {
         FBR_LOG_DEBUG("failed to create synchronization objects for a frame!");
     }
+
+    VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            .pNext = NULL,
+            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+            .initialValue = 0,
+    };
+    VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = &timelineSemaphoreTypeCreateInfo,
+            .flags = 0,
+    };
+    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pVulkan->timelineSemaphore));
+
+    VkSemaphoreCreateInfo presentSemaphoreCreateInfo = {
+            presentSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            presentSemaphoreCreateInfo.pNext = NULL,
+            presentSemaphoreCreateInfo.flags = 0,
+    };
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
