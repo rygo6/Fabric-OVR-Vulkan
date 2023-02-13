@@ -39,13 +39,12 @@ typedef struct FbrVulkan {
 
     VkSwapchainKHR swapChain;
     uint32_t swapchainImageCount;
-    VkImage *pSwapChainImages;
-    VkImageView *pSwapChainImageViews;
-    VkFormat swapChainImageFormat;
+    VkImage *pSwapchainImages;
+    VkImageView *pSwapchainImageViews;
+    VkFormat swapchainImageFormat;
     VkImageUsageFlags swapchainUsage;
     VkExtent2D swapChainExtent;
 
-//    VkFramebuffer *pSwapChainFramebuffers;
     VkFramebuffer imagelessFramebuffer;
     VkRenderPass swapRenderPass;
     VkDescriptorSet swapDescriptorSet;
@@ -55,9 +54,8 @@ typedef struct FbrVulkan {
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
 
-    VkSemaphore acquireCompleteSemaphore;
+    VkSemaphore swapAcquireComplete;
     VkSemaphore renderCompleteSemaphore;
-    VkFence inFlightFence;
 
     uint64_t timelineValue;
     VkSemaphore timelineSemaphore;

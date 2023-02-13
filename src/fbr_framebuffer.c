@@ -104,20 +104,20 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
     FBR_VK_CHECK_RETURN(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pFrameBuffer->framebuffer));
 }
 
-static void createSyncObjects(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBuffer) {
-    VkSemaphoreCreateInfo semaphoreInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-    };
-
-    VkFenceCreateInfo fenceInfo = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-    };
-
-    FBR_VK_CHECK(vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pFrameBuffer->imageAvailableSemaphore));
-    FBR_VK_CHECK(vkCreateSemaphore(pVulkan->device, &semaphoreInfo, NULL, &pFrameBuffer->renderFinishedSemaphore));
-    FBR_VK_CHECK(vkCreateFence(pVulkan->device, &fenceInfo, NULL, &pFrameBuffer->inFlightFence));
-}
+//static VkResult createSyncObjects(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBuffer) {
+//    VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
+//            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+//            .pNext = NULL,
+//            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+//            .initialValue = 0,
+//    };
+//    VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
+//            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+//            .pNext = &timelineSemaphoreTypeCreateInfo,
+//            .flags = 0,
+//    };
+//    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pFrameBuffer->timelineSemaphore));
+//}
 
 void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
 
@@ -185,7 +185,7 @@ void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppA
                              &pFramebuffer->pTexture,
                              extent,
                              FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                             pVulkan->swapChainImageFormat);
+                             pVulkan->swapchainImageFormat);
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                       VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
@@ -193,7 +193,7 @@ void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppA
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                      pVulkan->swapChainImageFormat,
+                      pVulkan->swapchainImageFormat,
                       extent);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }
@@ -208,7 +208,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
                      externalMemory,
                      extent,
                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                     pVulkan->swapChainImageFormat);
+                     pVulkan->swapchainImageFormat);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -217,7 +217,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                      pVulkan->swapChainImageFormat,
+                      pVulkan->swapchainImageFormat,
                       extent);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }
@@ -228,9 +228,7 @@ void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffe
     vkDestroyFramebuffer(pVulkan->device, pFramebuffer->framebuffer, NULL);
     vkDestroyRenderPass(pVulkan->device, pFramebuffer->renderPass, NULL);
 
-    vkDestroySemaphore(pVulkan->device, pFramebuffer->renderFinishedSemaphore, NULL);
-    vkDestroySemaphore(pVulkan->device, pFramebuffer->imageAvailableSemaphore, NULL);
-    vkDestroyFence(pVulkan->device, pFramebuffer->inFlightFence, NULL);
+//    vkDestroySemaphore(pVulkan->device, pFramebuffer->timelineSemaphore, NULL);
 
     free(pFramebuffer);
 }

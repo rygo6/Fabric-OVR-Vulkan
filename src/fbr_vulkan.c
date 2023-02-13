@@ -432,7 +432,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
-    pVulkan->swapChainImageFormat = surfaceFormat.format;
+    pVulkan->swapchainImageFormat = surfaceFormat.format;
     pVulkan->swapChainExtent = chooseSwapExtent(pVulkan, capabilities);
     pVulkan->swapchainUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
@@ -464,7 +464,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = pVulkan->surface,
             .minImageCount = pVulkan->swapchainImageCount,
-            .imageFormat = pVulkan->swapChainImageFormat,
+            .imageFormat = pVulkan->swapchainImageFormat,
             .imageColorSpace = surfaceFormat.colorSpace,
             .imageExtent = pVulkan->swapChainExtent,
             .imageUsage = pVulkan->swapchainUsage,
@@ -487,8 +487,8 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     FBR_VK_CHECK(vkCreateSwapchainKHR(pVulkan->device, &createInfo, NULL, &pVulkan->swapChain));
 
     FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, NULL));
-    pVulkan->pSwapChainImages = calloc(pVulkan->swapchainImageCount, sizeof(VkImage));
-    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, pVulkan->pSwapChainImages));
+    pVulkan->pSwapchainImages = calloc(pVulkan->swapchainImageCount, sizeof(VkImage));
+    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, pVulkan->pSwapchainImages));
 
     if (pVulkan->swapchainImageCount != 2) {
         FBR_LOG_ERROR("Resulting swapchain count is not 2! Was planning on this always being 2. What device disallows 2!?");
@@ -498,14 +498,14 @@ static void createSwapChain(FbrVulkan *pVulkan) {
 }
 
 static void createImageViews(FbrVulkan *pVulkan) {
-    pVulkan->pSwapChainImageViews = calloc(pVulkan->swapchainImageCount, sizeof(VkImageView));
+    pVulkan->pSwapchainImageViews = calloc(pVulkan->swapchainImageCount, sizeof(VkImageView));
 
     for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
         VkImageViewCreateInfo createInfo = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = pVulkan->pSwapChainImages[i],
+                .image = pVulkan->pSwapchainImages[i],
                 .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = pVulkan->swapChainImageFormat,
+                .format = pVulkan->swapchainImageFormat,
                 .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -517,7 +517,7 @@ static void createImageViews(FbrVulkan *pVulkan) {
                 .subresourceRange.layerCount = 1,
         };
 
-        FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapChainImageViews[i]));
+        FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapchainImageViews[i]));
     }
 }
 
@@ -569,7 +569,7 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             },
     };
     VkAttachmentDescription attachmentDescription = {
-            .format = pVulkan->swapChainImageFormat,
+            .format = pVulkan->swapchainImageFormat,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -590,32 +590,13 @@ static void createRenderPass(FbrVulkan *pVulkan) {
 }
 
 static void createFramebuffers(FbrVulkan *pVulkan) {
-//    pVulkan->pSwapChainFramebuffers = calloc(pVulkan->swapchainImageCount, sizeof(VkFramebuffer));
-//
-//    for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
-//        VkImageView attachments[] = {
-//                pVulkan->pSwapChainImageViews[i]
-//        };
-//        VkFramebufferCreateInfo framebufferInfo = {
-//                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-//                .renderPass = pVulkan->swapRenderPass,
-//                .attachmentCount = 1,
-//                .pAttachments = attachments,
-//                .width = pVulkan->swapChainExtent.width,
-//                .height = pVulkan->swapChainExtent.height,
-//                .layers = 1,
-//        };
-//        FBR_VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferInfo, NULL, &pVulkan->pSwapChainFramebuffers[i]));
-//    }
-
-
     VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
             .width = pVulkan->swapChainExtent.width,
             .height = pVulkan->swapChainExtent.height,
             .layerCount = 1,
             .usage = pVulkan->swapchainUsage,
-            .pViewFormats = &pVulkan->swapChainImageFormat,
+            .pViewFormats = &pVulkan->swapchainImageFormat,
             .viewFormatCount = 1,
     };
     VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
@@ -683,18 +664,11 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
 }
 
 static VkResult createSyncObjects(FbrVulkan *pVulkan) {
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {
+    VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
-    VkFenceCreateInfo fenceCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-    };
-    if (vkCreateSemaphore(pVulkan->device, &semaphoreCreateInfo, NULL, &pVulkan->acquireCompleteSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(pVulkan->device, &semaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore) != VK_SUCCESS ||
-        vkCreateFence(pVulkan->device, &fenceCreateInfo, NULL, &pVulkan->inFlightFence) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create synchronization objects for a frame!");
-    }
+    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->swapAcquireComplete));
+    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore));
 
     VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
@@ -708,12 +682,6 @@ static VkResult createSyncObjects(FbrVulkan *pVulkan) {
             .flags = 0,
     };
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pVulkan->timelineSemaphore));
-
-    VkSemaphoreCreateInfo presentSemaphoreCreateInfo = {
-            presentSemaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            presentSemaphoreCreateInfo.pNext = NULL,
-            presentSemaphoreCreateInfo.flags = 0,
-    };
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
@@ -795,14 +763,10 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pVulkan->swapDescriptorSet);
 
-//    for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
-//        vkDestroyFramebuffer(pVulkan->device, pVulkan->pSwapChainFramebuffers[i], NULL);
-//    }
-
     vkDestroyFramebuffer(pVulkan->device, pVulkan->imagelessFramebuffer, NULL);
 
     for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
-        vkDestroyImageView(pVulkan->device, pVulkan->pSwapChainImageViews[i], NULL);
+        vkDestroyImageView(pVulkan->device, pVulkan->pSwapchainImageViews[i], NULL);
     }
 
     vkDestroySwapchainKHR(pVulkan->device, pVulkan->swapChain, NULL);
@@ -811,12 +775,11 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
     vkDestroyRenderPass(pVulkan->device, pVulkan->swapRenderPass, NULL);
 
-    free(pVulkan->pSwapChainImages);
-    free(pVulkan->pSwapChainImageViews);
+    free(pVulkan->pSwapchainImages);
+    free(pVulkan->pSwapchainImageViews);
 
     vkDestroySemaphore(pVulkan->device, pVulkan->renderCompleteSemaphore, NULL);
-    vkDestroySemaphore(pVulkan->device, pVulkan->acquireCompleteSemaphore, NULL);
-    vkDestroyFence(pVulkan->device, pVulkan->inFlightFence, NULL);
+    vkDestroySemaphore(pVulkan->device, pVulkan->swapAcquireComplete, NULL);
 
     vkDestroyCommandPool(pVulkan->device, pVulkan->commandPool, NULL);
 

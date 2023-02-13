@@ -10,9 +10,17 @@
 
 #include "cglm/cglm.h"
 
-static void waitForLastFrame(FbrVulkan *pVulkan) {
-    vkWaitForFences(pVulkan->device, 1, &pVulkan->inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(pVulkan->device, 1, &pVulkan->inFlightFence);
+static void waitForTimeLine(FbrVulkan *pVulkan) {
+    const uint64_t waitValue = pVulkan->timelineValue;
+    const VkSemaphoreWaitInfo semaphoreWaitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .semaphoreCount = 1,
+            .pSemaphores = &pVulkan->timelineSemaphore,
+            .pValues = &waitValue,
+    };
+    vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
 }
 
 static void processInputFrame(FbrApp *pApp) {
@@ -98,33 +106,38 @@ static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
 }
 
 static void submitQueue(FbrVulkan *pVulkan) {
-//    VkSemaphoreSubmitInfo acquireCompleteInfo = {
-//            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-//            .semaphore = pVulkan->acquireCompleteSemaphore,
-//            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-//    };
-//    VkSemaphoreSubmitInfo renderingCompleteInfo = {
-//            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-//            .semaphore = pVulkan->renderCompleteSemaphore,
-//            .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-//    };
-    VkCommandBufferSubmitInfo  commandBufferInfo = {
+    const uint64_t waitValue = pVulkan->timelineValue++;
+    const uint64_t signalValue = pVulkan->timelineValue;
+    const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfo = {
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+                    .semaphore = pVulkan->timelineSemaphore,
+                    .value = waitValue,
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
+    const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfo = {
+                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+                    .semaphore = pVulkan->timelineSemaphore,
+                    .value = signalValue,
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
+    const VkCommandBufferSubmitInfo commandBufferInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
             .commandBuffer = pVulkan->commandBuffer,
     };
-    VkSubmitInfo2 submitInfo = {
+    const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
-//            .waitSemaphoreInfoCount = 1,
-//            .pWaitSemaphoreInfos = &acquireCompleteInfo,
-//            .signalSemaphoreInfoCount = 1,
-//            .pSignalSemaphoreInfos = &renderingCompleteInfo,
+            .pNext = VK_NULL_HANDLE,
+            .waitSemaphoreInfoCount = 1,
+            .pWaitSemaphoreInfos = &waitSemaphoreSubmitInfo,
+            .signalSemaphoreInfoCount = 1,
+            .pSignalSemaphoreInfos = &signalSemaphoreSubmitInfo,
             .commandBufferInfoCount = 1,
             .pCommandBufferInfos = &commandBufferInfo,
     };
     vkQueueSubmit2(pVulkan->queue,
                    1,
                    &submitInfo,
-                   pVulkan->inFlightFence);
+                   VK_NULL_HANDLE);
 }
 
 static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
@@ -140,7 +153,7 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
             },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pApp->pVulkan->acquireCompleteSemaphore,
+                    .semaphore = pApp->pVulkan->swapAcquireComplete,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             }
     };
@@ -161,7 +174,7 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
             .commandBuffer = pApp->pVulkan->commandBuffer,
     };
-    VkSubmitInfo2 submitInfo = {
+    const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
             .pNext = VK_NULL_HANDLE,
             .waitSemaphoreInfoCount = 2,
@@ -177,7 +190,7 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
                    VK_NULL_HANDLE);
 
 
-    VkPresentInfoKHR presentInfo = {
+    const VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = &pApp->pVulkan->renderCompleteSemaphore,
@@ -219,7 +232,7 @@ static void childMainLoop(FbrApp *pApp) {
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
-        waitForLastFrame(pApp->pVulkan);
+        waitForTimeLine(pApp->pVulkan);
 
         beginFrameCommandBuffer(pApp);
 
@@ -257,16 +270,7 @@ static void parentMainLoop(FbrApp *pApp) {
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
-        const uint64_t waitValue = pApp->pVulkan->timelineValue;
-        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                .pNext = NULL,
-                .flags = 0,
-                .semaphoreCount = 1,
-                .pSemaphores = &pApp->pVulkan->timelineSemaphore,
-                .pValues = &waitValue,
-        };
-        vkWaitSemaphores(pApp->pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
+        waitForTimeLine(pApp->pVulkan);
 
         processInputFrame(pApp);
         fbrUpdateCameraUBO(pApp->pCamera);
@@ -284,7 +288,7 @@ static void parentMainLoop(FbrApp *pApp) {
         vkAcquireNextImageKHR(pApp->pVulkan->device,
                               pApp->pVulkan->swapChain,
                               UINT64_MAX,
-                              pApp->pVulkan->acquireCompleteSemaphore,
+                              pApp->pVulkan->swapAcquireComplete,
                               VK_NULL_HANDLE,
                               &swapIndex);
 
@@ -295,7 +299,7 @@ static void parentMainLoop(FbrApp *pApp) {
             beginFrameCommandBuffer(pApp);
 
             //swap pass
-            beginRenderPassImageless(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->imagelessFramebuffer, pApp->pVulkan->pSwapChainImageViews[swapIndex]);
+            beginRenderPassImageless(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->imagelessFramebuffer, pApp->pVulkan->pSwapchainImageViews[swapIndex]);
             //cube 1
             fbrUpdateTransformMatrix(&pApp->pMesh->transform);
             recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);

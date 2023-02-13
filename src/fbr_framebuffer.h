@@ -15,9 +15,8 @@ typedef struct FbrFramebuffer {
     VkRenderPass renderPass;
     VkFramebuffer framebuffer;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
+//    uint64_t timelineValue;
+//    VkSemaphore timelineSemaphore;
 
 } FbrFramebuffer;
 
