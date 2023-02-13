@@ -297,6 +297,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
     VkPhysicalDeviceVulkan12Features enabledFeatures12 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             .timelineSemaphore = true,
+            .imagelessFramebuffer = true,
             .pNext = &enabledFeatures13,
     };
     VkPhysicalDeviceFeatures2 enabledFeatures = {
@@ -428,9 +429,12 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     VkPresentModeKHR presentModes[presentModeCount];
     FBR_VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, (VkPresentModeKHR *) &presentModes));
 
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
-    VkExtent2D extent = chooseSwapExtent(pVulkan, capabilities);
+
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
+    pVulkan->swapChainImageFormat = surfaceFormat.format;
+    pVulkan->swapChainExtent = chooseSwapExtent(pVulkan, capabilities);
+    pVulkan->swapchainUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     // I am setting this to 2 on the premise you get the least latency in VR.
     pVulkan->swapchainImageCount = 2;
@@ -445,21 +449,25 @@ static void createSwapChain(FbrVulkan *pVulkan) {
         preTransform = capabilities.currentTransform;
     }
 
-    VkImageUsageFlags nImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
-        nImageUsageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    } else {
-        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
+    // just going to assume we can blit to swap
+//    VkImageUsageFlags nImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
+//        nImageUsageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+//    } else {
+//        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
+//    }
+    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == false) {
+        FBR_LOG_ERROR("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT");
     }
 
     VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = pVulkan->surface,
             .minImageCount = pVulkan->swapchainImageCount,
-            .imageFormat = surfaceFormat.format,
+            .imageFormat = pVulkan->swapChainImageFormat,
             .imageColorSpace = surfaceFormat.colorSpace,
-            .imageExtent = extent,
-            .imageUsage = nImageUsageFlags,
+            .imageExtent = pVulkan->swapChainExtent,
+            .imageUsage = pVulkan->swapchainUsage,
             .preTransform = preTransform,
             .imageArrayLayers = 1,
             .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -486,10 +494,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
         FBR_LOG_ERROR("Resulting swapchain count is not 2! Was planning on this always being 2. What device disallows 2!?");
     }
 
-    pVulkan->swapChainImageFormat = surfaceFormat.format;
-    pVulkan->swapChainExtent = extent;
-
-    FBR_LOG_DEBUG("swapchain created", pVulkan->swapchainImageCount, surfaceFormat.format, extent.width, extent.height);
+    FBR_LOG_DEBUG("swapchain created", pVulkan->swapchainImageCount, surfaceFormat.format, pVulkan->swapChainExtent.width, pVulkan->swapChainExtent.height);
 }
 
 static void createImageViews(FbrVulkan *pVulkan) {
@@ -585,25 +590,50 @@ static void createRenderPass(FbrVulkan *pVulkan) {
 }
 
 static void createFramebuffers(FbrVulkan *pVulkan) {
-    pVulkan->pSwapChainFramebuffers = calloc(pVulkan->swapchainImageCount, sizeof(VkFramebuffer));
+//    pVulkan->pSwapChainFramebuffers = calloc(pVulkan->swapchainImageCount, sizeof(VkFramebuffer));
+//
+//    for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
+//        VkImageView attachments[] = {
+//                pVulkan->pSwapChainImageViews[i]
+//        };
+//        VkFramebufferCreateInfo framebufferInfo = {
+//                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+//                .renderPass = pVulkan->swapRenderPass,
+//                .attachmentCount = 1,
+//                .pAttachments = attachments,
+//                .width = pVulkan->swapChainExtent.width,
+//                .height = pVulkan->swapChainExtent.height,
+//                .layers = 1,
+//        };
+//        FBR_VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferInfo, NULL, &pVulkan->pSwapChainFramebuffers[i]));
+//    }
 
-    for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
-        VkImageView attachments[] = {
-                pVulkan->pSwapChainImageViews[i]
-        };
 
-        VkFramebufferCreateInfo framebufferInfo = {
-                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass = pVulkan->swapRenderPass,
-                .attachmentCount = 1,
-                .pAttachments = attachments,
-                .width = pVulkan->swapChainExtent.width,
-                .height = pVulkan->swapChainExtent.height,
-                .layers = 1,
-        };
-
-        FBR_VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferInfo, NULL, &pVulkan->pSwapChainFramebuffers[i]));
-    }
+    VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+            .width = pVulkan->swapChainExtent.width,
+            .height = pVulkan->swapChainExtent.height,
+            .layerCount = 1,
+            .usage = pVulkan->swapchainUsage,
+            .pViewFormats = &pVulkan->swapChainImageFormat,
+            .viewFormatCount = 1,
+    };
+    VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
+            .attachmentImageInfoCount = 1,
+            .pAttachmentImageInfos = &framebufferAttachmentImageInfo,
+    };
+    VkFramebufferCreateInfo framebufferCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .pNext = &framebufferAttachmentsCreateInfo,
+            .renderPass = pVulkan->swapRenderPass,
+            .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
+            .width = pVulkan->swapChainExtent.width,
+            .height = pVulkan->swapChainExtent.height,
+            .layers = 1,
+            .attachmentCount = 1,
+    };
+    vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->imagelessFramebuffer);
 }
 
 static void createCommandPool(FbrVulkan *pVulkan) {
@@ -765,9 +795,11 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pVulkan->swapDescriptorSet);
 
-    for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
-        vkDestroyFramebuffer(pVulkan->device, pVulkan->pSwapChainFramebuffers[i], NULL);
-    }
+//    for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
+//        vkDestroyFramebuffer(pVulkan->device, pVulkan->pSwapChainFramebuffers[i], NULL);
+//    }
+
+    vkDestroyFramebuffer(pVulkan->device, pVulkan->imagelessFramebuffer, NULL);
 
     for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
         vkDestroyImageView(pVulkan->device, pVulkan->pSwapChainImageViews[i], NULL);

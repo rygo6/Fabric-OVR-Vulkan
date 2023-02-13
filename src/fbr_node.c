@@ -1,4 +1,5 @@
 #include "fbr_node.h"
+#include "fbr_vulkan.h"
 #include "fbr_log.h"
 
 void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode) {
@@ -14,7 +15,7 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
     }
     // todo create receiverIPC
 
-    fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffer);
+    fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffer, pApp->pVulkan->swapChainExtent);
 }
 
 void fbrDestroyNode(const FbrApp *pApp, FbrNode *pNode) {

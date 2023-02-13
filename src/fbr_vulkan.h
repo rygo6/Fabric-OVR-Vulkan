@@ -42,9 +42,11 @@ typedef struct FbrVulkan {
     VkImage *pSwapChainImages;
     VkImageView *pSwapChainImageViews;
     VkFormat swapChainImageFormat;
+    VkImageUsageFlags swapchainUsage;
     VkExtent2D swapChainExtent;
 
-    VkFramebuffer *pSwapChainFramebuffers;
+//    VkFramebuffer *pSwapChainFramebuffers;
+    VkFramebuffer imagelessFramebuffer;
     VkRenderPass swapRenderPass;
     VkDescriptorSet swapDescriptorSet;
 

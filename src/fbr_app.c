@@ -93,8 +93,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         DUPLICATE_SAME_ACCESS);
         FbrIPCParamImportFrameBuffer texParam =  {
                 .handle = texDupHandle,
-                .width = pApp->pTestNode->pFramebuffer->pTexture->width,
-                .height = pApp->pTestNode->pFramebuffer->pTexture->height
+                .width = pApp->pTestNode->pFramebuffer->pTexture->extent.width,
+                .height = pApp->pTestNode->pFramebuffer->pTexture->extent.height
         };
         fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_FRAMEBUFFER, &texParam);
         printf("external pTexture handle d %lld\n", texParam.handle);

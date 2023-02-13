@@ -3,9 +3,13 @@
 #include "fbr_buffer.h"
 #include "fbr_log.h"
 
-static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBuffer) {
-    VkAttachmentDescription colorAttachment = {
-            .format = FBR_DEFAULT_TEXTURE_FORMAT,
+static VkResult createFramebuffer(const FbrVulkan *pVulkan,
+                                  FbrFramebuffer *pFrameBuffer,
+                                  VkImageUsageFlags usage,
+                                  VkFormat format,
+                                  VkExtent2D extent) {
+    const VkAttachmentDescription colorAttachment = {
+            .format = format,
             .samples = pFrameBuffer->samples,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -16,19 +20,16 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .flags = 0,
     };
-
-    VkAttachmentReference colorAttachmentRef = {
+    const VkAttachmentReference colorAttachmentRef = {
             .attachment = 0,
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
-
-    VkSubpassDescription subpass = {
+    const VkSubpassDescription subpass = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
             .colorAttachmentCount = 1,
             .pColorAttachments = &colorAttachmentRef,
     };
-
-    VkSubpassDependency dependencies[2] = {
+    const VkSubpassDependency dependencies[2] = {
             {
                     // https://gist.github.com/chrisvarns/b4a5dbd1a09545948261d8c650070383
                     // In subpass zero...
@@ -64,7 +65,7 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
                     .dependencyFlags = 0,
             },
     };
-    VkRenderPassCreateInfo renderPassInfo = {
+    const VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .flags = 0,
             .attachmentCount = 1,
@@ -74,20 +75,33 @@ static void createFramebuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBu
             .dependencyCount = 2,
             .pDependencies = dependencies,
     };
+    FBR_VK_CHECK_RETURN(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pFrameBuffer->renderPass));
 
-    FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pFrameBuffer->renderPass));
-
-    VkFramebufferCreateInfo framebufferCreateInfo = {
+    const VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+            .width = pVulkan->swapChainExtent.width,
+            .height = pVulkan->swapChainExtent.height,
+            .layerCount = 1,
+            .usage = usage,
+            .pViewFormats = &format,
+            .viewFormatCount = 1,
+    };
+    const VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
+            .attachmentImageInfoCount = 1,
+            .pAttachmentImageInfos = &framebufferAttachmentImageInfo,
+    };
+    const VkFramebufferCreateInfo framebufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .pNext = &framebufferAttachmentsCreateInfo,
             .renderPass = pFrameBuffer->renderPass,
+            .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
             .attachmentCount = 1,
-            .pAttachments = &pFrameBuffer->pTexture->imageView,
-            .width = pFrameBuffer->extent.width,
-            .height = pFrameBuffer->extent.height,
+            .width = extent.width,
+            .height = extent.height,
             .layers = 1,
     };
-
-    FBR_VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pFrameBuffer->framebuffer));
+    FBR_VK_CHECK_RETURN(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pFrameBuffer->framebuffer));
 }
 
 static void createSyncObjects(const FbrVulkan *pVulkan, FbrFramebuffer *pFrameBuffer) {
@@ -162,30 +176,49 @@ void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFra
     );
 }
 
-void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer) {
+void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, VkExtent2D extent) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
-    pFramebuffer->extent.width = 800;
-    pFramebuffer->extent.height = 600;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
-//    pFramebuffer->pTexture = calloc(1, sizeof(FbrFramebuffer));
-    fbrCreateExternalFramebufferTexture(pVulkan, &pFramebuffer->pTexture, pFramebuffer->extent.width, pFramebuffer->extent.height);
-    createFramebuffer(pVulkan, pFramebuffer);
+    fbrCreateExternalTexture(pVulkan,
+                             &pFramebuffer->pTexture,
+                             extent,
+                             FBR_EXTERNAL_FRAMEBUFFER_USAGE,
+                             pVulkan->swapChainImageFormat);
+    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    createFramebuffer(pVulkan,
+                      pFramebuffer,
+                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
+                      pVulkan->swapChainImageFormat,
+                      extent);
 //    createSyncObjects(pVulkan, pFramebuffer);
-
-    FBR_LOG_DEBUG("Created Framebuffer.");
 }
 
-void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, int width, int height) {
+void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, VkExtent2D extent) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
-    pFramebuffer->extent.width = width;
-    pFramebuffer->extent.height = height;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
-    fbrImportFramebufferTexture(pVulkan, &pFramebuffer->pTexture, externalMemory, 800, 600);
-    createFramebuffer(pVulkan, pFramebuffer);
+    fbrImportTexture(pVulkan,
+                     &pFramebuffer->pTexture,
+                     externalMemory,
+                     extent,
+                     FBR_EXTERNAL_FRAMEBUFFER_USAGE,
+                     pVulkan->swapChainImageFormat);
+    fbrTransitionImageLayoutImmediate(pVulkan,
+                                      pFramebuffer->pTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+    createFramebuffer(pVulkan,
+                      pFramebuffer,
+                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
+                      pVulkan->swapChainImageFormat,
+                      extent);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }
 
@@ -194,7 +227,6 @@ void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffe
 
     vkDestroyFramebuffer(pVulkan->device, pFramebuffer->framebuffer, NULL);
     vkDestroyRenderPass(pVulkan->device, pFramebuffer->renderPass, NULL);
-
 
     vkDestroySemaphore(pVulkan->device, pFramebuffer->renderFinishedSemaphore, NULL);
     vkDestroySemaphore(pVulkan->device, pFramebuffer->imageAvailableSemaphore, NULL);
@@ -205,5 +237,8 @@ void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffe
 
 void fbrIPCTargetImportFrameBuffer(FbrApp *pApp, FbrIPCParamImportFrameBuffer *pParam) {
     FBR_LOG_DEBUG("Importing Framebuffer.", pParam->handle, pParam->width, pParam->height);
-    fbrImportFrameBuffer(pApp->pVulkan, &pApp->pParentProcessFramebuffer, pParam->handle, pParam->width, pParam->height);
+    fbrImportFrameBuffer(pApp->pVulkan,
+                         &pApp->pParentProcessFramebuffer,
+                         pParam->handle,
+                         (VkExtent2D) {pParam->width, pParam->height});
 }

@@ -17,8 +17,7 @@
 static VkResult copyBufferToImage(const FbrVulkan *pVulkan,
                        VkBuffer buffer,
                        VkImage image,
-                       uint32_t width,
-                       uint32_t height) {
+                       VkExtent2D extent) {
     VkCommandBuffer commandBuffer;
     FBR_VK_CHECK_RETURN(fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer));
 
@@ -31,7 +30,7 @@ static VkResult copyBufferToImage(const FbrVulkan *pVulkan,
             .imageSubresource.baseArrayLayer = 0,
             .imageSubresource.layerCount = 1,
             .imageOffset = {0, 0, 0},
-            .imageExtent = {width, height, 1},
+            .imageExtent = {extent.width, extent.height, 1},
     };
 
     vkCmdCopyBufferToImage(
@@ -46,9 +45,8 @@ static VkResult copyBufferToImage(const FbrVulkan *pVulkan,
     FBR_VK_CHECK_RETURN(fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer));
 }
 
-static void createTextureFromExternal(const FbrVulkan *pVulkan,
-                          int width,
-                          int height,
+static void importTexture(const FbrVulkan *pVulkan,
+                          VkExtent2D extent,
                           VkFormat format,
                           VkImageTiling tiling,
                           VkImageUsageFlags usage,
@@ -56,7 +54,7 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
                           HANDLE externalMemory,
                           FbrTexture *pTexture) {
 
-    FBR_LOG_DEBUG("Loading pTexture from external handle.", pTexture->externalMemory, pTexture->width, pTexture->height);
+    FBR_LOG_DEBUG("Loading pTexture from external handle.", pTexture->externalMemory, extent.width, extent.height);
 
     VkExternalMemoryHandleTypeFlags externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
     VkExternalMemoryImageCreateInfoKHR externalImageInfo = {
@@ -68,8 +66,8 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
     VkImageCreateInfo imageCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .imageType = VK_IMAGE_TYPE_2D,
-            .extent.width = width,
-            .extent.height = height,
+            .extent.width = extent.width,
+            .extent.height = extent.height,
             .extent.depth = 1,
             .mipLevels = 1,
             .arrayLayers = 1,
@@ -115,8 +113,7 @@ static void createTextureFromExternal(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0));
 
     pTexture->externalMemory = externalMemory;
-    pTexture->width = width;
-    pTexture->height = height;
+    pTexture->extent = extent;
 }
 
 static void checkPreferredDedicated(const FbrVulkan *pVulkan, const FbrTexture *pTexture){
@@ -141,8 +138,7 @@ static void checkPreferredDedicated(const FbrVulkan *pVulkan, const FbrTexture *
 }
 
 static void createExternalTexture(const FbrVulkan *pVulkan,
-                                  uint32_t width,
-                                  uint32_t height,
+                                  VkExtent2D extent,
                                   VkFormat format,
                                   VkImageTiling tiling,
                                   VkImageUsageFlags usage,
@@ -159,8 +155,8 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext = &externalImageInfo,
             .imageType = VK_IMAGE_TYPE_2D,
-            .extent.width = width,
-            .extent.height = height,
+            .extent.width = extent.width,
+            .extent.height = extent.height,
             .extent.depth = 1,
             .mipLevels = 1,
             .arrayLayers = 1,
@@ -213,6 +209,7 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
             .handleType = externalHandleType
     };
 
+    // TODO move to preloaded refs
     PFN_vkGetMemoryWin32HandleKHR getMemoryWin32HandleFunc = (PFN_vkGetMemoryWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetMemoryWin32HandleKHR");
     if (getMemoryWin32HandleFunc == NULL) {
         FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
@@ -221,11 +218,12 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
         FBR_LOG_DEBUG("Failed to get external handle!");
     }
 #endif
+
+    pTexture->extent = extent;
 }
 
 static void createTexture(const FbrVulkan *pVulkan,
-                          uint32_t width,
-                          uint32_t height,
+                          VkExtent2D extent,
                           VkFormat format,
                           VkImageTiling tiling,
                           VkImageUsageFlags usage,
@@ -235,8 +233,8 @@ static void createTexture(const FbrVulkan *pVulkan,
     VkImageCreateInfo imageCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .imageType = VK_IMAGE_TYPE_2D,
-            .extent.width = width,
-            .extent.height = height,
+            .extent.width = extent.width,
+            .extent.height = extent.height,
             .extent.depth = 1,
             .mipLevels = 1,
             .arrayLayers = 1,
@@ -266,6 +264,8 @@ static void createTexture(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
 
     vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0);
+
+    pTexture->extent = extent;
 }
 
 static void createTextureView(const FbrVulkan *pVulkan, FbrTexture *pTexture, VkFormat format) {
@@ -292,14 +292,18 @@ static void createTextureView(const FbrVulkan *pVulkan, FbrTexture *pTexture, Vk
 
 static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture, char const *filename, const bool external) {
     int texChannels;
-    stbi_uc *pixels = stbi_load(filename, &pTexture->width, &pTexture->height, &texChannels, STBI_rgb_alpha);
-    VkDeviceSize imageBufferSize = pTexture->width * pTexture->height * 4;
+    int width;
+    int height;
+    stbi_uc *pixels = stbi_load(filename, &width, &height, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageBufferSize = width * height * 4;
 
-    FBR_LOG_DEBUG("Loading pTexture from file.", filename, pTexture->width, pTexture->height, texChannels);
+    FBR_LOG_DEBUG("Loading pTexture from file.", filename, width, height, texChannels);
 
     if (!pixels) {
         FBR_LOG_DEBUG("Failed to load pTexture image!");
     }
+
+    VkExtent2D extent = {width, height};
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -313,8 +317,7 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
 
     if (external) {
         createExternalTexture(pVulkan,
-                              pTexture->width,
-                              pTexture->height,
+                              extent,
                               VK_FORMAT_R8G8B8A8_SRGB,
                               VK_IMAGE_TILING_OPTIMAL,
                               VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -322,8 +325,7 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
                               pTexture);
     } else {
         createTexture(pVulkan,
-                      pTexture->width,
-                      pTexture->height,
+                      extent,
                       VK_FORMAT_R8G8B8A8_SRGB,
                       VK_IMAGE_TILING_OPTIMAL,
                       VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -336,7 +338,7 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                       VK_ACCESS_2_NONE, VK_ACCESS_2_MEMORY_WRITE_BIT,
                                       VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
-    copyBufferToImage(pVulkan, stagingBuffer, pTexture->image, pTexture->width, pTexture->height);
+    copyBufferToImage(pVulkan, stagingBuffer, pTexture->image, extent);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pTexture->image,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -354,67 +356,31 @@ void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocText
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
-void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height) {
+void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
-    pTexture->width = width;
-    pTexture->height = height;
-    createTextureFromExternal(pVulkan,
-                              width,
-                              height,
-                              VK_FORMAT_R8G8B8A8_SRGB,
-                              VK_IMAGE_TILING_OPTIMAL,
-                              VK_IMAGE_USAGE_SAMPLED_BIT,
-                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                              externalMemory,
-                              pTexture);
-    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
-                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
-                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
+    importTexture(pVulkan,
+                  extent,
+                  format,
+                  VK_IMAGE_TILING_OPTIMAL,
+                  usage,
+                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                  externalMemory,
+                  pTexture);
+    createTextureView(pVulkan, pTexture, format);
 }
 
-void fbrImportFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height) {
+void fbrCreateExternalTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
-    pTexture->width = width;
-    pTexture->height = height;
-    createTextureFromExternal(pVulkan,
-                              width,
-                              height,
-                              VK_FORMAT_R8G8B8A8_SRGB,
-                              VK_IMAGE_TILING_OPTIMAL,
-                              (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
-                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                              externalMemory,
-                              pTexture);
-    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
-                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
-}
-
-// todo condense to one method
-void fbrCreateExternalFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height) {
-    *ppAllocTexture = calloc(1, sizeof(FbrTexture));
-    FbrTexture *pTexture = *ppAllocTexture;
-    pTexture->width = width;
-    pTexture->height = height;
     createExternalTexture(pVulkan,
-                          width,
-                          height,
-                          VK_FORMAT_R8G8B8A8_SRGB,
+                          extent,
+                          format,
                           VK_IMAGE_TILING_OPTIMAL,
-                          (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
+                          usage,
                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                           pTexture);
-    fbrTransitionImageLayoutImmediate(pVulkan, pTexture->image,
-                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
+    createTextureView(pVulkan, pTexture, format);
 }
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {

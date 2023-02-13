@@ -41,7 +41,7 @@ static void processInputFrame(FbrApp *pApp) {
     }
 }
 
-static uint32_t beginRenderPass(const FbrVulkan *pVulkan, VkRenderPass renderPass, VkFramebuffer framebuffer) {
+static void beginRenderPass(const FbrVulkan *pVulkan, VkRenderPass renderPass, VkFramebuffer framebuffer) {
     VkClearValue clearColor = {{{0.1f, 0.2f, 0.05f, 1.0f}}};
     VkRenderPassBeginInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -52,6 +52,25 @@ static uint32_t beginRenderPass(const FbrVulkan *pVulkan, VkRenderPass renderPas
             .pClearValues = &clearColor,
     };
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass renderPass, VkFramebuffer framebuffer, VkImageView imageView) {
+    VkClearValue clearColor = {{{0.1f, 0.2f, 0.05f, 1.0f}}};
+    VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
+            .attachmentCount = 1,
+            .pAttachments = &imageView
+    };
+    VkRenderPassBeginInfo vkRenderPassBeginInfo = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .pNext = &renderPassAttachmentBeginInfo,
+            .renderPass = renderPass,
+            .framebuffer = framebuffer,
+            .renderArea.extent = pVulkan->swapChainExtent,
+            .clearValueCount = 1,
+            .pClearValues = &clearColor,
+    };
+    vkCmdBeginRenderPass(pVulkan->commandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
@@ -204,7 +223,10 @@ static void childMainLoop(FbrApp *pApp) {
 
         beginFrameCommandBuffer(pApp);
 
-        beginRenderPass(pApp->pVulkan, pApp->pParentProcessFramebuffer->renderPass, pApp->pParentProcessFramebuffer->framebuffer);
+        beginRenderPassImageless(pApp->pVulkan,
+                                 pApp->pParentProcessFramebuffer->renderPass,
+                                 pApp->pParentProcessFramebuffer->framebuffer,
+                                 pApp->pParentProcessFramebuffer->pTexture->imageView);
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pMesh->transform);
         recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->parentFramebufferDescriptorSet);
@@ -235,7 +257,6 @@ static void parentMainLoop(FbrApp *pApp) {
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
-//        waitForLastFrame(pApp->pVulkan);
         const uint64_t waitValue = pApp->pVulkan->timelineValue;
         const VkSemaphoreWaitInfo semaphoreWaitInfo = {
                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
@@ -247,11 +268,16 @@ static void parentMainLoop(FbrApp *pApp) {
         };
         vkWaitSemaphores(pApp->pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
 
-//        FBR_LOG_DEBUG("timeline", pApp->pVulkan->timelineValue);
-
         processInputFrame(pApp);
-
         fbrUpdateCameraUBO(pApp->pCamera);
+
+        // somehow need to signal semaphore after UBO updating
+//        VkSemaphoreSignalInfo signalInfo;
+//        signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
+//        signalInfo.pNext = NULL;
+//        signalInfo.semaphore = timeline;
+//        signalInfo.value = 7;
+//        vkSignalSemaphore(dev, &signalInfo);
 
         // Get open swap image
         uint32_t swapIndex;
@@ -269,7 +295,7 @@ static void parentMainLoop(FbrApp *pApp) {
             beginFrameCommandBuffer(pApp);
 
             //swap pass
-            beginRenderPass(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
+            beginRenderPassImageless(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->imagelessFramebuffer, pApp->pVulkan->pSwapChainImageViews[swapIndex]);
             //cube 1
             fbrUpdateTransformMatrix(&pApp->pMesh->transform);
             recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);

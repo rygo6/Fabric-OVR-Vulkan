@@ -11,14 +11,11 @@
 #include <X11/Xlib.h>
 #endif
 
-#define FBR_DEFAULT_TEXTURE_FORMAT VK_FORMAT_R8G8B8A8_SRGB
-
 typedef struct FbrTexture {
     VkImage image;
     VkImageView imageView;
     VkDeviceMemory deviceMemory;
-    int width;
-    int height;
+    VkExtent2D extent;
 #ifdef WIN32
     HANDLE externalMemory;
 #endif
@@ -26,11 +23,18 @@ typedef struct FbrTexture {
 
 void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
 
-void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
+void fbrImportTexture(const FbrVulkan *pVulkan,
+                      FbrTexture **ppAllocTexture,
+                      HANDLE externalMemory,
+                      VkExtent2D extent,
+                      VkImageUsageFlags usage,
+                      VkFormat format);
 
-// TODO consolidate these into fbr_framebuffer
-void fbrImportFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, int width, int height);
-void fbrCreateExternalFramebufferTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, int width, int height);
+void fbrCreateExternalTexture(const FbrVulkan *pVulkan,
+                              FbrTexture **ppAllocTexture,
+                              VkExtent2D extent,
+                              VkImageUsageFlags usage,
+                              VkFormat format);
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 
