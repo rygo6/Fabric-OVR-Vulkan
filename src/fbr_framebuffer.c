@@ -79,8 +79,8 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
 
     const VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            .width = pVulkan->swapChainExtent.width,
-            .height = pVulkan->swapChainExtent.height,
+            .width = pVulkan->swapExtent.width,
+            .height = pVulkan->swapExtent.height,
             .layerCount = 1,
             .usage = usage,
             .pViewFormats = &format,
@@ -185,7 +185,7 @@ void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppA
                              &pFramebuffer->pTexture,
                              extent,
                              FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                             pVulkan->swapchainImageFormat);
+                             pVulkan->swapImageFormat);
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                       VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
@@ -193,7 +193,7 @@ void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppA
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                      pVulkan->swapchainImageFormat,
+                      pVulkan->swapImageFormat,
                       extent);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }
@@ -208,7 +208,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
                      externalMemory,
                      extent,
                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                     pVulkan->swapchainImageFormat);
+                     pVulkan->swapImageFormat);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -217,7 +217,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFram
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                      pVulkan->swapchainImageFormat,
+                      pVulkan->swapImageFormat,
                       extent);
 //    createSyncObjects(pVulkan, pFramebuffer);
 }

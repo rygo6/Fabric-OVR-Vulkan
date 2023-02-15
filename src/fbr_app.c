@@ -54,7 +54,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 //        glm_vec3_add(pApp->pTestNodeDisplayMesh->transform.pos, (vec3) {1,0,0}, pApp->pTestNodeDisplayMesh->transform.pos);
 //        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->swapRenderPass, &pApp->pPipelineExternalTest);
 
-
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
 
         // test node display
@@ -65,7 +64,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              pApp->pCamera,
                              pApp->pTestNode->pFramebuffer->pTexture->imageView,
                              &pApp->testNodeDisplayDescriptorSet);
-
 
         HANDLE camDupHandle;
         DuplicateHandle(GetCurrentProcess(),

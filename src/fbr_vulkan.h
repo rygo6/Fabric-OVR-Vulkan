@@ -3,6 +3,8 @@
 
 #include "fbr_app.h"
 
+#include "windows.h"
+
 #define FBR_VK_CHECK(command)\
     do { \
         VkResult result = command;\
@@ -38,27 +40,30 @@ typedef struct FbrVulkan {
     uint32_t graphicsQueueFamilyIndex;
 
     VkSwapchainKHR swapChain;
-    uint32_t swapchainImageCount;
-    VkImage *pSwapchainImages;
-    VkImageView *pSwapchainImageViews;
-    VkFormat swapchainImageFormat;
-    VkImageUsageFlags swapchainUsage;
-    VkExtent2D swapChainExtent;
-
-    VkFramebuffer imagelessFramebuffer;
+    uint32_t swapImageCount;
+    VkImage *pSwapImages;
+    VkImageView *pSwapImageViews;
+    VkFormat swapImageFormat;
+    VkImageUsageFlags swapUsage;
+    VkExtent2D swapExtent;
+    VkFramebuffer swapFramebuffer;
     VkRenderPass swapRenderPass;
     VkDescriptorSet swapDescriptorSet;
+
+    VkSemaphore swapAcquireComplete;
+    VkSemaphore renderCompleteSemaphore;
+
+    VkFence queueFence;
+
+    uint64_t timelineValue;
+    VkSemaphore timelineSemaphore;
+    HANDLE externalTimelineSemaphore;
 
     VkDescriptorPool descriptorPool;
 
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
 
-    VkSemaphore swapAcquireComplete;
-    VkSemaphore renderCompleteSemaphore;
-
-    uint64_t timelineValue;
-    VkSemaphore timelineSemaphore;
 
     VkSampler sampler;
 

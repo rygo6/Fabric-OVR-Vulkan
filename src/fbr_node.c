@@ -15,7 +15,7 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
     }
     // todo create receiverIPC
 
-    fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffer, pApp->pVulkan->swapChainExtent);
+    fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffer, pApp->pVulkan->swapExtent);
 }
 
 void fbrDestroyNode(const FbrApp *pApp, FbrNode *pNode) {

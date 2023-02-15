@@ -56,9 +56,9 @@ static void importTexture(const FbrVulkan *pVulkan,
 
     FBR_LOG_DEBUG("Loading pTexture from external handle.", pTexture->externalMemory, extent.width, extent.height);
 
-    VkExternalMemoryHandleTypeFlags externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-    VkExternalMemoryImageCreateInfoKHR externalImageInfo = {
-            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR,
+    VkExternalMemoryHandleTypeFlags externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+    VkExternalMemoryImageCreateInfo externalImageInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,
             .handleTypes = externalHandleType
     };
@@ -145,8 +145,8 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
                                   VkMemoryPropertyFlags properties,
                                   FbrTexture *pTexture) {
 
-    VkExternalMemoryHandleTypeFlagBitsKHR externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
-    VkExternalMemoryImageCreateInfoKHR externalImageInfo = {
+    VkExternalMemoryHandleTypeFlagBits externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+    VkExternalMemoryImageCreateInfo externalImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,
             .handleTypes = externalHandleType,

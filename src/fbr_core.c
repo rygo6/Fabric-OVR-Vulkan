@@ -10,6 +10,11 @@
 
 #include "cglm/cglm.h"
 
+static void waitForQueueFence(FbrVulkan *pVulkan) {
+    vkWaitForFences(pVulkan->device, 1, &pVulkan->queueFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(pVulkan->device, 1, &pVulkan->queueFence);
+}
+
 static void waitForTimeLine(FbrVulkan *pVulkan) {
     const uint64_t waitValue = pVulkan->timelineValue;
     const VkSemaphoreWaitInfo semaphoreWaitInfo = {
@@ -55,7 +60,7 @@ static void beginRenderPass(const FbrVulkan *pVulkan, VkRenderPass renderPass, V
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .renderPass = renderPass,
             .framebuffer = framebuffer,
-            .renderArea.extent = pVulkan->swapChainExtent,
+            .renderArea.extent = pVulkan->swapExtent,
             .clearValueCount = 1,
             .pClearValues = &clearColor,
     };
@@ -74,7 +79,7 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass rend
             .pNext = &renderPassAttachmentBeginInfo,
             .renderPass = renderPass,
             .framebuffer = framebuffer,
-            .renderArea.extent = pVulkan->swapChainExtent,
+            .renderArea.extent = pVulkan->swapExtent,
             .clearValueCount = 1,
             .pClearValues = &clearColor,
     };
@@ -137,6 +142,7 @@ static void submitQueue(FbrVulkan *pVulkan) {
     vkQueueSubmit2(pVulkan->queue,
                    1,
                    &submitInfo,
+//                   pVulkan->queueFence);
                    VK_NULL_HANDLE);
 }
 
@@ -162,7 +168,8 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
                     .semaphore = pApp->pVulkan->timelineSemaphore,
                     .value = signalValue,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .deviceIndex = 0 //todo use this?
             },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
@@ -187,6 +194,7 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
     vkQueueSubmit2(pApp->pVulkan->queue,
                    1,
                    &submitInfo,
+//                   pApp->pVulkan->queueFence);
                    VK_NULL_HANDLE);
 
 
@@ -211,15 +219,15 @@ static void beginFrameCommandBuffer(FbrApp *pApp) {
     VkViewport viewport = {
             .x = 0.0f,
             .y = 0.0f,
-            .width = (float) pApp->pVulkan->swapChainExtent.width,
-            .height = (float) pApp->pVulkan->swapChainExtent.height,
+            .width = (float) pApp->pVulkan->swapExtent.width,
+            .height = (float) pApp->pVulkan->swapExtent.height,
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
     };
     vkCmdSetViewport(pApp->pVulkan->commandBuffer, 0, 1, &viewport);
     VkRect2D scissor = {
             .offset = {0, 0},
-            .extent = pApp->pVulkan->swapChainExtent,
+            .extent = pApp->pVulkan->swapExtent,
     };
     vkCmdSetScissor(pApp->pVulkan->commandBuffer, 0, 1, &scissor);
 }
@@ -233,6 +241,11 @@ static void childMainLoop(FbrApp *pApp) {
         lastFrameTime = pApp->pTime->currentTime;
 
         waitForTimeLine(pApp->pVulkan);
+
+        // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
+        // wait on timeline should be enough!!!
+        vkQueueWaitIdle(pApp->pVulkan->queue);
+
 
         beginFrameCommandBuffer(pApp);
 
@@ -266,11 +279,20 @@ static void parentMainLoop(FbrApp *pApp) {
     bool firstRun = true;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
+
+//        Sleep(33);
+//        FBR_LOG_DEBUG("Loop!", pApp->pVulkan->timelineValue);
+
         pApp->pTime->currentTime = glfwGetTime();
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
         waitForTimeLine(pApp->pVulkan);
+
+        // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
+        // wait on timeline should be enough!!
+        vkQueueWaitIdle(pApp->pVulkan->queue);
+
 
         processInputFrame(pApp);
         fbrUpdateCameraUBO(pApp->pCamera);
@@ -299,7 +321,7 @@ static void parentMainLoop(FbrApp *pApp) {
             beginFrameCommandBuffer(pApp);
 
             //swap pass
-            beginRenderPassImageless(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->imagelessFramebuffer, pApp->pVulkan->pSwapchainImageViews[swapIndex]);
+            beginRenderPassImageless(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->swapFramebuffer, pApp->pVulkan->pSwapImageViews[swapIndex]);
             //cube 1
             fbrUpdateTransformMatrix(&pApp->pMesh->transform);
             recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);
@@ -325,5 +347,6 @@ void fbrMainLoop(FbrApp *pApp) {
         childMainLoop(pApp);
     }
 
+    vkQueueWaitIdle(pApp->pVulkan->queue);
     vkDeviceWaitIdle(pApp->pVulkan->device);
 }

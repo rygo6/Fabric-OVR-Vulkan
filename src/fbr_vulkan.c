@@ -293,7 +293,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
             .robustImageAccess = true,
             .pNext = NULL,
     };
-    // TODO enabel imagelessFramebuffer ?
+    // TODO enabel swapFramebuffer ?
     VkPhysicalDeviceVulkan12Features enabledFeatures12 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             .timelineSemaphore = true,
@@ -432,14 +432,14 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
-    pVulkan->swapchainImageFormat = surfaceFormat.format;
-    pVulkan->swapChainExtent = chooseSwapExtent(pVulkan, capabilities);
-    pVulkan->swapchainUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    pVulkan->swapImageFormat = surfaceFormat.format;
+    pVulkan->swapExtent = chooseSwapExtent(pVulkan, capabilities);
+    pVulkan->swapUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     // I am setting this to 2 on the premise you get the least latency in VR.
-    pVulkan->swapchainImageCount = 2;
-    if (pVulkan->swapchainImageCount < capabilities.minImageCount) {
-        FBR_LOG_DEBUG("swapchainImageCount is less than minImageCount", pVulkan->swapchainImageCount, capabilities.minImageCount);
+    pVulkan->swapImageCount = 2;
+    if (pVulkan->swapImageCount < capabilities.minImageCount) {
+        FBR_LOG_DEBUG("swapImageCount is less than minImageCount", pVulkan->swapImageCount, capabilities.minImageCount);
     }
 
     VkSurfaceTransformFlagsKHR preTransform;
@@ -463,11 +463,11 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = pVulkan->surface,
-            .minImageCount = pVulkan->swapchainImageCount,
-            .imageFormat = pVulkan->swapchainImageFormat,
+            .minImageCount = pVulkan->swapImageCount,
+            .imageFormat = pVulkan->swapImageFormat,
             .imageColorSpace = surfaceFormat.colorSpace,
-            .imageExtent = pVulkan->swapChainExtent,
-            .imageUsage = pVulkan->swapchainUsage,
+            .imageExtent = pVulkan->swapExtent,
+            .imageUsage = pVulkan->swapUsage,
             .preTransform = preTransform,
             .imageArrayLayers = 1,
             .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -486,26 +486,26 @@ static void createSwapChain(FbrVulkan *pVulkan) {
 
     FBR_VK_CHECK(vkCreateSwapchainKHR(pVulkan->device, &createInfo, NULL, &pVulkan->swapChain));
 
-    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, NULL));
-    pVulkan->pSwapchainImages = calloc(pVulkan->swapchainImageCount, sizeof(VkImage));
-    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapchainImageCount, pVulkan->pSwapchainImages));
+    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapImageCount, NULL));
+    pVulkan->pSwapImages = calloc(pVulkan->swapImageCount, sizeof(VkImage));
+    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapImageCount, pVulkan->pSwapImages));
 
-    if (pVulkan->swapchainImageCount != 2) {
+    if (pVulkan->swapImageCount != 2) {
         FBR_LOG_ERROR("Resulting swapchain count is not 2! Was planning on this always being 2. What device disallows 2!?");
     }
 
-    FBR_LOG_DEBUG("swapchain created", pVulkan->swapchainImageCount, surfaceFormat.format, pVulkan->swapChainExtent.width, pVulkan->swapChainExtent.height);
+    FBR_LOG_DEBUG("swapchain created", pVulkan->swapImageCount, surfaceFormat.format, pVulkan->swapExtent.width, pVulkan->swapExtent.height);
 }
 
 static void createImageViews(FbrVulkan *pVulkan) {
-    pVulkan->pSwapchainImageViews = calloc(pVulkan->swapchainImageCount, sizeof(VkImageView));
+    pVulkan->pSwapImageViews = calloc(pVulkan->swapImageCount, sizeof(VkImageView));
 
-    for (size_t i = 0; i < pVulkan->swapchainImageCount; i++) {
+    for (size_t i = 0; i < pVulkan->swapImageCount; i++) {
         VkImageViewCreateInfo createInfo = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = pVulkan->pSwapchainImages[i],
+                .image = pVulkan->pSwapImages[i],
                 .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = pVulkan->swapchainImageFormat,
+                .format = pVulkan->swapImageFormat,
                 .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -517,7 +517,7 @@ static void createImageViews(FbrVulkan *pVulkan) {
                 .subresourceRange.layerCount = 1,
         };
 
-        FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapchainImageViews[i]));
+        FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapImageViews[i]));
     }
 }
 
@@ -569,7 +569,7 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             },
     };
     VkAttachmentDescription attachmentDescription = {
-            .format = pVulkan->swapchainImageFormat,
+            .format = pVulkan->swapImageFormat,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -592,11 +592,11 @@ static void createRenderPass(FbrVulkan *pVulkan) {
 static void createFramebuffers(FbrVulkan *pVulkan) {
     VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            .width = pVulkan->swapChainExtent.width,
-            .height = pVulkan->swapChainExtent.height,
+            .width = pVulkan->swapExtent.width,
+            .height = pVulkan->swapExtent.height,
             .layerCount = 1,
-            .usage = pVulkan->swapchainUsage,
-            .pViewFormats = &pVulkan->swapchainImageFormat,
+            .usage = pVulkan->swapUsage,
+            .pViewFormats = &pVulkan->swapImageFormat,
             .viewFormatCount = 1,
     };
     VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
@@ -609,12 +609,12 @@ static void createFramebuffers(FbrVulkan *pVulkan) {
             .pNext = &framebufferAttachmentsCreateInfo,
             .renderPass = pVulkan->swapRenderPass,
             .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
-            .width = pVulkan->swapChainExtent.width,
-            .height = pVulkan->swapChainExtent.height,
+            .width = pVulkan->swapExtent.width,
+            .height = pVulkan->swapExtent.height,
             .layers = 1,
             .attachmentCount = 1,
     };
-    vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->imagelessFramebuffer);
+    vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->swapFramebuffer);
 }
 
 static void createCommandPool(FbrVulkan *pVulkan) {
@@ -663,25 +663,91 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("failed to allocate command buffers!");
 }
 
-static VkResult createSyncObjects(FbrVulkan *pVulkan) {
-    VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
+static VkResult createSyncObjects(const FbrApp *pApp, FbrVulkan *pVulkan) {
+    const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->swapAcquireComplete));
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore));
 
-    VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
+    const VkFenceCreateInfo fenceCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+    };
+    FBR_VK_CHECK_RETURN(vkCreateFence(pVulkan->device, &fenceCreateInfo, NULL, &pVulkan->queueFence));
+
+    const VkExternalSemaphoreHandleTypeFlagBits externalHandleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+    // TODO validate external timeline semaphore
+//    const VkSemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
+//            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+//            .pNext = VK_NULL_HANDLE,
+//            .initialValue = 0,
+//            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+//    };
+//    const VkPhysicalDeviceExternalSemaphoreInfo externalSemaphoreInfo = {
+//            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,
+//            .pNext = &semaphoreTypeCreateInfo,
+//            .handleType = externalHandleType,
+//    };
+//    VkExternalSemaphoreProperties externalSemaphoreProperties = {
+//            .sType = VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES,
+//    };
+//    vkGetPhysicalDeviceExternalSemaphoreProperties(pVulkan->physicalDevice, &externalSemaphoreInfo, &externalSemaphoreProperties);
+//    if ((externalSemaphoreProperties.exportFromImportedHandleTypes & VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT) == 0) {
+//        FBR_LOG_ERROR("exportFromImportedHandleTypes Does not supported VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT!");
+//    }
+//    if ((externalSemaphoreProperties.compatibleHandleTypes & VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT) == 0) {
+//        FBR_LOG_ERROR("compatibleHandleTypes Does not supported VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT!");
+//    }
+//    if ((externalSemaphoreProperties.externalSemaphoreFeatures & VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT) == 0) {
+//        FBR_LOG_ERROR("externalSemaphoreFeatures Does not supported VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT!");
+//    }
+//    if ((externalSemaphoreProperties.externalSemaphoreFeatures & VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT) == 0) {
+//        FBR_LOG_ERROR("externalSemaphoreFeatures Does not supported VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT!");
+//    }
+
+    const VkExportSemaphoreWin32HandleInfoKHR exportSemaphoreWin32HandleInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
+            .pNext = VK_NULL_HANDLE,
+            .dwAccess = GENERIC_ALL,
+            .pAttributes = VK_NULL_HANDLE,
+            .name = L"FBR_SEMAPHORE"
+    };
+    const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+//            .pNext = &exportSemaphoreWin32HandleInfo,
+            .handleTypes = externalHandleType,
+    };
+    const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-            .pNext = NULL,
+            .pNext = &exportSemaphoreCreateInfo,
             .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
             .initialValue = 0,
     };
-    VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
+    const VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
             .pNext = &timelineSemaphoreTypeCreateInfo,
             .flags = 0,
     };
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pVulkan->timelineSemaphore));
+
+//    return VK_SUCCESS;
+
+#if WIN32
+    VkSemaphoreGetWin32HandleInfoKHR semaphoreGetWin32HandleInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
+            .pNext = VK_NULL_HANDLE,
+            .handleType = externalHandleType,
+            .semaphore = pVulkan->timelineSemaphore,
+    };
+
+    // TODO move to preloaded refs
+    PFN_vkGetSemaphoreWin32HandleKHR getSemaphoreWin32HandleFunc = (PFN_vkGetSemaphoreWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetSemaphoreWin32HandleKHR");
+    if (getSemaphoreWin32HandleFunc == NULL) {
+        FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+    }
+    FBR_VK_CHECK_RETURN(getSemaphoreWin32HandleFunc(pVulkan->device, &semaphoreGetWin32HandleInfo, &pVulkan->externalTimelineSemaphore));
+#endif
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
@@ -736,7 +802,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     createFramebuffers(pVulkan);
     createCommandPool(pVulkan);
     createCommandBuffer(pVulkan);
-    createSyncObjects(pVulkan);
+    createSyncObjects(pApp, pVulkan);
     createDescriptorPool(pVulkan);
 
     createTextureSampler(pVulkan);
@@ -763,10 +829,10 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pVulkan->swapDescriptorSet);
 
-    vkDestroyFramebuffer(pVulkan->device, pVulkan->imagelessFramebuffer, NULL);
+    vkDestroyFramebuffer(pVulkan->device, pVulkan->swapFramebuffer, NULL);
 
-    for (int i = 0; i < pVulkan->swapchainImageCount; ++i) {
-        vkDestroyImageView(pVulkan->device, pVulkan->pSwapchainImageViews[i], NULL);
+    for (int i = 0; i < pVulkan->swapImageCount; ++i) {
+        vkDestroyImageView(pVulkan->device, pVulkan->pSwapImageViews[i], NULL);
     }
 
     vkDestroySwapchainKHR(pVulkan->device, pVulkan->swapChain, NULL);
@@ -775,8 +841,8 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
     vkDestroyRenderPass(pVulkan->device, pVulkan->swapRenderPass, NULL);
 
-    free(pVulkan->pSwapchainImages);
-    free(pVulkan->pSwapchainImageViews);
+    free(pVulkan->pSwapImages);
+    free(pVulkan->pSwapImageViews);
 
     vkDestroySemaphore(pVulkan->device, pVulkan->renderCompleteSemaphore, NULL);
     vkDestroySemaphore(pVulkan->device, pVulkan->swapAcquireComplete, NULL);
@@ -793,6 +859,10 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
     vkDestroySurfaceKHR(pVulkan->instance, pVulkan->surface, NULL);
     vkDestroyInstance(pVulkan->instance, NULL);
+
+    if (pVulkan->externalTimelineSemaphore != NULL) {
+        CloseHandle(pVulkan->externalTimelineSemaphore);
+    }
 
     free(pVulkan);
 
