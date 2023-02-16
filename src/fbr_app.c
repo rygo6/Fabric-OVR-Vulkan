@@ -98,6 +98,21 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         printf("external pTexture handle d %lld\n", texParam.handle);
         printf("external pTexture handle p %p\n", texParam.handle);
 
+        HANDLE semDupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pVulkan->externalTimelineSemaphore,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &semDupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FbrIPCParamImportTimelineSemaphore semParam =  {
+                .handle = semDupHandle,
+        };
+        fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_TIMELINE_SEMAPHORE, &semParam);
+        printf("external pTexture handle d %lld\n", semParam.handle);
+        printf("external pTexture handle p %p\n", semParam.handle);
+
     } else {
 
         fbrCreateReceiverIPC(&pApp->pParentProcessReceiverIPC);
@@ -109,6 +124,12 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         }
 
         // for debugging ipc now, wait for framebuffer
+        while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
+            FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
+//            Sleep(1000);
+        }
+
+        // for debugging ipc now, wait for semaphore
         while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
             FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
 //            Sleep(1000);

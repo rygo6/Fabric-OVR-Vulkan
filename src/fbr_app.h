@@ -46,6 +46,8 @@ typedef struct FbrApp {
     FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
     FbrFramebuffer *pParentProcessFramebuffer;
     VkDescriptorSet parentFramebufferDescriptorSet;
+    VkSemaphore parentTimelineSemaphore;
+    uint64_t parentTimelineValue;
 } FbrApp;
 
 void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest);

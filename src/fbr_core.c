@@ -15,14 +15,14 @@ static void waitForQueueFence(FbrVulkan *pVulkan) {
     vkResetFences(pVulkan->device, 1, &pVulkan->queueFence);
 }
 
-static void waitForTimeLine(FbrVulkan *pVulkan) {
+static void waitForTimeLine(FbrVulkan *pVulkan, VkSemaphore *pTimelineSemaphore) {
     const uint64_t waitValue = pVulkan->timelineValue;
     const VkSemaphoreWaitInfo semaphoreWaitInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             .pNext = NULL,
             .flags = 0,
             .semaphoreCount = 1,
-            .pSemaphores = &pVulkan->timelineSemaphore,
+            .pSemaphores = pTimelineSemaphore,
             .pValues = &waitValue,
     };
     vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
@@ -235,16 +235,40 @@ static void beginFrameCommandBuffer(FbrApp *pApp) {
 static void childMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
+    FbrVulkan *pVulkan = pApp->pVulkan;
+
+    vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &pApp->parentTimelineValue);
+    FBR_LOG_DEBUG("stating parent timeline value", pApp->parentTimelineValue);
+    pApp->parentTimelineValue += 20;
+
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         pApp->pTime->currentTime = glfwGetTime();
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
-        waitForTimeLine(pApp->pVulkan);
+        waitForTimeLine(pVulkan, &pApp->parentTimelineSemaphore);
+
+        const uint64_t waitValues[2] = { pApp->parentTimelineValue, pVulkan->timelineValue };
+        const VkSemaphore waitSemaphores[2] = { pApp->parentTimelineSemaphore, pVulkan->timelineSemaphore };
+        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .pNext = NULL,
+                .flags = 0,
+                .semaphoreCount = 2,
+                .pSemaphores = waitSemaphores,
+                .pValues = waitValues,
+        };
+        vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
+        pApp->parentTimelineValue += 20;
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!!
-        vkQueueWaitIdle(pApp->pVulkan->queue);
+        vkQueueWaitIdle(pVulkan->queue);
+
+
+        uint64_t value;
+        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
+        FBR_LOG_DEBUG("import semaphore", value);
 
 
         beginFrameCommandBuffer(pApp);
@@ -280,14 +304,14 @@ static void parentMainLoop(FbrApp *pApp) {
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
 
-//        Sleep(33);
+        Sleep(33);
 //        FBR_LOG_DEBUG("Loop!", pApp->pVulkan->timelineValue);
 
         pApp->pTime->currentTime = glfwGetTime();
         pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pApp->pTime->currentTime;
 
-        waitForTimeLine(pApp->pVulkan);
+        waitForTimeLine(pApp->pVulkan, &pApp->pVulkan->timelineSemaphore);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!

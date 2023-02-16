@@ -6,6 +6,7 @@
 typedef enum FbrIPCTargetType {
     FBR_IPC_TARGET_IMPORT_FRAMEBUFFER = 0,
     FBR_IPC_TARGET_IMPORT_CAMERA = 1,
+    FBR_IPC_TARGET_IMPORT_TIMELINE_SEMAPHORE = 2,
 } FbrIPCTargetType;
 
 int fbrIPCTargetParamSize(int target);

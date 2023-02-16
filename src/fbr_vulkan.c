@@ -663,7 +663,7 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("failed to allocate command buffers!");
 }
 
-static VkResult createSyncObjects(const FbrApp *pApp, FbrVulkan *pVulkan) {
+static VkResult createSyncObjects(FbrVulkan *pVulkan, bool externalTimeline) {
     const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
@@ -720,7 +720,7 @@ static VkResult createSyncObjects(const FbrApp *pApp, FbrVulkan *pVulkan) {
     };
     const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-            .pNext = &exportSemaphoreCreateInfo,
+            .pNext = externalTimeline ? &exportSemaphoreCreateInfo : VK_NULL_HANDLE,
             .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
             .initialValue = 0,
     };
@@ -731,22 +731,63 @@ static VkResult createSyncObjects(const FbrApp *pApp, FbrVulkan *pVulkan) {
     };
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pVulkan->timelineSemaphore));
 
-//    return VK_SUCCESS;
 
 #if WIN32
-    VkSemaphoreGetWin32HandleInfoKHR semaphoreGetWin32HandleInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
-            .handleType = externalHandleType,
-            .semaphore = pVulkan->timelineSemaphore,
-    };
+    if (externalTimeline) {
+        VkSemaphoreGetWin32HandleInfoKHR semaphoreGetWin32HandleInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
+                .pNext = VK_NULL_HANDLE,
+                .handleType = externalHandleType,
+                .semaphore = pVulkan->timelineSemaphore,
+        };
 
-    // TODO move to preloaded refs
-    PFN_vkGetSemaphoreWin32HandleKHR getSemaphoreWin32HandleFunc = (PFN_vkGetSemaphoreWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetSemaphoreWin32HandleKHR");
-    if (getSemaphoreWin32HandleFunc == NULL) {
-        FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+        // TODO move to preloaded refs
+        PFN_vkGetSemaphoreWin32HandleKHR getSemaphoreWin32HandleFunc = (PFN_vkGetSemaphoreWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetSemaphoreWin32HandleKHR");
+        if (getSemaphoreWin32HandleFunc == NULL) {
+            FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+        }
+        FBR_VK_CHECK_RETURN(getSemaphoreWin32HandleFunc(pVulkan->device, &semaphoreGetWin32HandleInfo, &pVulkan->externalTimelineSemaphore));
     }
-    FBR_VK_CHECK_RETURN(getSemaphoreWin32HandleFunc(pVulkan->device, &semaphoreGetWin32HandleInfo, &pVulkan->externalTimelineSemaphore));
+#endif
+}
+
+static VkResult importTimelineSemaphore(FbrVulkan *pVulkan, HANDLE externalTimelineSemaphore, VkSemaphore *pTimelineSemaphore) {
+
+    const VkExternalSemaphoreHandleTypeFlagBits externalHandleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+    const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+//            .pNext = &exportSemaphoreWin32HandleInfo,
+            .handleTypes = externalHandleType,
+    };
+    const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            .pNext = &exportSemaphoreCreateInfo,
+            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+            .initialValue = 0,
+    };
+    const VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = &timelineSemaphoreTypeCreateInfo,
+            .flags = 0,
+    };
+    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, pTimelineSemaphore));
+
+
+#if WIN32
+        const VkImportSemaphoreWin32HandleInfoKHR importSemaphoreWin32HandleInfoKhr = {
+                .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
+                .pNext = VK_NULL_HANDLE,
+                .handle = externalTimelineSemaphore,
+                .handleType = externalHandleType,
+                .semaphore = *pTimelineSemaphore,
+        };
+
+        // TODO move to preloaded refs
+        PFN_vkImportSemaphoreWin32HandleKHR importSemaphoreWin32HandleFunc = (PFN_vkImportSemaphoreWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkImportSemaphoreWin32HandleKHR");
+        if (importSemaphoreWin32HandleFunc == NULL) {
+            FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+        }
+        FBR_VK_CHECK_RETURN(importSemaphoreWin32HandleFunc(pVulkan->device, &importSemaphoreWin32HandleInfoKhr));
 #endif
 }
 
@@ -802,7 +843,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     createFramebuffers(pVulkan);
     createCommandPool(pVulkan);
     createCommandBuffer(pVulkan);
-    createSyncObjects(pApp, pVulkan);
+    createSyncObjects(pVulkan, !pApp->isChild);
     createDescriptorPool(pVulkan);
 
     createTextureSampler(pVulkan);
@@ -869,3 +910,8 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     glfwTerminate();
 }
 
+
+void fbrIPCTargetImportTimelineSemaphore(FbrApp *pApp, FbrIPCParamImportTimelineSemaphore *pParam){
+    FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->handle);
+    importTimelineSemaphore(pApp->pVulkan, pParam->handle, &pApp->parentTimelineSemaphore);
+}

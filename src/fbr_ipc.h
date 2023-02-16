@@ -14,7 +14,7 @@
 #define FBR_IPC_BUFFER_SIZE FBR_IPC_BUFFER_COUNT * sizeof(uint8_t)
 #define FBR_IPC_HEADER_SIZE 1
 
-#define FBR_IPC_TARGET_COUNT 2
+#define FBR_IPC_TARGET_COUNT 3
 
 typedef struct FbrIPCBuffer {
     uint8_t head;

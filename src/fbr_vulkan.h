@@ -79,4 +79,12 @@ void fbrCreateVulkan(const FbrApp *pApp,
 
 void fbrCleanupVulkan(FbrVulkan *pVulkan);
 
+// IPC
+
+typedef struct FbrIPCParamImportTimelineSemaphore {
+    HANDLE handle;
+} FbrIPCParamImportTimelineSemaphore;
+
+void fbrIPCTargetImportTimelineSemaphore(FbrApp *pApp, FbrIPCParamImportTimelineSemaphore *pParam);
+
 #endif //FABRIC_VULKAN_H
