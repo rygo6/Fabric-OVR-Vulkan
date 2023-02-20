@@ -29,6 +29,8 @@ typedef struct FbrVulkan {
 
     bool enableValidationLayers;
 
+    bool isChild;
+
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;

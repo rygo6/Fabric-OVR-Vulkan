@@ -65,6 +65,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              pApp->pTestNode->pFramebuffer->pTexture->imageView,
                              &pApp->testNodeDisplayDescriptorSet);
 
+
         HANDLE camDupHandle;
         DuplicateHandle(GetCurrentProcess(),
                         pApp->pCamera->ubo.externalMemory,
@@ -159,6 +160,11 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
 
 void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
+
+    if (pApp->parentTimelineSemaphore != NULL) {
+        CloseHandle(pApp->parentTimelineSemaphore);
+    }
+
     fbrDestroyIPC(pApp->pParentProcessReceiverIPC);
     fbrDestroyFrameBuffer(pApp->pVulkan, pApp->pParentProcessFramebuffer);
     fbrDestroyNode(pApp, pApp->pTestNode);

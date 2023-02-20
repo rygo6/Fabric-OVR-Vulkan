@@ -139,6 +139,8 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
     uint32_t vertLength;
     char *vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
     uint32_t fragLength;
+    // debug to crash child process
+//    char *fragShaderCode = readBinaryFile(pVulkan->isChild ? "./shaders/frag_crasher.spv" : "./shaders/frag.spv", &fragLength);
     char *fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
 
     VkShaderModule vertShaderModule = createShaderModule(pVulkan, vertShaderCode, vertLength);

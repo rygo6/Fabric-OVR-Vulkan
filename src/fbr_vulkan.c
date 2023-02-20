@@ -48,12 +48,16 @@ const char *pRequiredDeviceExtensions[] = {
 #endif
 };
 
+#define VK_FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT
+
+// any other way to get this into validation layer?
+static bool isChid;
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                     void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        FBR_LOG_DEBUG("validation layer", pCallbackData->pMessage);
+        FBR_LOG_DEBUG(isChid ? "Child Validation Layer" : "Parent Validation Layer", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
@@ -108,10 +112,6 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
     }
 
     return true;
-}
-
-void PrintDestroyChain(FbrVulkan *pVulkan) {
-    printf("Being Destroy Chain");
 }
 
 static VkResult createInstance(FbrVulkan *pVulkan) {
@@ -267,14 +267,15 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
     uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex };
 
-    float queuePriority = 1.0f;
+//    float queuePriority[] =  {pVulkan->isChild ? 0.1f : 1.0f, pVulkan->isChild ? 0.1f : 1.0f };
+    float queuePriority[] =  {1.0f };
     for (int i = 0; i < queueFamilyCount; ++i) {
         FBR_LOG_DEBUG("Creating queue with family.", uniqueQueueFamilies[i]);
         VkDeviceQueueCreateInfo queueCreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                 .queueFamilyIndex = uniqueQueueFamilies[i],
                 .queueCount = 1,
-                .pQueuePriorities = &queuePriority
+                .pQueuePriorities = queuePriority
         };
         queueCreateInfos[i] = queueCreateInfo;
     }
@@ -352,6 +353,7 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("failed to create logical device!");
     }
 
+//    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->queue);
     vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->queue);
 }
 
@@ -368,6 +370,8 @@ static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableF
 }
 
 static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t presentModeCount) {
+    // https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-2.html?language=en#_Toc445674479
+
     // This logic taken from OVR Vulkan Example
     // VK_PRESENT_MODE_FIFO_KHR - equivalent of eglSwapInterval(1).  The presentation engine waits for the next vertical blanking period to update
     // the current image. Tearing cannot be observed. This mode must be supported by all implementations.
@@ -392,6 +396,12 @@ static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availableP
             swapChainPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
         }
     }
+
+    // So in VR you probably want to use VK_PRESENT_MODE_IMMEDIATE_KHR and rely on the OVR/OXR synchronization
+    // but not in VR we probably want to use FIFO to go in hz of monitor
+    swapChainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    FBR_LOG_DEBUG("Selected Present Mode", swapChainPresentMode);
 
     return swapChainPresentMode;
 }
@@ -663,6 +673,33 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("failed to allocate command buffers!");
 }
 
+static VkResult createExternalTimelineSemaphore(FbrVulkan *pVulkan, VkSemaphore *pTimelineSemaphore) {
+    const VkExportSemaphoreWin32HandleInfoKHR exportSemaphoreWin32HandleInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
+            .pNext = VK_NULL_HANDLE,
+            .dwAccess = GENERIC_READ,
+            .pAttributes = VK_NULL_HANDLE,
+//            .name = L"FBR_SEMAPHORE"
+    };
+    const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+            .pNext = &exportSemaphoreWin32HandleInfo,
+            .handleTypes = VK_FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
+    };
+    const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            .pNext = &exportSemaphoreCreateInfo,
+            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+            .initialValue = 0,
+    };
+    const VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = &timelineSemaphoreTypeCreateInfo,
+            .flags = 0,
+    };
+    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, pTimelineSemaphore));
+}
+
 static VkResult createSyncObjects(FbrVulkan *pVulkan, bool externalTimeline) {
     const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
@@ -676,7 +713,6 @@ static VkResult createSyncObjects(FbrVulkan *pVulkan, bool externalTimeline) {
     };
     FBR_VK_CHECK_RETURN(vkCreateFence(pVulkan->device, &fenceCreateInfo, NULL, &pVulkan->queueFence));
 
-    const VkExternalSemaphoreHandleTypeFlagBits externalHandleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
     // TODO validate external timeline semaphore
 //    const VkSemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
 //            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
@@ -706,38 +742,14 @@ static VkResult createSyncObjects(FbrVulkan *pVulkan, bool externalTimeline) {
 //        FBR_LOG_ERROR("externalSemaphoreFeatures Does not supported VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT!");
 //    }
 
-    const VkExportSemaphoreWin32HandleInfoKHR exportSemaphoreWin32HandleInfo = {
-            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
-            .dwAccess = GENERIC_ALL,
-            .pAttributes = VK_NULL_HANDLE,
-            .name = L"FBR_SEMAPHORE"
-    };
-    const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
-//            .pNext = &exportSemaphoreWin32HandleInfo,
-            .handleTypes = externalHandleType,
-    };
-    const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-            .pNext = externalTimeline ? &exportSemaphoreCreateInfo : VK_NULL_HANDLE,
-            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-            .initialValue = 0,
-    };
-    const VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            .pNext = &timelineSemaphoreTypeCreateInfo,
-            .flags = 0,
-    };
-    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pVulkan->timelineSemaphore));
-
+    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, &pVulkan->timelineSemaphore));
 
 #if WIN32
     if (externalTimeline) {
         VkSemaphoreGetWin32HandleInfoKHR semaphoreGetWin32HandleInfo = {
                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
                 .pNext = VK_NULL_HANDLE,
-                .handleType = externalHandleType,
+                .handleType = VK_FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
                 .semaphore = pVulkan->timelineSemaphore,
         };
 
@@ -753,35 +765,16 @@ static VkResult createSyncObjects(FbrVulkan *pVulkan, bool externalTimeline) {
 
 static VkResult importTimelineSemaphore(FbrVulkan *pVulkan, HANDLE externalTimelineSemaphore, VkSemaphore *pTimelineSemaphore) {
 
-    const VkExternalSemaphoreHandleTypeFlagBits externalHandleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-    const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
-//            .pNext = &exportSemaphoreWin32HandleInfo,
-            .handleTypes = externalHandleType,
-    };
-    const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-            .pNext = &exportSemaphoreCreateInfo,
-            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-            .initialValue = 0,
-    };
-    const VkSemaphoreCreateInfo timelineSemaphoreCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            .pNext = &timelineSemaphoreTypeCreateInfo,
-            .flags = 0,
-    };
-    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, pTimelineSemaphore));
-
+    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, pTimelineSemaphore));
 
 #if WIN32
         const VkImportSemaphoreWin32HandleInfoKHR importSemaphoreWin32HandleInfoKhr = {
                 .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
                 .pNext = VK_NULL_HANDLE,
                 .handle = externalTimelineSemaphore,
-                .handleType = externalHandleType,
+                .handleType = VK_FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
                 .semaphore = *pTimelineSemaphore,
         };
-
         // TODO move to preloaded refs
         PFN_vkImportSemaphoreWin32HandleKHR importSemaphoreWin32HandleFunc = (PFN_vkImportSemaphoreWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkImportSemaphoreWin32HandleKHR");
         if (importSemaphoreWin32HandleFunc == NULL) {
@@ -852,6 +845,8 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
 void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWidth, int screenHeight, bool enableValidationLayers) {
     *ppAllocVulkan = calloc(1, sizeof(FbrVulkan));
     FbrVulkan *pVulkan = *ppAllocVulkan;
+    isChid = pApp->isChild;
+    pVulkan->isChild = pApp->isChild;
     pVulkan->enableValidationLayers = enableValidationLayers;
     pVulkan->screenWidth = screenWidth;
     pVulkan->screenHeight = screenHeight;
