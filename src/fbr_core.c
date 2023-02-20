@@ -254,12 +254,12 @@ static void childMainLoop(FbrApp *pApp) {
         // wait on timeline should be enough!!!
         vkQueueWaitIdle(pVulkan->queue);
 
-
 //        uint64_t value;
 //        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
 //        FBR_LOG_DEBUG("child import semaphore", value);
 
-
+        // Todo there is some trickery to de done here with multiple frames per child node framebuffer
+        // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
         beginFrameCommandBuffer(pApp);
 
         beginRenderPassImageless(pApp->pVulkan,
@@ -313,9 +313,9 @@ static void parentMainLoop(FbrApp *pApp) {
         vkQueueWaitIdle(pVulkan->queue);
 
 
-        uint64_t value;
-        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
-        FBR_LOG_DEBUG("parent import semaphore", value);
+//        uint64_t value;
+//        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
+//        FBR_LOG_DEBUG("parent import semaphore", value);
 
 
         processInputFrame(pApp);
@@ -350,6 +350,13 @@ static void parentMainLoop(FbrApp *pApp) {
             fbrUpdateTransformMatrix(&pApp->pMesh->transform);
             recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);
             //cube2
+
+//            glm_vec3_copy(pApp->pCamera->transform.pos, pApp->pTestNodeDisplayMesh->transform.pos);
+//            glm_quat_copy(pApp->pCamera->transform.rot, pApp->pTestNodeDisplayMesh->transform.rot);
+//            vec3 forward = {0.0f, 0.0f, -0.5f};
+//            glm_quat_rotatev(pApp->pCamera->transform.rot, forward, forward);
+//            glm_vec3_add(pApp->pTestNodeDisplayMesh->transform.pos,forward, pApp->pTestNodeDisplayMesh->transform.pos);
+
             fbrUpdateTransformMatrix(&pApp->pTestNodeDisplayMesh->transform);
             recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pTestNodeDisplayMesh, pApp->testNodeDisplayDescriptorSet);
             // end swap pass

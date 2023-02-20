@@ -32,7 +32,8 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             glm_quat_rotatev(pCamera->transform.rot, deltaPos, deltaPos);
             glm_vec3_add(pCamera->transform.pos, deltaPos, pCamera->transform.pos);
 
-            fbrUpdateTransformMatrix(&pCamera->transform);
+//            fbrUpdateTransformMatrix(&pCamera->transform);
+            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->transform.matrix);
             break;
         }
         case FBR_MOUSE_POS_INPUT: {
@@ -41,7 +42,8 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             glm_quatv(rotQ, glm_rad(yRot), GLM_YUP);
             glm_quat_mul(pCamera->transform.rot, rotQ, pCamera->transform.rot);
 
-            fbrUpdateTransformMatrix(&pCamera->transform);
+//            fbrUpdateTransformMatrix(&pCamera->transform);
+            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->transform.matrix);
             break;
         }
         case FBR_MOUSE_BUTTON_INPUT: {
