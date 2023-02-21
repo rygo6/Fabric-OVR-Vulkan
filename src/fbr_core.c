@@ -224,7 +224,9 @@ static void childMainLoop(FbrApp *pApp) {
 
     Sleep(100);
 
+    const uint64_t timelineStep = 4;
     vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &pApp->parentTimelineValue);
+    pApp->parentTimelineValue += timelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pApp->parentTimelineValue);
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
@@ -234,25 +236,24 @@ static void childMainLoop(FbrApp *pApp) {
 
 //        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
-//        waitForTimeLine(pVulkan, &pApp->pVulkan->timelineSemaphore, pVulkan->timelineValue);
-
-        const uint64_t waitValues[2] = { pApp->parentTimelineValue, pVulkan->timelineValue };
-        const VkSemaphore waitSemaphores[2] = { pApp->parentTimelineSemaphore, pVulkan->timelineSemaphore };
-        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                .pNext = NULL,
-                .flags = 0,
-                .semaphoreCount = 2,
-                .pSemaphores = waitSemaphores,
-                .pValues = waitValues,
-        };
-        vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
-        pApp->parentTimelineValue += 40;
+        // wait for child timeline sempahore to finish
+        waitForTimeLine(pVulkan, &pApp->pVulkan->timelineSemaphore, pVulkan->timelineValue);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!!
         if (pApp->pVulkan->enableValidationLayers)
             vkQueueWaitIdle(pVulkan->queue);
+
+        // check parent timeline semaphore, if parent timeline value past what it should be
+        // it means child took too long to render
+        uint64_t value;
+        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
+        if (value >= pApp->parentTimelineValue) {
+            FBR_LOG_DEBUG("Child took to long!", value, pApp->parentTimelineValue);
+            pApp->parentTimelineValue = value;
+        }
+        pApp->parentTimelineValue += timelineStep;
+
 
 //        uint64_t value;
 //        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
@@ -315,9 +316,9 @@ static void parentMainLoop(FbrApp *pApp) {
             vkQueueWaitIdle(pVulkan->queue);
 
 
-        uint64_t value;
-        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
-        FBR_LOG_DEBUG("parent import semaphore", value % 16);
+//        uint64_t value;
+//        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
+//        FBR_LOG_DEBUG("parent import semaphore", value % 16);
 
 
         processInputFrame(pApp);
