@@ -41,6 +41,8 @@ typedef struct FbrVulkan {
     VkQueue queue;
     uint32_t graphicsQueueFamilyIndex;
 
+    VkRenderPass renderPass;
+
     VkSwapchainKHR swapChain;
     uint32_t swapImageCount;
     VkImage *pSwapImages;
@@ -49,7 +51,6 @@ typedef struct FbrVulkan {
     VkImageUsageFlags swapUsage;
     VkExtent2D swapExtent;
     VkFramebuffer swapFramebuffer;
-    VkRenderPass swapRenderPass;
     VkDescriptorSet swapDescriptorSet;
 
     VkSemaphore swapAcquireComplete;

@@ -53,8 +53,7 @@ static void processInputFrame(FbrApp *pApp) {
     }
 }
 
-static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass renderPass, VkFramebuffer framebuffer, VkImageView imageView) {
-    VkClearValue clearColor = {{{0.1f, 0.2f, 0.05f, 1.0f}}};
+static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass renderPass, VkFramebuffer framebuffer, VkImageView imageView, VkClearValue clearColor) {
     VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
             .attachmentCount = 1,
@@ -183,7 +182,6 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
 //                   pApp->pVulkan->queueFence);
                    VK_NULL_HANDLE);
 
-
     const VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
@@ -213,7 +211,8 @@ static void beginFrameCommandBuffer(FbrApp *pApp) {
     vkCmdSetViewport(pApp->pVulkan->commandBuffer, 0, 1, &viewport);
     VkRect2D scissor = {
             .offset = {0, 0},
-            .extent = pApp->pVulkan->swapExtent,
+            .extent.width = pApp->pVulkan->swapExtent.width,
+            .extent.height = pApp->pVulkan->swapExtent.height,
     };
     vkCmdSetScissor(pApp->pVulkan->commandBuffer, 0, 1, &scissor);
 }
@@ -248,11 +247,12 @@ static void childMainLoop(FbrApp *pApp) {
                 .pValues = waitValues,
         };
         vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
-        pApp->parentTimelineValue += 2;
+        pApp->parentTimelineValue += 40;
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!!
-        vkQueueWaitIdle(pVulkan->queue);
+        if (pApp->pVulkan->enableValidationLayers)
+            vkQueueWaitIdle(pVulkan->queue);
 
 //        uint64_t value;
 //        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
@@ -265,18 +265,19 @@ static void childMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pApp->pVulkan,
                                  pApp->pParentProcessFramebuffer->renderPass,
                                  pApp->pParentProcessFramebuffer->framebuffer,
-                                 pApp->pParentProcessFramebuffer->pTexture->imageView);
+                                 pApp->pParentProcessFramebuffer->pTexture->imageView,
+                                 (VkClearValue){{{0.0f, 0.0f, 0.00f, 0.0f}}});
         //cube 1
-        fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->parentFramebufferDescriptorSet);
+        fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
+        recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->parentFramebufferDescriptorSet);
         // end framebuffer pass
         vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 
         //swap pass
-//            beginRenderPass(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
+//            beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
 //            //cube 1
-//            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-//            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh);
+//            fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
+//            recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh);
 //            // end swap pass
 //            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 
@@ -310,12 +311,13 @@ static void parentMainLoop(FbrApp *pApp) {
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!
-        vkQueueWaitIdle(pVulkan->queue);
+        if (pApp->pVulkan->enableValidationLayers)
+            vkQueueWaitIdle(pVulkan->queue);
 
 
-//        uint64_t value;
-//        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
-//        FBR_LOG_DEBUG("parent import semaphore", value);
+        uint64_t value;
+        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
+        FBR_LOG_DEBUG("parent import semaphore", value % 16);
 
 
         processInputFrame(pApp);
@@ -345,20 +347,20 @@ static void parentMainLoop(FbrApp *pApp) {
             beginFrameCommandBuffer(pApp);
 
             //swap pass
-            beginRenderPassImageless(pApp->pVulkan, pApp->pVulkan->swapRenderPass, pApp->pVulkan->swapFramebuffer, pApp->pVulkan->pSwapImageViews[swapIndex]);
+            beginRenderPassImageless(pApp->pVulkan,
+                                     pApp->pVulkan->renderPass,
+                                     pApp->pVulkan->swapFramebuffer,
+                                     pApp->pVulkan->pSwapImageViews[swapIndex],
+                                     (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
             //cube 1
-            fbrUpdateTransformMatrix(&pApp->pMesh->transform);
-            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pMesh, pApp->pVulkan->swapDescriptorSet);
+            fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
+            recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pVulkan->swapDescriptorSet);
             //cube2
 
-//            glm_vec3_copy(pApp->pCamera->transform.pos, pApp->pTestNodeDisplayMesh->transform.pos);
-//            glm_quat_copy(pApp->pCamera->transform.rot, pApp->pTestNodeDisplayMesh->transform.rot);
-//            vec3 forward = {0.0f, 0.0f, -0.5f};
-//            glm_quat_rotatev(pApp->pCamera->transform.rot, forward, forward);
-//            glm_vec3_add(pApp->pTestNodeDisplayMesh->transform.pos,forward, pApp->pTestNodeDisplayMesh->transform.pos);
+            glm_quat_copy(pApp->pCamera->transform.rot, pApp->pCompMesh->transform.rot);
+            fbrUpdateTransformMatrix(&pApp->pCompMesh->transform);
 
-            fbrUpdateTransformMatrix(&pApp->pTestNodeDisplayMesh->transform);
-            recordRenderPass(pApp->pVulkan, pApp->pPipeline, pApp->pTestNodeDisplayMesh, pApp->testNodeDisplayDescriptorSet);
+            recordRenderPass(pApp->pVulkan, pApp->pCompPipeline, pApp->pCompMesh, pApp->compDescriptorSet);
             // end swap pass
             vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 

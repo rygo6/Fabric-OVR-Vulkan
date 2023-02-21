@@ -596,11 +596,11 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             .pDependencies = dependencies,
     };
 
-    FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->swapRenderPass));
+    FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));
 }
 
-static void createFramebuffers(FbrVulkan *pVulkan) {
-    VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
+static VkResult createFramebuffer(FbrVulkan *pVulkan) {
+    const VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
             .width = pVulkan->swapExtent.width,
             .height = pVulkan->swapExtent.height,
@@ -609,22 +609,22 @@ static void createFramebuffers(FbrVulkan *pVulkan) {
             .pViewFormats = &pVulkan->swapImageFormat,
             .viewFormatCount = 1,
     };
-    VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
+    const VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
             .attachmentImageInfoCount = 1,
             .pAttachmentImageInfos = &framebufferAttachmentImageInfo,
     };
-    VkFramebufferCreateInfo framebufferCreateInfo = {
+    const VkFramebufferCreateInfo framebufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .pNext = &framebufferAttachmentsCreateInfo,
-            .renderPass = pVulkan->swapRenderPass,
+            .renderPass = pVulkan->renderPass,
             .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
             .width = pVulkan->swapExtent.width,
             .height = pVulkan->swapExtent.height,
             .layers = 1,
             .attachmentCount = 1,
     };
-    vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->swapFramebuffer);
+    FBR_VK_CHECK_RETURN(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->swapFramebuffer));
 }
 
 static void createCommandPool(FbrVulkan *pVulkan) {
@@ -633,7 +633,6 @@ static void createCommandPool(FbrVulkan *pVulkan) {
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
     };
-
     FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device, &poolInfo, NULL, &pVulkan->commandPool));
 }
 
@@ -833,7 +832,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     createSwapChain(pVulkan);
     createImageViews(pVulkan);
     createRenderPass(pVulkan);
-    createFramebuffers(pVulkan);
+    createFramebuffer(pVulkan);
     createCommandPool(pVulkan);
     createCommandBuffer(pVulkan);
     createSyncObjects(pVulkan, !pApp->isChild);
@@ -875,7 +874,7 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
     vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, NULL);
 
-    vkDestroyRenderPass(pVulkan->device, pVulkan->swapRenderPass, NULL);
+    vkDestroyRenderPass(pVulkan->device, pVulkan->renderPass, NULL);
 
     free(pVulkan->pSwapImages);
     free(pVulkan->pSwapImageViews);

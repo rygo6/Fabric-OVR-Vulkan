@@ -15,6 +15,8 @@ typedef struct FbrNode {
     FbrIPC *pProducerIPC;
     FbrIPC *pReceiverIPC;
 
+    uint16_t radius;
+
 } FbrNode;
 
 void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);

@@ -33,14 +33,17 @@ typedef struct FbrApp {
     FbrCamera *pCamera;
     FbrTime *pTime;
 
-    FbrMesh *pMesh;
-    FbrTexture *pTexture;
-    FbrPipeline *pPipeline;
+    FbrMesh *pTestQuadMesh;
+    FbrTexture *pTestTexture;
+
+    FbrPipeline *pSwapPipeline;
+
+    FbrPipeline *pCompPipeline;
+    FbrMesh *pCompMesh;
+    VkDescriptorSet compDescriptorSet;
 
     // parent tests
     FbrNode *pTestNode;
-    FbrMesh *pTestNodeDisplayMesh;
-    VkDescriptorSet testNodeDisplayDescriptorSet;
 
     // child tests
     FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type

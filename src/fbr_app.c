@@ -43,27 +43,40 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         fbrCreateCamera(pApp->pVulkan, &pApp->pCamera);
 
-        fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-        fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/test.jpg", true);
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pVulkan->swapRenderPass, &pApp->pPipeline);
-        fbrInitDescriptorSet(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pTexture->imageView, &pApp->pVulkan->swapDescriptorSet);
+        fbrCreateMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
+        fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTestTexture, "textures/test.jpg", true);
+        fbrCreatePipeline(pApp->pVulkan,
+                          pApp->pVulkan->renderPass,
+                          "./shaders/vert.spv",
+                          "./shaders/frag.spv",
+                          &pApp->pSwapPipeline);
+        fbrInitDescriptorSet(pApp->pVulkan,
+                             pApp->pCamera,
+                             pApp->pSwapPipeline->descriptorSetLayout,
+                             pApp->pTestTexture->imageView,
+                             &pApp->pVulkan->swapDescriptorSet);
 
         // render texture
-//        fbrCreateMesh(pApp->pVulkan, &pApp->pTestNodeDisplayMesh);
-//        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTexture->externalMemory, pApp->pTexture->width, pApp->pTexture->height);
-//        glm_vec3_add(pApp->pTestNodeDisplayMesh->transform.pos, (vec3) {1,0,0}, pApp->pTestNodeDisplayMesh->transform.pos);
-//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->swapRenderPass, &pApp->pPipelineExternalTest);
+//        fbrCreateMesh(pApp->pVulkan, &pApp->pCompMesh);
+//        fbrImportTexture(pApp->pVulkan, &pApp->pTextureExternalTest, pApp->pTestTexture->externalMemory, pApp->pTestTexture->width, pApp->pTestTexture->height);
+//        glm_vec3_add(pApp->pCompMesh->transform.pos, (vec3) {1,0,0}, pApp->pCompMesh->transform.pos);
+//        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
 
         // test node display
-        fbrCreateMesh(pApp->pVulkan, &pApp->pTestNodeDisplayMesh);
-        glm_vec3_add(pApp->pTestNodeDisplayMesh->transform.pos, (vec3) {1, 0, 0}, pApp->pTestNodeDisplayMesh->transform.pos);
+        fbrCreateMesh(pApp->pVulkan, &pApp->pCompMesh);
+        glm_vec3_add(pApp->pCompMesh->transform.pos, (vec3) {1, 0, 0}, pApp->pCompMesh->transform.pos);
+        fbrCreatePipeline(pApp->pVulkan,
+                          pApp->pVulkan->renderPass,
+                          "./shaders/vert_comp.spv",
+                          "./shaders/frag.spv",
+                          &pApp->pCompPipeline);
         fbrInitDescriptorSet(pApp->pVulkan,
-                             pApp->pPipeline,
                              pApp->pCamera,
+                             pApp->pCompPipeline->descriptorSetLayout,
                              pApp->pTestNode->pFramebuffer->pTexture->imageView,
-                             &pApp->testNodeDisplayDescriptorSet);
+                             &pApp->compDescriptorSet);
 
 
         HANDLE camDupHandle;
@@ -96,8 +109,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                 .height = pApp->pTestNode->pFramebuffer->pTexture->extent.height
         };
         fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_FRAMEBUFFER, &texParam);
-        printf("external pTexture handle d %lld\n", texParam.handle);
-        printf("external pTexture handle p %p\n", texParam.handle);
+        printf("external pTestTexture handle d %lld\n", texParam.handle);
+        printf("external pTestTexture handle p %p\n", texParam.handle);
 
         HANDLE semDupHandle;
         DuplicateHandle(GetCurrentProcess(),
@@ -111,8 +124,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                 .handle = semDupHandle,
         };
         fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_TIMELINE_SEMAPHORE, &semParam);
-        printf("external pTexture handle d %lld\n", semParam.handle);
-        printf("external pTexture handle p %p\n", semParam.handle);
+        printf("external pTestTexture handle d %lld\n", semParam.handle);
+        printf("external pTestTexture handle p %p\n", semParam.handle);
 
     } else {
 
@@ -136,12 +149,20 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 //            Sleep(1000);
         }
 
-        fbrCreateMesh(pApp->pVulkan, &pApp->pMesh);
-        glm_vec3_add(pApp->pMesh->transform.pos, (vec3) {1,0,0}, pApp->pMesh->transform.pos);
-        fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTexture, "textures/UV_Grid_Sm.jpg", false);
+        fbrCreateMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
+        glm_vec3_add(pApp->pTestQuadMesh->transform.pos, (vec3) {1, 0, 0}, pApp->pTestQuadMesh->transform.pos);
+        fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTestTexture, "textures/UV_Grid_Sm.jpg", false);
 
-        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pParentProcessFramebuffer->renderPass, &pApp->pPipeline);
-        fbrInitDescriptorSet(pApp->pVulkan, pApp->pPipeline, pApp->pCamera, pApp->pTexture->imageView, &pApp->parentFramebufferDescriptorSet);
+        fbrCreatePipeline(pApp->pVulkan,
+                          pApp->pParentProcessFramebuffer->renderPass,
+                          "./shaders/vert.spv",
+                          "./shaders/frag.spv",
+                          &pApp->pSwapPipeline);
+        fbrInitDescriptorSet(pApp->pVulkan,
+                             pApp->pCamera,
+                             pApp->pSwapPipeline->descriptorSetLayout,
+                             pApp->pTestTexture->imageView,
+                             &pApp->parentFramebufferDescriptorSet);
     }
 }
 
@@ -168,15 +189,15 @@ void fbrCleanup(FbrApp *pApp) {
     fbrDestroyIPC(pApp->pParentProcessReceiverIPC);
     fbrDestroyFrameBuffer(pApp->pVulkan, pApp->pParentProcessFramebuffer);
     fbrDestroyNode(pApp, pApp->pTestNode);
-    fbrCleanupMesh(pApp->pVulkan, pApp->pTestNodeDisplayMesh);
-    vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->testNodeDisplayDescriptorSet);
+    fbrCleanupMesh(pApp->pVulkan, pApp->pCompMesh);
+    vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compDescriptorSet);
     vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->parentFramebufferDescriptorSet);
 
-    fbrDestroyTexture(pApp->pVulkan, pApp->pTexture);
-    fbrCleanupMesh(pApp->pVulkan, pApp->pMesh);
+    fbrDestroyTexture(pApp->pVulkan, pApp->pTestTexture);
+    fbrCleanupMesh(pApp->pVulkan, pApp->pTestQuadMesh);
 
     fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
-    fbrCleanupPipeline(pApp->pVulkan, pApp->pPipeline);
+    fbrCleanupPipeline(pApp->pVulkan, pApp->pSwapPipeline);
 
     fbrCleanupVulkan(pApp->pVulkan);
 

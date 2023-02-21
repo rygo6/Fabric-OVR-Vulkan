@@ -54,7 +54,7 @@ static void importTexture(const FbrVulkan *pVulkan,
                           HANDLE externalMemory,
                           FbrTexture *pTexture) {
 
-    FBR_LOG_DEBUG("Loading pTexture from external handle.", pTexture->externalMemory, extent.width, extent.height);
+    FBR_LOG_DEBUG("Loading pTestTexture from external handle.", pTexture->externalMemory, extent.width, extent.height);
 
     VkExternalMemoryHandleTypeFlags externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
     VkExternalMemoryImageCreateInfo externalImageInfo = {
@@ -93,7 +93,7 @@ static void importTexture(const FbrVulkan *pVulkan,
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
 //            .pNext = VK_NULL_HANDLE,
-//            .image = pTexture->image,
+//            .image = pTestTexture->image,
 //            .buffer = VK_NULL_HANDLE
 //    };
     VkImportMemoryWin32HandleInfoKHR importMemoryInfo = {
@@ -181,7 +181,7 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     // not sure if dedicated is needed???
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
-//            .image = pTexture->image,
+//            .image = pTestTexture->image,
 //            .buffer = VK_NULL_HANDLE,
 //    };
     VkExportMemoryAllocateInfo exportAllocInfo = {
@@ -286,7 +286,7 @@ static void createTextureView(const FbrVulkan *pVulkan, FbrTexture *pTexture, Vk
     };
 
     if (vkCreateImageView(pVulkan->device, &viewInfo, NULL, &pTexture->imageView) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create pTexture image view!");
+        FBR_LOG_DEBUG("failed to create pTestTexture image view!");
     }
 }
 
@@ -297,10 +297,10 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
     stbi_uc *pixels = stbi_load(filename, &width, &height, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageBufferSize = width * height * 4;
 
-    FBR_LOG_DEBUG("Loading pTexture from file.", filename, width, height, texChannels);
+    FBR_LOG_DEBUG("Loading pTestTexture from file.", filename, width, height, texChannels);
 
     if (!pixels) {
-        FBR_LOG_DEBUG("Failed to load pTexture image!");
+        FBR_LOG_DEBUG("Failed to load pTestTexture image!");
     }
 
     VkExtent2D extent = {width, height};

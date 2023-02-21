@@ -71,14 +71,18 @@ static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipe
     }
 }
 
-void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrCamera *pCameraState, VkImageView imageView, VkDescriptorSet *pDescriptorSet) {
+void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
+                          const FbrCamera *pCameraState,
+                          VkDescriptorSetLayout descriptorSetLayout,
+                          VkImageView imageView,
+                          VkDescriptorSet *pDescriptorSet) {
+
     VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = pVulkan->descriptorPool,
             .descriptorSetCount = 1,
-            .pSetLayouts = &pPipeline->descriptorSetLayout,
+            .pSetLayouts = &descriptorSetLayout,
     };
-
     FBR_VK_CHECK(vkAllocateDescriptorSets(pVulkan->device, &allocInfo, pDescriptorSet));
 
     VkDescriptorBufferInfo bufferInfo = {
@@ -86,13 +90,11 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline
             .offset = 0,
             .range = sizeof(FbrCameraUBO),
     };
-
     VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = imageView,
             .sampler = pVulkan->sampler,
     };
-
     VkWriteDescriptorSet descriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -113,7 +115,6 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline
                     .pImageInfo = &imageInfo,
             },
     };
-
     vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
 }
 
@@ -135,33 +136,33 @@ static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline)
     FBR_VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout));
 }
 
-static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrPipeline *pPipeline) {
+static void initPipeline(const FbrVulkan *pVulkan,
+                         VkRenderPass renderPass,
+                         const char* pVertShaderPath,
+                         const char* pFragShaderPath,
+                         FbrPipeline *pPipeline) {
     uint32_t vertLength;
-    char *vertShaderCode = readBinaryFile("./shaders/vert.spv", &vertLength);
+    char *vertShaderCode = readBinaryFile(pVertShaderPath, &vertLength);
     uint32_t fragLength;
-    // debug to crash child process
-//    char *fragShaderCode = readBinaryFile(pVulkan->isChild ? "./shaders/frag_crasher.spv" : "./shaders/frag.spv", &fragLength);
-    char *fragShaderCode = readBinaryFile("./shaders/frag.spv", &fragLength);
+    char *fragShaderCode = readBinaryFile(pFragShaderPath, &fragLength);
 
     VkShaderModule vertShaderModule = createShaderModule(pVulkan, vertShaderCode, vertLength);
     VkShaderModule fragShaderModule = createShaderModule(pVulkan, fragShaderCode, fragLength);
 
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertShaderModule,
-            .pName = "main",
+    VkPipelineShaderStageCreateInfo shaderStages[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .stage = VK_SHADER_STAGE_VERTEX_BIT,
+                    .module = vertShaderModule,
+                    .pName = "main",
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .module = fragShaderModule,
+                    .pName = "main",
+            }
     };
-
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = fragShaderModule,
-            .pName = "main",
-    };
-
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
     VkVertexInputBindingDescription bindingDescription[1] = {
             {
                     .binding = 0,
@@ -169,7 +170,6 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
                     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
             }
     };
-
     VkVertexInputAttributeDescription attributeDescriptions[3] = {
             {
                     .binding = 0,
@@ -190,7 +190,6 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
                     .offset = offsetof(Vertex, texCoord),
             }
     };
-
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount = 1,
@@ -198,19 +197,16 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
             .pVertexBindingDescriptions = bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
-
     VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE,
     };
-
     VkPipelineViewportStateCreateInfo viewportState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             .viewportCount = 1,
             .scissorCount = 1,
     };
-
     VkPipelineRasterizationStateCreateInfo rasterizer = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             .depthClampEnable = VK_FALSE,
@@ -221,18 +217,15 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
             .frontFace = VK_FRONT_FACE_CLOCKWISE,
             .depthBiasEnable = VK_FALSE,
     };
-
     VkPipelineMultisampleStateCreateInfo multisampling = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .sampleShadingEnable = VK_FALSE,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
     };
-
     VkPipelineColorBlendAttachmentState colorBlendAttachment = {
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
             .blendEnable = VK_FALSE,
     };
-
     VkPipelineColorBlendStateCreateInfo colorBlending = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE,
@@ -244,18 +237,15 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
             .blendConstants[2] = 0.0f,
             .blendConstants[3] = 0.0f,
     };
-
-    uint32_t dynamicStateCount = 2;
     VkDynamicState dynamicStates[] = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
     };
     VkPipelineDynamicStateCreateInfo dynamicState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            .dynamicStateCount = dynamicStateCount,
+            .dynamicStateCount = 2,
             .pDynamicStates = dynamicStates,
     };
-
     VkGraphicsPipelineCreateInfo pipelineInfo = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .stageCount = 2,
@@ -272,7 +262,6 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
     };
-
     if (vkCreateGraphicsPipelines(pVulkan->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pPipeline->graphicsPipeline) != VK_SUCCESS) {
         FBR_LOG_DEBUG("Failed to create graphics pipeline!");
     }
@@ -284,18 +273,18 @@ static void initPipeline(const FbrVulkan *pVulkan, VkRenderPass renderPass, FbrP
 }
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
-                       const FbrCamera *pCameraState,
-//                       VkImageView imageView,
                        VkRenderPass renderPass,
+                       const char* pVertShaderPath,
+                       const char* pFragShaderPath,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
 
     initDescriptorSetLayout(pVulkan, pPipeline);
-//    initDescriptorSets(pVulkan, pCameraState, imageView, pPipeline);
 
     initPipelineLayout(pVulkan, pPipeline);
-    initPipeline(pVulkan, renderPass, pPipeline);
+
+    initPipeline(pVulkan, renderPass, pVertShaderPath, pFragShaderPath, pPipeline);
 }
 
 void fbrCleanupPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {

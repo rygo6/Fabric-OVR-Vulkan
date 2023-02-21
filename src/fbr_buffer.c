@@ -87,7 +87,7 @@ void fbrImportBuffer(const FbrVulkan *pVulkan,
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
 //            .pNext = VK_NULL_HANDLE,
-//            .image = pTexture->image,
+//            .image = pTestTexture->image,
 //            .buffer = VK_NULL_HANDLE
 //    };
     VkImportMemoryWin32HandleInfoKHR importMemoryInfo = {
