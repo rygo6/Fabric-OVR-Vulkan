@@ -16,7 +16,7 @@ typedef struct FbrEntity {
     int entityId;
 } FbrEntity;
 
-void fbrInitTransform(FbrTransform *transform);
+void fbrInitTransform(FbrTransform *transform); // should this be pointer? prolly
 
 void fbrUpdateTransformMatrix(FbrTransform *transform);
 

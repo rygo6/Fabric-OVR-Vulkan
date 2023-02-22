@@ -7,6 +7,7 @@
 #include "fbr_vulkan.h"
 #include "fbr_input.h"
 #include "fbr_node.h"
+#include "fbr_framebuffer.h"
 
 #include "cglm/cglm.h"
 
@@ -93,6 +94,28 @@ static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
     vkCmdPushConstants(pVulkan->commandBuffer, pPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
 
     vkCmdDrawIndexed(pVulkan->commandBuffer, pMesh->indexCount, 1, 0, 0, 0);
+}
+
+static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrNode *pNode, VkDescriptorSet descriptorSet) {
+    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->graphicsPipeline);
+    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pPipeline->pipelineLayout,
+                            0,
+                            1,
+                            &descriptorSet,
+                            0,
+                            NULL);
+
+    VkBuffer vertexBuffers[] = {pNode->vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindIndexBuffer(pVulkan->commandBuffer, pNode->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+    vkCmdPushConstants(pVulkan->commandBuffer, pPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
+
+    vkCmdDrawIndexed(pVulkan->commandBuffer, pNode->indexCount, 1, 0, 0, 0);
 }
 
 static void submitQueue(FbrVulkan *pVulkan) {
@@ -237,20 +260,22 @@ static void childMainLoop(FbrApp *pApp) {
 //        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
         // wait for child timeline sempahore to finish
-        waitForTimeLine(pVulkan, &pApp->pVulkan->timelineSemaphore, pVulkan->timelineValue);
+        waitForTimeLine(pVulkan, &pVulkan->timelineSemaphore, pVulkan->timelineValue);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!!
-        if (pApp->pVulkan->enableValidationLayers)
+        if (pVulkan->enableValidationLayers)
             vkQueueWaitIdle(pVulkan->queue);
 
         // check parent timeline semaphore, if parent timeline value past what it should be
         // it means child took too long to render
         uint64_t value;
-        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
+        vkGetSemaphoreCounterValue(pVulkan->device, pApp->parentTimelineSemaphore, &value);
         if (value >= pApp->parentTimelineValue) {
             FBR_LOG_DEBUG("Child took to long!", value, pApp->parentTimelineValue);
             pApp->parentTimelineValue = value;
+        } else {
+            waitForTimeLine(pVulkan, &pApp->parentTimelineSemaphore, pApp->parentTimelineValue);
         }
         pApp->parentTimelineValue += timelineStep;
 
@@ -263,16 +288,16 @@ static void childMainLoop(FbrApp *pApp) {
         // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
         beginFrameCommandBuffer(pApp);
 
-        beginRenderPassImageless(pApp->pVulkan,
+        beginRenderPassImageless(pVulkan,
                                  pApp->pParentProcessFramebuffer->renderPass,
                                  pApp->pParentProcessFramebuffer->framebuffer,
                                  pApp->pParentProcessFramebuffer->pTexture->imageView,
                                  (VkClearValue){{{0.0f, 0.0f, 0.00f, 0.0f}}});
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-        recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->parentFramebufferDescriptorSet);
+        recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->parentFramebufferDescriptorSet);
         // end framebuffer pass
-        vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+        vkCmdEndRenderPass(pVulkan->commandBuffer);
 
         //swap pass
 //            beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
@@ -282,8 +307,8 @@ static void childMainLoop(FbrApp *pApp) {
 //            // end swap pass
 //            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 
-        vkEndCommandBuffer(pApp->pVulkan->commandBuffer);
-        submitQueue(pApp->pVulkan);
+        vkEndCommandBuffer(pVulkan->commandBuffer);
+        submitQueue(pVulkan);
     }
 
 }
@@ -358,10 +383,10 @@ static void parentMainLoop(FbrApp *pApp) {
             recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pVulkan->swapDescriptorSet);
             //cube2
 
-            glm_quat_copy(pApp->pCamera->transform.rot, pApp->pCompMesh->transform.rot);
-            fbrUpdateTransformMatrix(&pApp->pCompMesh->transform);
 
-            recordRenderPass(pApp->pVulkan, pApp->pCompPipeline, pApp->pCompMesh, pApp->compDescriptorSet);
+            fbrUpdateNodeMesh(pApp->pTestNode, pApp->pCamera);
+            recordNodeRenderPass(pApp->pVulkan, pApp->pCompPipeline, pApp->pTestNode, pApp->compDescriptorSet);
+
             // end swap pass
             vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 

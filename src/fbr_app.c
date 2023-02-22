@@ -9,6 +9,7 @@
 #include "fbr_ipc.h"
 #include "fbr_ipc_targets.h"
 #include "fbr_node.h"
+#include "fbr_process.h"
 
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
@@ -63,10 +64,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 //        fbrCreatePipeline(pApp->pVulkan, pApp->pCamera, pApp->pTextureExternalTest->imageView, pApp->pVulkan->renderPass, &pApp->pPipelineExternalTest);
 
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
+        glm_vec3_add(pApp->pTestNode->transform.pos, (vec3) {1, 0, 0}, pApp->pTestNode->transform.pos);
 
-        // test node display
-        fbrCreateMesh(pApp->pVulkan, &pApp->pCompMesh);
-        glm_vec3_add(pApp->pCompMesh->transform.pos, (vec3) {1, 0, 0}, pApp->pCompMesh->transform.pos);
         fbrCreatePipeline(pApp->pVulkan,
                           pApp->pVulkan->renderPass,
                           "./shaders/vert_comp.spv",
@@ -157,6 +156,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                           pApp->pParentProcessFramebuffer->renderPass,
                           "./shaders/vert.spv",
                           "./shaders/frag.spv",
+//                          "./shaders/frag_crasher.spv",
                           &pApp->pSwapPipeline);
         fbrInitDescriptorSet(pApp->pVulkan,
                              pApp->pCamera,
@@ -188,8 +188,8 @@ void fbrCleanup(FbrApp *pApp) {
 
     fbrDestroyIPC(pApp->pParentProcessReceiverIPC);
     fbrDestroyFrameBuffer(pApp->pVulkan, pApp->pParentProcessFramebuffer);
-    fbrDestroyNode(pApp, pApp->pTestNode);
-    fbrCleanupMesh(pApp->pVulkan, pApp->pCompMesh);
+    fbrDestroyNode(pApp->pVulkan, pApp->pTestNode);
+
     vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compDescriptorSet);
     vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->parentFramebufferDescriptorSet);
 

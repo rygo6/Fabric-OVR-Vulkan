@@ -63,16 +63,8 @@ void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, H
     FbrCamera *pCamera = *ppAllocCameraState;
 
     // don't need to set or map anything because parent does it!
-//    fbrInitTransform(&pCamera->transform);
-//    glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
-//    glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
-//    glm_perspective(90, 1, .01f, 10, pCamera->proj);
-//    fbrUpdateTransformMatrix(&pCamera->transform);
 
     fbrImportUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO), externalMemory);
-
-//    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
-//    fbrUpdateCameraUBO(pCamera);
 }
 
 void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {

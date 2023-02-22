@@ -11,7 +11,6 @@ typedef struct Vertex {
 } Vertex;
 
 typedef struct FbrMesh {
-    FbrEntity entity;
     FbrTransform transform;
 
     uint32_t indexCount;

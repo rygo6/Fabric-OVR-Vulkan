@@ -1,12 +1,20 @@
 #ifndef FABRIC_NODE_H
 #define FABRIC_NODE_H
 
-#include "fbr_process.h"
-#include "fbr_framebuffer.h"
-#include "fbr_ipc.h"
+#include "fbr_app.h"
+#include "fbr_transform.h"
+
+typedef struct FbrNodeVertex {
+    vec2 pos;
+    vec2 texCoord;
+} FbrNodeVertex;
 
 typedef struct FbrNode {
+    FbrTransform transform;
+
     char *pName;
+
+    uint16_t radius;
 
     FbrProcess *pProcess;
 
@@ -15,12 +23,21 @@ typedef struct FbrNode {
     FbrIPC *pProducerIPC;
     FbrIPC *pReceiverIPC;
 
-    uint16_t radius;
+    uint32_t indexCount;
+    uint32_t vertexCount;
+    void *pIndexMappedBuffer;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
+    void *pVertexMappedBuffer;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 
 } FbrNode;
 
+void fbrUpdateNodeMesh(FbrNode *pNode, FbrCamera *pCamera);
+
 void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
 
-void fbrDestroyNode(const FbrApp *pApp, FbrNode *pNode);
+void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode);
 
 #endif //FABRIC_NODE_H
