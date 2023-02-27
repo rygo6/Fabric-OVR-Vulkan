@@ -3,6 +3,8 @@
 
 #include "fbr_app.h"
 
+#include <cglm/cglm.h>
+
 typedef struct FbrComponent {
 } FbrComponent;
 
@@ -19,5 +21,11 @@ typedef struct FbrEntity {
 void fbrInitTransform(FbrTransform *transform); // should this be pointer? prolly
 
 void fbrUpdateTransformMatrix(FbrTransform *transform);
+
+void fbrTransformUp(FbrTransform *pTransform, vec3 dest);
+
+void fbrTransformRight(FbrTransform *pTransform, vec3 dest);
+
+void fbrTransformForward(FbrTransform *pTransform, vec3 dest);
 
 #endif //FABRIC_TRANSFORM_H

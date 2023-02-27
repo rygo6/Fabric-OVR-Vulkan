@@ -69,6 +69,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreatePipeline(pApp->pVulkan,
                           pApp->pVulkan->renderPass,
                           "./shaders/vert_comp.spv",
+//                          "./shaders/vert.spv",
                           "./shaders/frag.spv",
                           &pApp->pCompPipeline);
         fbrInitDescriptorSet(pApp->pVulkan,

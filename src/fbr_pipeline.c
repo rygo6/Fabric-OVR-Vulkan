@@ -42,7 +42,8 @@ static VkShaderModule createShaderModule(const FbrVulkan *pVulkan, const char *c
     return shaderModule;
 }
 
-static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
+// Describes the layout of inputs for shaders
+static VkResult initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
@@ -66,11 +67,10 @@ static void initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipe
             .pBindings = bindings,
     };
 
-    if (vkCreateDescriptorSetLayout(pVulkan->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Failed to create descriptor set layout!");
-    }
+    FBR_VK_CHECK_RETURN(vkCreateDescriptorSetLayout(pVulkan->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout));
 }
 
+// what actually gets fed to shaders
 void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
                           const FbrCamera *pCameraState,
                           VkDescriptorSetLayout descriptorSetLayout,
@@ -118,6 +118,7 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
     vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
 }
 
+// full description of a pipeline, but only shaders get hard-bound to it, different descriptor sets can be attached
 static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
     VkPushConstantRange pushConstant = {
             .offset = 0,
@@ -136,6 +137,7 @@ static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline)
     FBR_VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout));
 }
 
+// create actual pipeline to do rendering
 static void initPipeline(const FbrVulkan *pVulkan,
                          VkRenderPass renderPass,
                          const char* pVertShaderPath,
@@ -174,7 +176,7 @@ static void initPipeline(const FbrVulkan *pVulkan,
             {
                     .binding = 0,
                     .location = 0,
-                    .format = VK_FORMAT_R32G32_SFLOAT,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
                     .offset = offsetof(Vertex, pos),
             },
             {
@@ -202,6 +204,7 @@ static void initPipeline(const FbrVulkan *pVulkan,
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE,
     };
+
     VkPipelineViewportStateCreateInfo viewportState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             .viewportCount = 1,
@@ -222,6 +225,7 @@ static void initPipeline(const FbrVulkan *pVulkan,
             .sampleShadingEnable = VK_FALSE,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
     };
+
     VkPipelineColorBlendAttachmentState colorBlendAttachment = {
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
             .blendEnable = VK_FALSE,
@@ -237,6 +241,7 @@ static void initPipeline(const FbrVulkan *pVulkan,
             .blendConstants[2] = 0.0f,
             .blendConstants[3] = 0.0f,
     };
+
     VkDynamicState dynamicStates[] = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
@@ -246,6 +251,7 @@ static void initPipeline(const FbrVulkan *pVulkan,
             .dynamicStateCount = 2,
             .pDynamicStates = dynamicStates,
     };
+
     VkGraphicsPipelineCreateInfo pipelineInfo = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .stageCount = 2,

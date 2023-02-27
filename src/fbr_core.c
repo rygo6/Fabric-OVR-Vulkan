@@ -384,7 +384,7 @@ static void parentMainLoop(FbrApp *pApp) {
             //cube2
 
 
-            fbrUpdateNodeMesh(pApp->pTestNode, pApp->pCamera);
+            fbrUpdateNodeMesh(pVulkan, pApp->pCamera, pApp->pTestNode);
             recordNodeRenderPass(pApp->pVulkan, pApp->pCompPipeline, pApp->pTestNode, pApp->compDescriptorSet);
 
             // end swap pass

@@ -3,6 +3,9 @@
 
 #include "fbr_app.h"
 #include "fbr_transform.h"
+#include "fbr_mesh.h"
+
+#define FBR_NODE_VERTEX_COUNT 4
 
 typedef struct FbrNodeVertex {
     vec2 pos;
@@ -14,7 +17,7 @@ typedef struct FbrNode {
 
     char *pName;
 
-    uint16_t radius;
+    float radius;
 
     FbrProcess *pProcess;
 
@@ -28,13 +31,15 @@ typedef struct FbrNode {
     void *pIndexMappedBuffer;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
+
+    Vertex nodeVertices[FBR_NODE_VERTEX_COUNT];
     void *pVertexMappedBuffer;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
 
 } FbrNode;
 
-void fbrUpdateNodeMesh(FbrNode *pNode, FbrCamera *pCamera);
+void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pNode);
 
 void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
 
