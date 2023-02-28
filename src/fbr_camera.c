@@ -6,7 +6,7 @@
 
 void fbrUpdateCameraUBO(FbrCamera *pCamera) {
     glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.view);
-    memcpy(pCamera->ubo.pUniformBufferMapped, &pCamera->uboData, sizeof(FbrCameraUBO));
+    memcpy(pCamera->pUBO->pUniformBufferMapped, &pCamera->uboData, sizeof(FbrCameraUBO));
 }
 
 void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState) {
@@ -64,7 +64,7 @@ void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, H
 
     // don't need to set or map anything because parent does it!
 
-    fbrImportUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO), externalMemory);
+    fbrImportUBO(pVulkan, sizeof(FbrCameraUBO), externalMemory, &pCamera->pUBO);
 }
 
 void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
@@ -77,15 +77,14 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     glm_perspective(90, 1, .01f, 10, pCamera->proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
-//    fbrCreateUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO));
-    fbrCreateExternalUniformBuffer(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO));
+//    fbrCreateUBO(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO));
+    fbrCreateExternalUBO(pVulkan, sizeof(FbrCameraUBO), &pCamera->pUBO);
 
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateCameraUBO(pCamera);
 }
 
 void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
-    fbrCleanupUniformBuffer(pVulkan, &pCameraState->ubo);
-
+    fbrCleanupUBO(pVulkan, pCameraState->pUBO);
     free(pCameraState);
 }

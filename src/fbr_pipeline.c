@@ -86,7 +86,7 @@ void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
     FBR_VK_CHECK(vkAllocateDescriptorSets(pVulkan->device, &allocInfo, pDescriptorSet));
 
     VkDescriptorBufferInfo bufferInfo = {
-            .buffer = pCameraState->ubo.uniformBuffer,
+            .buffer = pCameraState->pUBO->uniformBuffer,
             .offset = 0,
             .range = sizeof(FbrCameraUBO),
     };

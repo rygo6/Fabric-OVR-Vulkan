@@ -4,8 +4,14 @@
 #include "fbr_app.h"
 #include "fbr_transform.h"
 #include "fbr_mesh.h"
+#include "fbr_framebuffer.h"
+#include "fbr_buffer.h"
 
 #define FBR_NODE_VERTEX_COUNT 4
+#define FBR_NODE_VERTEX_BUFFER_SIZE (sizeof(Vertex) * FBR_NODE_VERTEX_COUNT)
+#define FBR_NODE_INDEX_COUNT 6
+#define FBR_NODE_INDEX_BUFFER_SIZE (sizeof(uint16_t) * FBR_NODE_INDEX_COUNT)
+#define FBR_NODE_FRAMEBUFFER_COUNT 2
 
 typedef struct FbrNodeVertex {
     vec2 pos;
@@ -21,21 +27,21 @@ typedef struct FbrNode {
 
     FbrProcess *pProcess;
 
-    FbrFramebuffer *pFramebuffer;
-
     FbrIPC *pProducerIPC;
     FbrIPC *pReceiverIPC;
 
-    uint32_t indexCount;
-    uint32_t vertexCount;
-    void *pIndexMappedBuffer;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
+    FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
+    FbrUniformBufferObject *pIndexUBO;
 
-    Vertex nodeVertices[FBR_NODE_VERTEX_COUNT];
-    void *pVertexMappedBuffer;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+//    void *pIndexMappedBuffer;
+//    VkBuffer indexBuffer;
+//    VkDeviceMemory indexBufferMemory;
+
+    Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
+//    void *pVertexMappedBuffer;
+//    VkBuffer vertexBuffer;
+//    VkDeviceMemory vertexBufferMemory;
 
 } FbrNode;
 

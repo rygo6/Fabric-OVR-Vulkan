@@ -7,14 +7,14 @@
 #include <windows.h>
 #endif
 
-typedef struct UniformBufferObject {
+typedef struct FbrUniformBufferObject {
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
     void *pUniformBufferMapped;
 #ifdef WIN32
     HANDLE externalMemory;
 #endif
-} UniformBufferObject;
+} FbrUniformBufferObject;
 
 VkResult fbrImageMemoryTypeFromProperties(const FbrVulkan *pVulkan,
                                           VkImage image,
@@ -51,12 +51,7 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
 
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
-void fbrCreateBuffer(const FbrVulkan *pVulkan,
-                     VkDeviceSize size,
-                     VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags properties,
-                     VkBuffer *buffer,
-                     VkDeviceMemory *bufferMemory);
+void fbrMemCopyMappedUBO(const FbrUniformBufferObject *pDstUBO, const void* pSrcData, size_t size);
 
 void fbrCreateStagingBuffer(const FbrVulkan *pVulkan,
                             const void *srcData,
@@ -71,15 +66,21 @@ void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
                                        VkDeviceMemory *bufferMemory,
                                        VkDeviceSize bufferSize);
 
-void fbrCreateUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+void fbrCreateUBO(const FbrVulkan *pVulkan,
+                  VkMemoryPropertyFlags properties,
+                  VkBufferUsageFlags usage,
+                  VkDeviceSize bufferSize,
+                  FbrUniformBufferObject **ppAllocUBO);
 
-void fbrImportUniformBuffer(const FbrVulkan *pVulkan,
-                            UniformBufferObject *pUniformBufferObject,
-                            VkDeviceSize bufferSize,
-                            HANDLE externalMemory);
+void fbrImportUBO(const FbrVulkan *pVulkan,
+                  VkDeviceSize bufferSize,
+                  HANDLE externalMemory,
+                  FbrUniformBufferObject **ppAllocUBO);
 
-void fbrCreateExternalUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject, VkDeviceSize bufferSize);
+void fbrCreateExternalUBO(const FbrVulkan *pVulkan,
+                          VkDeviceSize bufferSize,
+                          FbrUniformBufferObject **ppAllocUBO);
 
-void fbrCleanupUniformBuffer(const FbrVulkan *pVulkan, UniformBufferObject *pUniformBufferObject);
+void fbrCleanupUBO(const FbrVulkan *pVulkan, FbrUniformBufferObject *pUBO);
 
 #endif //FABRIC_BUFFER_H

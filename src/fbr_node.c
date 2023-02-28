@@ -2,11 +2,8 @@
 #include "fbr_vulkan.h"
 #include "fbr_log.h"
 #include "fbr_process.h"
-#include "fbr_framebuffer.h"
 #include "fbr_ipc.h"
 #include "fbr_camera.h"
-
-#define FBR_NODE_INDEX_COUNT 6
 
 const Vertex nodeVertices[FBR_NODE_VERTEX_COUNT] = {
         {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -17,7 +14,7 @@ const Vertex nodeVertices[FBR_NODE_VERTEX_COUNT] = {
 const uint16_t nodeIndices[] = {
         0, 1, 2, 2, 3, 0
 };
-const VkDeviceSize vertexBufferSize = (sizeof(Vertex) * FBR_NODE_VERTEX_COUNT);
+//const VkDeviceSize vertexBufferSize = (sizeof(Vertex) * FBR_NODE_VERTEX_COUNT);
 
 void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pNode) {
 //    glm_quat_copy(pCamera->transform.rot, pNode->transform.rot);
@@ -38,39 +35,41 @@ void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pN
     glm_quat_rotatev(pCamera->transform.rot, right, right);
     glm_vec3_scale(right, 0.5f, right);
 
+
+
     vec3 ll;
     glm_vec3_sub(GLM_VEC3_ZERO, up,ll);
     glm_vec3_sub(ll, right,ll);
-    glm_vec3_copy(ll, pNode->nodeVertices[0].pos);
+    glm_vec3_copy(ll, pNode->nodeVerticesBuffer[0].pos);
     vec3 llScreen;
     glm_project(ll, mvp, viewport, llScreen);
-    glm_vec2_copy(llScreen, pNode->nodeVertices[0].texCoord);
+    glm_vec2_copy(llScreen, pNode->nodeVerticesBuffer[0].texCoord);
 
     vec3 lr;
     glm_vec3_sub(GLM_VEC3_ZERO, up,lr);
     glm_vec3_add(lr, right,lr);
-    glm_vec3_copy(lr, pNode->nodeVertices[1].pos);
+    glm_vec3_copy(lr, pNode->nodeVerticesBuffer[1].pos);
     vec3 lrScreen;
     glm_project(lr, mvp, viewport, lrScreen);
-    glm_vec2_copy(lrScreen, pNode->nodeVertices[1].texCoord);
+    glm_vec2_copy(lrScreen, pNode->nodeVerticesBuffer[1].texCoord);
 
     vec3 ur;
     glm_vec3_add(GLM_VEC3_ZERO, up,ur);
     glm_vec3_add(ur, right,ur);
-    glm_vec3_copy(ur, pNode->nodeVertices[2].pos);
+    glm_vec3_copy(ur, pNode->nodeVerticesBuffer[2].pos);
     vec3 urScreen;
     glm_project(ur, mvp, viewport, urScreen);
-    glm_vec2_copy(urScreen, pNode->nodeVertices[2].texCoord);
+    glm_vec2_copy(urScreen, pNode->nodeVerticesBuffer[2].texCoord);
 
     vec3 ul;
     glm_vec3_add(GLM_VEC3_ZERO, up,ul);
     glm_vec3_sub(ul, right,ul);
-    glm_vec3_copy(ul, pNode->nodeVertices[3].pos);
+    glm_vec3_copy(ul, pNode->nodeVerticesBuffer[3].pos);
     vec3 ulScreen;
     glm_project(ul, mvp, viewport, ulScreen);
-    glm_vec2_copy(ulScreen, pNode->nodeVertices[3].texCoord);
+    glm_vec2_copy(ulScreen, pNode->nodeVerticesBuffer[3].texCoord);
 
-    memcpy(pNode->pVertexMappedBuffer, pNode->nodeVertices, vertexBufferSize);
+    memcpy(pNode->pVertexUBOs[0]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
 void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode) {
@@ -91,48 +90,50 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
     }
     // todo create receiverIPC
 
-    fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffer, pApp->pVulkan->swapExtent);
+    memcpy(pNode->nodeVerticesBuffer, nodeVertices, FBR_NODE_VERTEX_BUFFER_SIZE);
 
-    pNode->vertexCount = FBR_NODE_VERTEX_COUNT;
-    fbrCreateBuffer(pVulkan,
-                    vertexBufferSize,
-                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
-                    &pNode->vertexBuffer,
-                    &pNode->vertexBufferMemory);
-    vkMapMemory(pVulkan->device, pNode->vertexBufferMemory, 0, vertexBufferSize, 0, &pNode->pVertexMappedBuffer);
-    memcpy(pNode->nodeVertices, nodeVertices, sizeof(nodeVertices));
-    memcpy(pNode->pVertexMappedBuffer, pNode->nodeVertices, vertexBufferSize);
+    for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
+        fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffers[i], pApp->pVulkan->swapExtent);
+        fbrCreateUBO(pVulkan,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                     FBR_NODE_VERTEX_BUFFER_SIZE,
+                     &pNode->pVertexUBOs[i]);
+        fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
+    }
 
-    pNode->indexCount = FBR_NODE_INDEX_COUNT;
-    VkDeviceSize indexBufferSize = (sizeof(Vertex) * pNode->indexCount);
-    fbrCreateBuffer(pVulkan,
-                    indexBufferSize,
-                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
-                    &pNode->indexBuffer,
-                    &pNode->indexBufferMemory);
-    vkMapMemory(pVulkan->device, pNode->indexBufferMemory, 0, indexBufferSize, 0, &pNode->pIndexMappedBuffer);
-    memcpy(pNode->pIndexMappedBuffer, nodeIndices, indexBufferSize);
+    fbrCreateUBO(pVulkan,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
+                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                 FBR_NODE_INDEX_BUFFER_SIZE,
+                 &pNode->pIndexUBO);
+    fbrMemCopyMappedUBO(pNode->pIndexUBO, nodeIndices, FBR_NODE_INDEX_BUFFER_SIZE);
 }
 
 void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode) {
     free(pNode->pName);
 
-    vkUnmapMemory(pVulkan->device, pNode->pIndexMappedBuffer);
-    vkDestroyBuffer(pVulkan->device, pNode->indexBuffer, NULL);
-    vkFreeMemory(pVulkan->device, pNode->indexBufferMemory, NULL);
+    for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
+        fbrCleanupUBO(pVulkan, pNode->pVertexUBOs[i]);
+    }
+    fbrCleanupUBO(pVulkan, pNode->pIndexUBO);
 
-    vkUnmapMemory(pVulkan->device, pNode->pVertexMappedBuffer);
-    vkDestroyBuffer(pVulkan->device, pNode->vertexBuffer, NULL);
-    vkFreeMemory(pVulkan->device, pNode->vertexBufferMemory, NULL);
+//    vkUnmapMemory(pVulkan->device, pNode->pIndexMappedBuffer);
+//    vkDestroyBuffer(pVulkan->device, pNode->indexBuffer, NULL);
+//    vkFreeMemory(pVulkan->device, pNode->indexBufferMemory, NULL);
+//
+//    vkUnmapMemory(pVulkan->device, pNode->pVertexMappedBuffer);
+//    vkDestroyBuffer(pVulkan->device, pNode->vertexBuffer, NULL);
+//    vkFreeMemory(pVulkan->device, pNode->vertexBufferMemory, NULL);
 
     fbrDestroyProcess(pNode->pProcess);
 
     fbrDestroyIPC(pNode->pProducerIPC);
     fbrDestroyIPC(pNode->pReceiverIPC);
 
-    fbrDestroyFrameBuffer(pVulkan, pNode->pFramebuffer);
+    for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
+        fbrCreateExternalFrameBuffer(pVulkan, &pNode->pFramebuffers[i], pVulkan->swapExtent);
+    }
 
     free(pNode);
 }

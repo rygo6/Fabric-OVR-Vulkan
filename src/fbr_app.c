@@ -75,13 +75,13 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrInitDescriptorSet(pApp->pVulkan,
                              pApp->pCamera,
                              pApp->pCompPipeline->descriptorSetLayout,
-                             pApp->pTestNode->pFramebuffer->pTexture->imageView,
+                             pApp->pTestNode->pFramebuffers[0]->pTexture->imageView,
                              &pApp->compDescriptorSet);
 
 
         HANDLE camDupHandle;
         DuplicateHandle(GetCurrentProcess(),
-                        pApp->pCamera->ubo.externalMemory,
+                        pApp->pCamera->pUBO->externalMemory,
                         pApp->pTestNode->pProcess->pi.hProcess,
                         &camDupHandle,
                         0,
@@ -97,7 +97,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         HANDLE texDupHandle;
         DuplicateHandle(GetCurrentProcess(),
-                        pApp->pTestNode->pFramebuffer->pTexture->externalMemory,
+                        pApp->pTestNode->pFramebuffers[0]->pTexture->externalMemory,
                         pApp->pTestNode->pProcess->pi.hProcess,
                         &texDupHandle,
                         0,
@@ -105,8 +105,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         DUPLICATE_SAME_ACCESS);
         FbrIPCParamImportFrameBuffer texParam =  {
                 .handle = texDupHandle,
-                .width = pApp->pTestNode->pFramebuffer->pTexture->extent.width,
-                .height = pApp->pTestNode->pFramebuffer->pTexture->extent.height
+                .width = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.width,
+                .height = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.height
         };
         fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_FRAMEBUFFER, &texParam);
         printf("external pTestTexture handle d %lld\n", texParam.handle);

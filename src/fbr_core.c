@@ -107,15 +107,15 @@ static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pP
                             0,
                             NULL);
 
-    VkBuffer vertexBuffers[] = {pNode->vertexBuffer};
+    VkBuffer vertexBuffers[] = {pNode->pVertexUBOs[0]->uniformBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindIndexBuffer(pVulkan->commandBuffer, pNode->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(pVulkan->commandBuffer, pNode->pIndexUBO->uniformBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdPushConstants(pVulkan->commandBuffer, pPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
 
-    vkCmdDrawIndexed(pVulkan->commandBuffer, pNode->indexCount, 1, 0, 0, 0);
+    vkCmdDrawIndexed(pVulkan->commandBuffer, FBR_NODE_INDEX_COUNT, 1, 0, 0, 0);
 }
 
 static void submitQueue(FbrVulkan *pVulkan) {
@@ -216,46 +216,48 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
     vkQueuePresentKHR(pApp->pVulkan->queue, &presentInfo);
 }
 
-static void beginFrameCommandBuffer(FbrApp *pApp) {
-    vkResetCommandBuffer(pApp->pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+static void beginFrameCommandBuffer(FbrVulkan *pVulkan) {
+    vkResetCommandBuffer(pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
     VkCommandBufferBeginInfo beginInfo = {
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
     };
-    vkBeginCommandBuffer(pApp->pVulkan->commandBuffer, &beginInfo);
+    vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo);
 
     VkViewport viewport = {
             .x = 0.0f,
             .y = 0.0f,
-            .width = (float) pApp->pVulkan->swapExtent.width,
-            .height = (float) pApp->pVulkan->swapExtent.height,
+            .width = (float) pVulkan->swapExtent.width,
+            .height = (float) pVulkan->swapExtent.height,
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
     };
-    vkCmdSetViewport(pApp->pVulkan->commandBuffer, 0, 1, &viewport);
+    vkCmdSetViewport(pVulkan->commandBuffer, 0, 1, &viewport);
     VkRect2D scissor = {
             .offset = {0, 0},
-            .extent.width = pApp->pVulkan->swapExtent.width,
-            .extent.height = pApp->pVulkan->swapExtent.height,
+            .extent.width = pVulkan->swapExtent.width,
+            .extent.height = pVulkan->swapExtent.height,
     };
-    vkCmdSetScissor(pApp->pVulkan->commandBuffer, 0, 1, &scissor);
+    vkCmdSetScissor(pVulkan->commandBuffer, 0, 1, &scissor);
 }
 
 static void childMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
     FbrVulkan *pVulkan = pApp->pVulkan;
+    FbrTime *pTime = pApp->pTime;
+    FbrCamera *pCamera = pApp->pCamera;
 
     Sleep(100);
 
     const uint64_t timelineStep = 4;
-    vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &pApp->parentTimelineValue);
+    vkGetSemaphoreCounterValue(pVulkan->device, pApp->parentTimelineSemaphore, &pApp->parentTimelineValue);
     pApp->parentTimelineValue += timelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pApp->parentTimelineValue);
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
-        pApp->pTime->currentTime = glfwGetTime();
-        pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
-        lastFrameTime = pApp->pTime->currentTime;
+        pTime->currentTime = glfwGetTime();
+        pTime->deltaTime = pTime->currentTime - lastFrameTime;
+        lastFrameTime = pTime->currentTime;
 
 //        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
@@ -286,7 +288,7 @@ static void childMainLoop(FbrApp *pApp) {
 
         // Todo there is some trickery to de done here with multiple frames per child node framebuffer
         // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
-        beginFrameCommandBuffer(pApp);
+        beginFrameCommandBuffer(pVulkan);
 
         beginRenderPassImageless(pVulkan,
                                  pApp->pParentProcessFramebuffer->renderPass,
@@ -317,6 +319,8 @@ static void parentMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
     FbrVulkan *pVulkan = pApp->pVulkan;
+    FbrTime *pTime = pApp->pTime;
+    FbrCamera *pCamera = pApp->pCamera;
 
     bool firstRun = true;
 
@@ -327,17 +331,18 @@ static void parentMainLoop(FbrApp *pApp) {
 //        Sleep(33);
 //        FBR_LOG_DEBUG("Loop!", pApp->pVulkan->timelineValue);
 
-        pApp->pTime->currentTime = glfwGetTime();
-        pApp->pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
-        lastFrameTime = pApp->pTime->currentTime;
+        // todo switch to vulkan timing primitives
+        pTime->currentTime = glfwGetTime();
+        pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
+        lastFrameTime = pTime->currentTime;
 
-//        FBR_LOG_DEBUG("Parent FPS",? 1.0 / pApp->pTime->deltaTime);
+        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
 
-        waitForTimeLine(pApp->pVulkan, &pVulkan->timelineSemaphore, pVulkan->timelineValue);
+        waitForTimeLine(pVulkan, &pVulkan->timelineSemaphore, pVulkan->timelineValue);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!
-        if (pApp->pVulkan->enableValidationLayers)
+        if (pVulkan->enableValidationLayers)
             vkQueueWaitIdle(pVulkan->queue);
 
 
@@ -347,7 +352,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
 
         processInputFrame(pApp);
-        fbrUpdateCameraUBO(pApp->pCamera);
+        fbrUpdateCameraUBO(pCamera);
 
         // somehow need to signal semaphore after UBO updating
 //        VkSemaphoreSignalInfo signalInfo;
@@ -370,27 +375,27 @@ static void parentMainLoop(FbrApp *pApp) {
 //        if (firstRun) {
 //            firstRun = false;
 
-            beginFrameCommandBuffer(pApp);
+            beginFrameCommandBuffer(pVulkan);
 
             //swap pass
-            beginRenderPassImageless(pApp->pVulkan,
-                                     pApp->pVulkan->renderPass,
-                                     pApp->pVulkan->swapFramebuffer,
-                                     pApp->pVulkan->pSwapImageViews[swapIndex],
+            beginRenderPassImageless(pVulkan,
+                                     pVulkan->renderPass,
+                                     pVulkan->swapFramebuffer,
+                                     pVulkan->pSwapImageViews[swapIndex],
                                      (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
             //cube 1
             fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-            recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pVulkan->swapDescriptorSet);
+            recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pVulkan->swapDescriptorSet);
             //cube2
 
 
-            fbrUpdateNodeMesh(pVulkan, pApp->pCamera, pApp->pTestNode);
-            recordNodeRenderPass(pApp->pVulkan, pApp->pCompPipeline, pApp->pTestNode, pApp->compDescriptorSet);
+            fbrUpdateNodeMesh(pVulkan, pCamera, pApp->pTestNode);
+            recordNodeRenderPass(pVulkan, pApp->pCompPipeline, pApp->pTestNode, pApp->compDescriptorSet);
 
             // end swap pass
-            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
+            vkCmdEndRenderPass(pVulkan->commandBuffer);
 
-            vkEndCommandBuffer(pApp->pVulkan->commandBuffer);
+            vkEndCommandBuffer(pVulkan->commandBuffer);
 //        }
 
         submitQueueAndPresent(pApp, swapIndex);
@@ -398,7 +403,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
 
     uint64_t value2;
-    vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->pVulkan->timelineSemaphore, &value2);
+    vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value2);
     FBR_LOG_DEBUG("final parent import semaphore", value2);
 }
 

@@ -17,7 +17,7 @@ typedef struct FbrCamera {
     mat4 proj;
 
     FbrCameraUBO uboData;
-    UniformBufferObject ubo;
+    FbrUniformBufferObject *pUBO;
 } FbrCamera;
 
 void fbrUpdateCameraUBO(FbrCamera *pCamera);

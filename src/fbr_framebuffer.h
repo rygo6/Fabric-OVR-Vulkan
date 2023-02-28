@@ -1,5 +1,5 @@
-#ifndef FABRIC_FBR_FRAMEBUFFER_H
-#define FABRIC_FBR_FRAMEBUFFER_H
+#ifndef FABRIC_FRAMEBUFFER_H
+#define FABRIC_FRAMEBUFFER_H
 
 #include "fbr_app.h"
 #include "fbr_texture.h"
@@ -45,4 +45,4 @@ typedef struct FbrImportFrameBufferIPCParam {
 
 void fbrIPCTargetImportFrameBuffer(FbrApp *pApp, FbrIPCParamImportFrameBuffer *pParam);
 
-#endif //FABRIC_FBR_FRAMEBUFFER_H
+#endif //FABRIC_FRAMEBUFFER_H
