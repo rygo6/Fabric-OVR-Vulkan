@@ -38,11 +38,13 @@
 //    }
 //}
 
-static VkResult createExternalTimelineSemaphore(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore) {
+static VkResult createExternalTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, FbrTimelineSemaphore *pTimelineSemaphore) {
     const VkExportSemaphoreWin32HandleInfoKHR exportSemaphoreWin32HandleInfo = {
             .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
             .pNext = VK_NULL_HANDLE,
-            .dwAccess = GENERIC_READ,
+            // TODO are these the best security options? Read seems to affect it and solves issue of
+            // child corrupting semaphore on crash
+            .dwAccess = readOnly ? GENERIC_READ : GENERIC_ALL,
             .pAttributes = VK_NULL_HANDLE,
 //            .name = L"FBR_SEMAPHORE"
     };
@@ -109,19 +111,19 @@ static VkResult importTimelineSemaphore(const FbrVulkan *pVulkan, HANDLE externa
     return VK_SUCCESS;
 }
 
-VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
+VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
     *ppAllocTimelineSemaphore = calloc(1, sizeof(FbrTimelineSemaphore));
     FbrTimelineSemaphore *pTimelineSemaphore = *ppAllocTimelineSemaphore;
 
-    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, pTimelineSemaphore));
+    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, readOnly, pTimelineSemaphore));
     FBR_VK_CHECK_RETURN(getWin32Handle(pVulkan, pTimelineSemaphore));
 }
 
-VkResult fbrImportTimelineSemaphore(const FbrVulkan *pVulkan, HANDLE externalTimelineSemaphore, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
+VkResult fbrImportTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, HANDLE externalTimelineSemaphore, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
     *ppAllocTimelineSemaphore = calloc(1, sizeof(FbrTimelineSemaphore));
     FbrTimelineSemaphore *pTimelineSemaphore = *ppAllocTimelineSemaphore;
 
-    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, pTimelineSemaphore));
+    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, readOnly, pTimelineSemaphore));
     FBR_VK_CHECK_RETURN(importTimelineSemaphore(pVulkan, externalTimelineSemaphore, pTimelineSemaphore));
 }
 

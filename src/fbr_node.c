@@ -79,7 +79,7 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
 
     FbrVulkan *pVulkan = pApp->pVulkan;
 
-    fbrCreateTimelineSemaphore(pVulkan, &pNode->pChildSemaphore);
+    fbrCreateTimelineSemaphore(pVulkan, false, &pNode->pChildSemaphore);
 
     fbrCreateProcess(&pNode->pProcess);
 

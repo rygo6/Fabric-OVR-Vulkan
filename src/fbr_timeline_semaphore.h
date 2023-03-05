@@ -13,9 +13,9 @@ typedef struct FbrTimelineSemaphore {
     HANDLE externalHandle;
 } FbrTimelineSemaphore;
 
-VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, FbrTimelineSemaphore **ppAllocTimelineSemaphore);
+VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, FbrTimelineSemaphore **ppAllocTimelineSemaphore);
 
-VkResult fbrImportTimelineSemaphore(const FbrVulkan *pVulkan, HANDLE externalTimelineSemaphore, FbrTimelineSemaphore **ppAllocTimelineSemaphore);
+VkResult fbrImportTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, HANDLE externalTimelineSemaphore, FbrTimelineSemaphore **ppAllocTimelineSemaphore);
 
 void fbrDestroyTimelineSemaphore(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore);
 

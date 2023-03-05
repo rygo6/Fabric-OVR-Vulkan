@@ -249,7 +249,8 @@ static void childMainLoop(FbrApp *pApp) {
     FbrVulkan *pVulkan = pApp->pVulkan;
     FbrFramebuffer *pFrameBuffer = pApp->pNodeParent->pFramebuffer;
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
-    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
+//    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
+    FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
 
@@ -266,6 +267,7 @@ static void childMainLoop(FbrApp *pApp) {
         FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
         // wait for child timeline sempahore to finish
+        FBR_LOG_DEBUG("Waiting For Child Seamphore", pChildSemaphore->waitValue);
         waitForTimeLine(pVulkan, pChildSemaphore);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished

@@ -741,9 +741,9 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
 
     createTextureSampler(pVulkan);
 
-//    if (!pApp->isChild) {
-        fbrCreateTimelineSemaphore(pVulkan, &pVulkan->pMainSemaphore);
-//    }
+    if (!pApp->isChild) {
+        fbrCreateTimelineSemaphore(pVulkan, true, &pVulkan->pMainSemaphore);
+    }
 }
 
 void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWidth, int screenHeight, bool enableValidationLayers) {
@@ -810,5 +810,5 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
 void fbrIPCTargetImportMainSemaphore(FbrApp *pApp, FbrIPCParamImportTimelineSemaphore *pParam){
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->handle);
-    fbrImportTimelineSemaphore(pApp->pVulkan, pParam->handle, &pApp->pVulkan->pMainSemaphore);
+    fbrImportTimelineSemaphore(pApp->pVulkan, true, pParam->handle, &pApp->pVulkan->pMainSemaphore);
 }

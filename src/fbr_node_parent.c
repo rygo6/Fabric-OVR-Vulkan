@@ -36,8 +36,8 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight});
 
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->parentSemaphoreExternalHandle);
-    fbrImportTimelineSemaphore(pVulkan, pParam->parentSemaphoreExternalHandle, &pNodeParent->pParentSemaphore);
+    fbrImportTimelineSemaphore(pVulkan, true, pParam->parentSemaphoreExternalHandle, &pNodeParent->pParentSemaphore);
 
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->childSemaphoreExternalHandle);
-    fbrImportTimelineSemaphore(pVulkan, pParam->childSemaphoreExternalHandle, &pNodeParent->pChildSemaphore);
+    fbrImportTimelineSemaphore(pVulkan, false, pParam->childSemaphoreExternalHandle, &pNodeParent->pChildSemaphore);
 }
