@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 
 int main(int argc, char *argv[]) {
     FBR_LOG_DEBUG("starting!");
@@ -11,15 +12,17 @@ int main(int argc, char *argv[]) {
     bool isChild = false;
     long long externalTextureTest;
     for (int i = 0; i < argc; ++i) {
-        FBR_LOG_DEBUG("arg", argv[i]);
         if (strcmp(argv[i], "-child") == 0) {
             isChild = true;
-            FBR_LOG_DEBUG("Is Child Process", isChild);
         } else if (strcmp(argv[i], "-pTestTexture") == 0) {
             i++;
             externalTextureTest = strtoll(argv[i], NULL, 10);
-            FBR_LOG_DEBUG("-pTestTexture", argv[i], externalTextureTest);
         }
+    }
+
+    if (isChild) {
+        Sleep(1000);
+        FBR_LOG_DEBUG("Is Child Process", isChild);
     }
 
     FbrApp *pApp;

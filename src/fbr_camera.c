@@ -84,7 +84,7 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     fbrUpdateCameraUBO(pCamera);
 }
 
-void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
+void fbrDestroyCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
     fbrCleanupUBO(pVulkan, pCameraState->pUBO);
     free(pCameraState);
 }

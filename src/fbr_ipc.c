@@ -28,6 +28,7 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
         FBR_LOG_ERROR("IPC BYTE ARRAY REACHED END!!!");
     }
 
+    FBR_LOG_DEBUG("Calling IPC Target", target);
     pIPC->pTargetFuncs[target](pApp, param);
 
     pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target);

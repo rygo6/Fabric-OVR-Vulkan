@@ -8,6 +8,7 @@
 #include "fbr_input.h"
 #include "fbr_node.h"
 #include "fbr_framebuffer.h"
+#include "fbr_node_parent.h"
 
 #include "cglm/cglm.h"
 
@@ -16,14 +17,14 @@ static void waitForQueueFence(FbrVulkan *pVulkan) {
     vkResetFences(pVulkan->device, 1, &pVulkan->queueFence);
 }
 
-static void waitForTimeLine(const FbrVulkan *pVulkan, const VkSemaphore *pTimelineSemaphore, uint64_t waitValue) {
+static void waitForTimeLine(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore) {
     const VkSemaphoreWaitInfo semaphoreWaitInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             .pNext = NULL,
             .flags = 0,
             .semaphoreCount = 1,
-            .pSemaphores = pTimelineSemaphore,
-            .pValues = &waitValue,
+            .pSemaphores = &pTimelineSemaphore->semaphore,
+            .pValues = &pTimelineSemaphore->waitValue,
     };
     vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX);
 }
@@ -118,18 +119,19 @@ static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pP
     vkCmdDrawIndexed(pVulkan->commandBuffer, FBR_NODE_INDEX_COUNT, 1, 0, 0, 0);
 }
 
-static void submitQueue(FbrVulkan *pVulkan) {
-    const uint64_t waitValue = pVulkan->timelineValue++;
-    const uint64_t signalValue = pVulkan->timelineValue;
+static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemaphore) {
+
+    const uint64_t waitValue = pSemaphore->waitValue++;
+    const uint64_t signalValue = pSemaphore->waitValue;
     const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfo = {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pVulkan->timelineSemaphore,
+                    .semaphore = pSemaphore->semaphore,
                     .value = waitValue,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
     const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfo = {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pVulkan->timelineSemaphore,
+                    .semaphore = pSemaphore->semaphore,
                     .value = signalValue,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     };
@@ -154,14 +156,14 @@ static void submitQueue(FbrVulkan *pVulkan) {
                    VK_NULL_HANDLE);
 }
 
-static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
+static void submitQueueAndPresent(FbrApp *pApp, FbrTimelineSemaphore *pSemaphore, uint32_t swapIndex) {
     // https://www.khronos.org/blog/vulkan-timeline-semaphores
-    const uint64_t waitValue = pApp->pVulkan->timelineValue++;
-    const uint64_t signalValue = pApp->pVulkan->timelineValue;
+    const uint64_t waitValue = pSemaphore->waitValue++;
+    const uint64_t signalValue = pSemaphore->waitValue;
     const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfos[2] = {
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pApp->pVulkan->timelineSemaphore,
+                    .semaphore = pSemaphore->semaphore,
                     .value = waitValue,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             },
@@ -174,7 +176,7 @@ static void submitQueueAndPresent(FbrApp *pApp, uint32_t swapIndex) {
     const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfos[2] = {
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pApp->pVulkan->timelineSemaphore,
+                    .semaphore = pSemaphore->semaphore,
                     .value = signalValue,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     .deviceIndex = 0 //todo use this?
@@ -243,26 +245,28 @@ static void beginFrameCommandBuffer(FbrVulkan *pVulkan) {
 static void childMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
+    // does the pointer indirection here actually cause issue!?
     FbrVulkan *pVulkan = pApp->pVulkan;
+    FbrFramebuffer *pFrameBuffer = pApp->pNodeParent->pFramebuffer;
+    FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
+    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
+    FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
-    FbrCamera *pCamera = pApp->pCamera;
-
-    Sleep(100);
 
     const uint64_t timelineStep = 4;
-    vkGetSemaphoreCounterValue(pVulkan->device, pApp->parentTimelineSemaphore, &pApp->parentTimelineValue);
-    pApp->parentTimelineValue += timelineStep;
-    FBR_LOG_DEBUG("starting parent timeline value", pApp->parentTimelineValue);
+    vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
+    pParentSemaphore->waitValue += timelineStep;
+    FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         pTime->currentTime = glfwGetTime();
         pTime->deltaTime = pTime->currentTime - lastFrameTime;
         lastFrameTime = pTime->currentTime;
 
-//        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
+        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
         // wait for child timeline sempahore to finish
-        waitForTimeLine(pVulkan, &pVulkan->timelineSemaphore, pVulkan->timelineValue);
+        waitForTimeLine(pVulkan, pChildSemaphore);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!!
@@ -272,14 +276,14 @@ static void childMainLoop(FbrApp *pApp) {
         // check parent timeline semaphore, if parent timeline value past what it should be
         // it means child took too long to render
         uint64_t value;
-        vkGetSemaphoreCounterValue(pVulkan->device, pApp->parentTimelineSemaphore, &value);
-        if (value >= pApp->parentTimelineValue) {
-            FBR_LOG_DEBUG("Child took to long!", value, pApp->parentTimelineValue);
-            pApp->parentTimelineValue = value;
+        vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &value);
+        if (value >= pParentSemaphore->waitValue) {
+            FBR_LOG_DEBUG("Child took to long!", value, pParentSemaphore->waitValue);
+            pParentSemaphore->waitValue = value;
         } else {
-            waitForTimeLine(pVulkan, &pApp->parentTimelineSemaphore, pApp->parentTimelineValue);
+            waitForTimeLine(pVulkan, pParentSemaphore);
         }
-        pApp->parentTimelineValue += timelineStep;
+        pParentSemaphore->waitValue += timelineStep;
 
 
 //        uint64_t value;
@@ -291,13 +295,13 @@ static void childMainLoop(FbrApp *pApp) {
         beginFrameCommandBuffer(pVulkan);
 
         beginRenderPassImageless(pVulkan,
-                                 pApp->pParentProcessFramebuffer->renderPass,
-                                 pApp->pParentProcessFramebuffer->framebuffer,
-                                 pApp->pParentProcessFramebuffer->pTexture->imageView,
+                                 pFrameBuffer->renderPass,
+                                 pFrameBuffer->framebuffer,
+                                 pFrameBuffer->pTexture->imageView,
                                  (VkClearValue){{{0.0f, 0.0f, 0.00f, 0.0f}}});
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-        recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->parentFramebufferDescriptorSet);
+        recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pNodeParent->parentFramebufferDescriptorSet);
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
@@ -310,7 +314,7 @@ static void childMainLoop(FbrApp *pApp) {
 //            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
 
         vkEndCommandBuffer(pVulkan->commandBuffer);
-        submitQueue(pVulkan);
+        submitQueue(pVulkan, pChildSemaphore);
     }
 
 }
@@ -319,6 +323,7 @@ static void parentMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
     FbrVulkan *pVulkan = pApp->pVulkan;
+    FbrTimelineSemaphore *pSemaphore = pVulkan->pMainSemaphore;
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
 
@@ -329,16 +334,16 @@ static void parentMainLoop(FbrApp *pApp) {
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
 
 //        Sleep(33);
-//        FBR_LOG_DEBUG("Loop!", pApp->pVulkan->timelineValue);
+//        FBR_LOG_DEBUG("Loop!", pApp->pVulkan->waitValue);
 
         // todo switch to vulkan timing primitives
         pTime->currentTime = glfwGetTime();
         pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pTime->currentTime;
 
-        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
+//        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
 
-        waitForTimeLine(pVulkan, &pVulkan->timelineSemaphore, pVulkan->timelineValue);
+        waitForTimeLine(pVulkan, pSemaphore);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!
@@ -347,7 +352,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
 
 //        uint64_t value;
-//        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value);
+//        vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->semaphore, &value);
 //        FBR_LOG_DEBUG("parent import semaphore", value % 16);
 
 
@@ -398,12 +403,12 @@ static void parentMainLoop(FbrApp *pApp) {
             vkEndCommandBuffer(pVulkan->commandBuffer);
 //        }
 
-        submitQueueAndPresent(pApp, swapIndex);
+        submitQueueAndPresent(pApp, pSemaphore, swapIndex);
     }
 
 
     uint64_t value2;
-    vkGetSemaphoreCounterValue(pVulkan->device, pVulkan->timelineSemaphore, &value2);
+    vkGetSemaphoreCounterValue(pVulkan->device, pSemaphore->semaphore, &value2);
     FBR_LOG_DEBUG("final parent import semaphore", value2);
 }
 

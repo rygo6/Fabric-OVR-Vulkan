@@ -30,18 +30,14 @@ typedef struct FbrNode {
     FbrIPC *pProducerIPC;
     FbrIPC *pReceiverIPC;
 
+    FbrTimelineSemaphore *pChildSemaphore;
+
     FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
     FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
+
     FbrUniformBufferObject *pIndexUBO;
 
-//    void *pIndexMappedBuffer;
-//    VkBuffer indexBuffer;
-//    VkDeviceMemory indexBufferMemory;
-
     Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
-//    void *pVertexMappedBuffer;
-//    VkBuffer vertexBuffer;
-//    VkDeviceMemory vertexBufferMemory;
 
 } FbrNode;
 

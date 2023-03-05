@@ -28,7 +28,7 @@ void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, H
 
 void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState);
 
-void fbrCleanupCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);
+void fbrDestroyCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);
 
 // IPC
 

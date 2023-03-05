@@ -384,12 +384,12 @@ void fbrCreateExternalTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocText
 }
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {
+    if (pTexture->externalMemory != NULL)
+        CloseHandle(pTexture->externalMemory);
+
     vkDestroyImage(pVulkan->device, pTexture->image, NULL);
     vkFreeMemory(pVulkan->device, pTexture->deviceMemory, NULL);
     vkDestroyImageView(pVulkan->device, pTexture->imageView, NULL);
-
-    if (pTexture->externalMemory != NULL)
-        CloseHandle(pTexture->externalMemory);
 
     free(pTexture);
 }

@@ -28,13 +28,13 @@ VkResult fbrBufferMemoryTypeFromProperties(const FbrVulkan *pVulkan,
                                            VkMemoryRequirements *pMemRequirements,
                                            uint32_t *pMemoryTypeBits);
 
-void fbrImportBuffer(const FbrVulkan *pVulkan,
-                     VkDeviceSize size,
-                     VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags properties,
-                     HANDLE externalMemory,
-                     VkBuffer *pBuffer,
-                     VkDeviceMemory *pBufferMemory);
+void importBuffer(const FbrVulkan *pVulkan,
+                  VkDeviceSize size,
+                  VkBufferUsageFlags usage,
+                  VkMemoryPropertyFlags properties,
+                  HANDLE externalMemory,
+                  VkBuffer *pBuffer,
+                  VkDeviceMemory *pBufferMemory);
 
 VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer);
 

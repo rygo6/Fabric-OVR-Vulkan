@@ -5,11 +5,11 @@
 #include "fbr_texture.h"
 #include "fbr_pipeline.h"
 #include "fbr_vulkan.h"
-#include "fbr_framebuffer.h"
 #include "fbr_ipc.h"
 #include "fbr_ipc_targets.h"
 #include "fbr_node.h"
 #include "fbr_process.h"
+#include "fbr_node_parent.h"
 
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
@@ -39,6 +39,8 @@ static void initWindow(FbrApp *pApp) {
 
 static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     FBR_LOG_DEBUG("initializing vulkan!");
+
+    FbrVulkan *pVulkan = pApp->pVulkan;
 
     if (!pApp->isChild) {
 
@@ -79,6 +81,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              &pApp->compDescriptorSet);
 
 
+        // todo below can go into create node
         HANDLE camDupHandle;
         DuplicateHandle(GetCurrentProcess(),
                         pApp->pCamera->pUBO->externalMemory,
@@ -87,13 +90,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         0,
                         false,
                         DUPLICATE_SAME_ACCESS);
-        FbrIPCParamImportCamera camParam =  {
-                .handle = camDupHandle,
-        };
-        fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_CAMERA, &camParam);
-        printf("external camera handle d %lld\n", camParam.handle);
-        printf("external camera handle p %p\n", camParam.handle);
-
+        FBR_LOG_DEBUG("export", camDupHandle);
 
         HANDLE texDupHandle;
         DuplicateHandle(GetCurrentProcess(),
@@ -103,49 +100,44 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         0,
                         false,
                         DUPLICATE_SAME_ACCESS);
-        FbrIPCParamImportFrameBuffer texParam =  {
-                .handle = texDupHandle,
-                .width = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.width,
-                .height = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.height
-        };
-        fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_FRAMEBUFFER, &texParam);
-        printf("external pTestTexture handle d %lld\n", texParam.handle);
-        printf("external pTestTexture handle p %p\n", texParam.handle);
+        FBR_LOG_DEBUG("export", texDupHandle);
 
-        HANDLE semDupHandle;
+        HANDLE parentSemDupHandle;
         DuplicateHandle(GetCurrentProcess(),
-                        pApp->pVulkan->externalTimelineSemaphore,
+                        pApp->pVulkan->pMainSemaphore->externalHandle,
                         pApp->pTestNode->pProcess->pi.hProcess,
-                        &semDupHandle,
+                        &parentSemDupHandle,
                         0,
                         false,
                         DUPLICATE_SAME_ACCESS);
-        FbrIPCParamImportTimelineSemaphore semParam =  {
-                .handle = semDupHandle,
-        };
-        fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_TIMELINE_SEMAPHORE, &semParam);
-        printf("external pTestTexture handle d %lld\n", semParam.handle);
-        printf("external pTestTexture handle p %p\n", semParam.handle);
+        FBR_LOG_DEBUG("export", parentSemDupHandle);
 
+        HANDLE childSemDupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pChildSemaphore->externalHandle,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &childSemDupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", childSemDupHandle);
+
+        FbrIPCParamImportNodeParent importNodeParentParam =  {
+                .cameraExternalHandle = camDupHandle,
+                .framebufferWidth = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.width,
+                .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.height,
+                .framebufferExternalHandle = texDupHandle,
+                .parentSemaphoreExternalHandle = parentSemDupHandle,
+                .childSemaphoreExternalHandle = childSemDupHandle,
+        };
+        fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_NODE_PARENT, &importNodeParentParam);
     } else {
 
-        fbrCreateReceiverIPC(&pApp->pParentProcessReceiverIPC);
+        fbrCreateNodeParent(&pApp->pNodeParent);
 
         // for debugging ipc now, wait for camera
-        while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
-            FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
-//            Sleep(1000);
-        }
-
-        // for debugging ipc now, wait for framebuffer
-        while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
-            FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
-//            Sleep(1000);
-        }
-
-        // for debugging ipc now, wait for semaphore
-        while(fbrIPCPollDeque(pApp, pApp->pParentProcessReceiverIPC) != 0) {
-            FBR_LOG_DEBUG("Wait Message", pApp->pParentProcessReceiverIPC->pIPCBuffer->tail, pApp->pParentProcessReceiverIPC->pIPCBuffer->head);
+        while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
+            FBR_LOG_DEBUG("Wait Message", pApp->pNodeParent->pReceiverIPC->pIPCBuffer->tail, pApp->pNodeParent->pReceiverIPC->pIPCBuffer->head);
 //            Sleep(1000);
         }
 
@@ -154,16 +146,16 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTestTexture, "textures/UV_Grid_Sm.jpg", false);
 
         fbrCreatePipeline(pApp->pVulkan,
-                          pApp->pParentProcessFramebuffer->renderPass,
+                          pApp->pNodeParent->pFramebuffer->renderPass,
                           "./shaders/vert.spv",
                           "./shaders/frag.spv",
 //                          "./shaders/frag_crasher.spv",
                           &pApp->pSwapPipeline);
         fbrInitDescriptorSet(pApp->pVulkan,
-                             pApp->pCamera,
+                             pApp->pNodeParent->pCamera,
                              pApp->pSwapPipeline->descriptorSetLayout,
                              pApp->pTestTexture->imageView,
-                             &pApp->parentFramebufferDescriptorSet);
+                             &pApp->pNodeParent->parentFramebufferDescriptorSet);
     }
 }
 
@@ -175,7 +167,11 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
 
     initWindow(pApp);
     fbrInitInput(pApp);
-    fbrCreateVulkan(pApp, &pApp->pVulkan, FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT, true);
+    fbrCreateVulkan(pApp,
+                    &pApp->pVulkan,
+                    FBR_DEFAULT_SCREEN_WIDTH,
+                    FBR_DEFAULT_SCREEN_HEIGHT,
+                    true);
 
     initEntities(pApp, externalTextureTest);
 }
@@ -183,22 +179,19 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
 void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
 
-    if (pApp->parentTimelineSemaphore != NULL) {
-        CloseHandle(pApp->parentTimelineSemaphore);
+    // todo this needs to be better
+    if (pApp->isChild) {
+        fbrDestroyNodeParent(pApp->pVulkan, pApp->pNodeParent);
     }
-
-    fbrDestroyIPC(pApp->pParentProcessReceiverIPC);
-    fbrDestroyFrameBuffer(pApp->pVulkan, pApp->pParentProcessFramebuffer);
-    fbrDestroyNode(pApp->pVulkan, pApp->pTestNode);
-
-    vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compDescriptorSet);
-    vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->parentFramebufferDescriptorSet);
+    else{
+        fbrDestroyNode(pApp->pVulkan, pApp->pTestNode);
+        fbrDestroyCamera(pApp->pVulkan, pApp->pCamera);
+        fbrCleanupPipeline(pApp->pVulkan, pApp->pSwapPipeline);
+        vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compDescriptorSet);
+    }
 
     fbrDestroyTexture(pApp->pVulkan, pApp->pTestTexture);
     fbrCleanupMesh(pApp->pVulkan, pApp->pTestQuadMesh);
-
-    fbrCleanupCamera(pApp->pVulkan, pApp->pCamera);
-    fbrCleanupPipeline(pApp->pVulkan, pApp->pSwapPipeline);
 
     fbrCleanupVulkan(pApp->pVulkan);
 

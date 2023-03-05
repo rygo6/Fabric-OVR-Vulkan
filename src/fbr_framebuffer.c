@@ -116,7 +116,7 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
 //            .pNext = &timelineSemaphoreTypeCreateInfo,
 //            .flags = 0,
 //    };
-//    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pFrameBuffer->timelineSemaphore));
+//    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pFrameBuffer->semaphore));
 //}
 
 void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
@@ -228,15 +228,15 @@ void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffe
     vkDestroyFramebuffer(pVulkan->device, pFramebuffer->framebuffer, NULL);
     vkDestroyRenderPass(pVulkan->device, pFramebuffer->renderPass, NULL);
 
-//    vkDestroySemaphore(pVulkan->device, pFramebuffer->timelineSemaphore, NULL);
+//    vkDestroySemaphore(pVulkan->device, pFramebuffer->semaphore, NULL);
 
     free(pFramebuffer);
 }
 
 void fbrIPCTargetImportFrameBuffer(FbrApp *pApp, FbrIPCParamImportFrameBuffer *pParam) {
     FBR_LOG_DEBUG("Importing Framebuffer.", pParam->handle, pParam->width, pParam->height);
-    fbrImportFrameBuffer(pApp->pVulkan,
-                         &pApp->pParentProcessFramebuffer,
-                         pParam->handle,
-                         (VkExtent2D) {pParam->width, pParam->height});
+//    fbrImportFrameBuffer(pApp->pVulkan,
+//                         &pApp->pParentProcessFramebuffer,
+//                         pParam->handle,
+//                         (VkExtent2D) {pParam->width, pParam->height});
 }

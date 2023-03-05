@@ -4,8 +4,8 @@
 
 // not used is this a good idea!?
 
-void fbrCreateUnlitStandardPipeline(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrTexture *pTexture, FbrPipeline *pPipeline){
-    VkDescriptorSetLayout descriptorSetLayout
+//void fbrCreateUnlitStandardPipeline(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrTexture *pTexture, FbrPipeline *pPipeline){
+//    VkDescriptorSetLayout descriptorSetLayout
 
 //    VkDescriptorSetLayoutBinding bindings[] = {
 //            {
@@ -57,4 +57,4 @@ void fbrCreateUnlitStandardPipeline(const FbrVulkan *pVulkan, FbrCamera *pCamera
 //    };
 
 
-};
+//}

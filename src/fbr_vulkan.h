@@ -2,8 +2,8 @@
 #define FABRIC_VULKAN_H
 
 #include "fbr_app.h"
-
 #include "windows.h"
+#include "fbr_timeline_semaphore.h"
 
 #define FBR_VK_CHECK(command)\
     do { \
@@ -28,8 +28,6 @@ typedef struct FbrVulkan {
     int screenHeight;
 
     bool enableValidationLayers;
-
-    bool isChild;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -58,15 +56,13 @@ typedef struct FbrVulkan {
 
     VkFence queueFence;
 
-    uint64_t timelineValue;
-    VkSemaphore timelineSemaphore;
-    HANDLE externalTimelineSemaphore;
+    //todo should go elsewhere?
+    FbrTimelineSemaphore *pMainSemaphore;
 
     VkDescriptorPool descriptorPool;
 
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
-
 
     VkSampler sampler;
 
@@ -88,6 +84,6 @@ typedef struct FbrIPCParamImportTimelineSemaphore {
     HANDLE handle;
 } FbrIPCParamImportTimelineSemaphore;
 
-void fbrIPCTargetImportTimelineSemaphore(FbrApp *pApp, FbrIPCParamImportTimelineSemaphore *pParam);
+void fbrIPCTargetImportMainSemaphore(FbrApp *pApp, FbrIPCParamImportTimelineSemaphore *pParam);
 
 #endif //FABRIC_VULKAN_H

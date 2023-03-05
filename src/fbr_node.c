@@ -14,7 +14,6 @@ const Vertex nodeVertices[FBR_NODE_VERTEX_COUNT] = {
 const uint16_t nodeIndices[] = {
         0, 1, 2, 2, 3, 0
 };
-//const VkDeviceSize vertexBufferSize = (sizeof(Vertex) * FBR_NODE_VERTEX_COUNT);
 
 void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pNode) {
 //    glm_quat_copy(pCamera->transform.rot, pNode->transform.rot);
@@ -34,8 +33,6 @@ void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pN
     vec3 right = {1.0f, 0.0f, 0.0f};
     glm_quat_rotatev(pCamera->transform.rot, right, right);
     glm_vec3_scale(right, 0.5f, right);
-
-
 
     vec3 ll;
     glm_vec3_sub(GLM_VEC3_ZERO, up,ll);
@@ -82,6 +79,8 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
 
     FbrVulkan *pVulkan = pApp->pVulkan;
 
+    fbrCreateTimelineSemaphore(pVulkan, &pNode->pChildSemaphore);
+
     fbrCreateProcess(&pNode->pProcess);
 
     if (fbrCreateProducerIPC(&pNode->pProducerIPC) != 0){
@@ -117,14 +116,6 @@ void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode) {
         fbrCleanupUBO(pVulkan, pNode->pVertexUBOs[i]);
     }
     fbrCleanupUBO(pVulkan, pNode->pIndexUBO);
-
-//    vkUnmapMemory(pVulkan->device, pNode->pIndexMappedBuffer);
-//    vkDestroyBuffer(pVulkan->device, pNode->indexBuffer, NULL);
-//    vkFreeMemory(pVulkan->device, pNode->indexBufferMemory, NULL);
-//
-//    vkUnmapMemory(pVulkan->device, pNode->pVertexMappedBuffer);
-//    vkDestroyBuffer(pVulkan->device, pNode->vertexBuffer, NULL);
-//    vkFreeMemory(pVulkan->device, pNode->vertexBufferMemory, NULL);
 
     fbrDestroyProcess(pNode->pProcess);
 

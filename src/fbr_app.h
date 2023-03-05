@@ -15,6 +15,8 @@ typedef struct FbrFramebuffer FbrFramebuffer;
 typedef struct FbrProcess FbrProcess;
 typedef struct FbrIPC FbrIPC;
 typedef struct FbrNode FbrNode;
+typedef struct FbrTimelineSemaphore FbrTimelineSemaphore;
+typedef struct FbrNodeParent FbrNodeParent;
 
 typedef enum FbrIPCTargetType FbrIPCTargetType;
 
@@ -45,11 +47,11 @@ typedef struct FbrApp {
     FbrNode *pTestNode;
 
     // child tests
-    FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
-    FbrFramebuffer *pParentProcessFramebuffer;
-    VkDescriptorSet parentFramebufferDescriptorSet;
-    VkSemaphore parentTimelineSemaphore;
-    uint64_t parentTimelineValue;
+    FbrNodeParent *pNodeParent;
+//    FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
+//    FbrFramebuffer *pParentProcessFramebuffer;
+//    VkDescriptorSet parentFramebufferDescriptorSet;
+//    FbrTimelineSemaphore *pParentSemaphore
 } FbrApp;
 
 void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest);
