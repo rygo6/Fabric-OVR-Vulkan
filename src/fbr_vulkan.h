@@ -23,6 +23,17 @@
             }\
     } while (0)
 
+#define FBR_VK_CHECK_COMMAND(command)\
+    do { \
+        VkResult result = command;   \
+        if (result == VK_ERROR_DEVICE_LOST) {\
+            printf("VKCheck Command Fail! DEVICE LOST! - %s - %s - %d\n", __FUNCTION__, #command, result);\
+        }\
+        if (result != VK_SUCCESS) {\
+            printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);\
+        }\
+    } while (0)
+
 typedef struct FbrVulkan {
     int screenWidth;
     int screenHeight;

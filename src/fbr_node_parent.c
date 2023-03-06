@@ -28,12 +28,17 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
 
     FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
     fbrImportCamera(pVulkan, &pNodeParent->pCamera,pParam->cameraExternalHandle);
+//    fbrCreateCamera(pVulkan, &pNodeParent->pCamera);
 
     FBR_LOG_DEBUG("Importing Framebuffer.", pParam->framebufferExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
-                         &pNodeParent->pFramebuffer,
                          pParam->framebufferExternalHandle,
-                         (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight});
+                         (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
+                         &pNodeParent->pFramebuffer);
+//    fbrCreateFrameBuffer(pVulkan,
+//                         false,
+//                         (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
+//                         &pNodeParent->pFramebuffer);
 
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->parentSemaphoreExternalHandle);
     fbrImportTimelineSemaphore(pVulkan, true, pParam->parentSemaphoreExternalHandle, &pNodeParent->pParentSemaphore);

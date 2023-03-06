@@ -30,11 +30,7 @@ void fbrImportTexture(const FbrVulkan *pVulkan,
                       VkImageUsageFlags usage,
                       VkFormat format);
 
-void fbrCreateExternalTexture(const FbrVulkan *pVulkan,
-                              FbrTexture **ppAllocTexture,
-                              VkExtent2D extent,
-                              VkImageUsageFlags usage,
-                              VkFormat format);
+void fbrCreateTexture(const FbrVulkan *pVulkan, bool external, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format, FbrTexture **ppAllocTexture);
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 

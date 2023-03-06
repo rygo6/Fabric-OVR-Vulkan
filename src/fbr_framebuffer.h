@@ -24,14 +24,15 @@ void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFram
 
 void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer);
 
-void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan,
-                                  FbrFramebuffer **ppAllocFramebuffer,
-                                  VkExtent2D extent);
+void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
+                          bool external,
+                          VkExtent2D extent,
+                          FbrFramebuffer **ppAllocFramebuffer);
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
-                          FbrFramebuffer **ppAllocFramebuffer,
                           HANDLE externalMemory,
-                          VkExtent2D extent);
+                          VkExtent2D extent,
+                          FbrFramebuffer **ppAllocFramebuffer);
 
 void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer);
 

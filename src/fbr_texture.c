@@ -370,16 +370,26 @@ void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HAN
     createTextureView(pVulkan, pTexture, format);
 }
 
-void fbrCreateExternalTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format) {
+void fbrCreateTexture(const FbrVulkan *pVulkan, bool external, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format, FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
-    createExternalTexture(pVulkan,
-                          extent,
-                          format,
-                          VK_IMAGE_TILING_OPTIMAL,
-                          usage,
-                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                          pTexture);
+    if (external) {
+        createExternalTexture(pVulkan,
+                              extent,
+                              format,
+                              VK_IMAGE_TILING_OPTIMAL,
+                              usage,
+                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                              pTexture);
+    } else {
+        createTexture(pVulkan,
+                      extent,
+                      format,
+                      VK_IMAGE_TILING_OPTIMAL,
+                      usage,
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                      pTexture);
+    }
     createTextureView(pVulkan, pTexture, format);
 }
 

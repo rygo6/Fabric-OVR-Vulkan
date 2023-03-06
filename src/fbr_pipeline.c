@@ -1,6 +1,5 @@
 #include "fbr_pipeline.h"
 #include "fbr_mesh.h"
-#include "fbr_texture.h"
 #include "fbr_camera.h"
 #include "fbr_log.h"
 #include "fbr_vulkan.h"
@@ -148,10 +147,10 @@ static void initPipeline(const FbrVulkan *pVulkan,
     uint32_t fragLength;
     char *fragShaderCode = readBinaryFile(pFragShaderPath, &fragLength);
 
-    VkShaderModule vertShaderModule = createShaderModule(pVulkan, vertShaderCode, vertLength);
-    VkShaderModule fragShaderModule = createShaderModule(pVulkan, fragShaderCode, fragLength);
+    const VkShaderModule vertShaderModule = createShaderModule(pVulkan, vertShaderCode, vertLength);
+    const VkShaderModule fragShaderModule = createShaderModule(pVulkan, fragShaderCode, fragLength);
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = {
+    const VkPipelineShaderStageCreateInfo shaderStages[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                     .stage = VK_SHADER_STAGE_VERTEX_BIT,
@@ -165,14 +164,14 @@ static void initPipeline(const FbrVulkan *pVulkan,
                     .pName = "main",
             }
     };
-    VkVertexInputBindingDescription bindingDescription[1] = {
+    const VkVertexInputBindingDescription bindingDescription[1] = {
             {
                     .binding = 0,
                     .stride = sizeof(Vertex),
                     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
             }
     };
-    VkVertexInputAttributeDescription attributeDescriptions[3] = {
+    const VkVertexInputAttributeDescription attributeDescriptions[3] = {
             {
                     .binding = 0,
                     .location = 0,
@@ -192,25 +191,24 @@ static void initPipeline(const FbrVulkan *pVulkan,
                     .offset = offsetof(Vertex, texCoord),
             }
     };
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
+    const VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount = 1,
             .vertexAttributeDescriptionCount = 3,
             .pVertexBindingDescriptions = bindingDescription,
             .pVertexAttributeDescriptions = attributeDescriptions
     };
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
+    const VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
             .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             .primitiveRestartEnable = VK_FALSE,
     };
-
-    VkPipelineViewportStateCreateInfo viewportState = {
+    const VkPipelineViewportStateCreateInfo viewportState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             .viewportCount = 1,
             .scissorCount = 1,
     };
-    VkPipelineRasterizationStateCreateInfo rasterizer = {
+    const VkPipelineRasterizationStateCreateInfo rasterizer = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             .depthClampEnable = VK_FALSE,
             .rasterizerDiscardEnable = VK_FALSE,
@@ -220,17 +218,16 @@ static void initPipeline(const FbrVulkan *pVulkan,
             .frontFace = VK_FRONT_FACE_CLOCKWISE,
             .depthBiasEnable = VK_FALSE,
     };
-    VkPipelineMultisampleStateCreateInfo multisampling = {
+    const VkPipelineMultisampleStateCreateInfo multisampling = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .sampleShadingEnable = VK_FALSE,
             .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
     };
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {
+    const VkPipelineColorBlendAttachmentState colorBlendAttachment = {
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
             .blendEnable = VK_FALSE,
     };
-    VkPipelineColorBlendStateCreateInfo colorBlending = {
+    const VkPipelineColorBlendStateCreateInfo colorBlending = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE,
             .logicOp = VK_LOGIC_OP_COPY,
@@ -241,19 +238,26 @@ static void initPipeline(const FbrVulkan *pVulkan,
             .blendConstants[2] = 0.0f,
             .blendConstants[3] = 0.0f,
     };
-
-    VkDynamicState dynamicStates[] = {
+    const VkDynamicState dynamicStates[] = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
     };
-    VkPipelineDynamicStateCreateInfo dynamicState = {
+    const VkPipelineDynamicStateCreateInfo dynamicState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
             .dynamicStateCount = 2,
             .pDynamicStates = dynamicStates,
     };
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = {
+    const VkPipelineRobustnessCreateInfoEXT pipelineRobustnessCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_ROBUSTNESS_CREATE_INFO_EXT,
+            .pNext = VK_NULL_HANDLE,
+            .storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT,
+            .uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT,
+            .vertexInputs = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT,
+            .images = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_2_EXT,
+    };
+    const VkGraphicsPipelineCreateInfo pipelineInfo = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .pNext = &pipelineRobustnessCreateInfo,
             .stageCount = 2,
             .pStages = shaderStages,
             .pVertexInputState = &vertexInputInfo,

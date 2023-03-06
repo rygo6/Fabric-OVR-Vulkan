@@ -79,7 +79,7 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
 
     FbrVulkan *pVulkan = pApp->pVulkan;
 
-    fbrCreateTimelineSemaphore(pVulkan, false, &pNode->pChildSemaphore);
+    fbrCreateTimelineSemaphore(pVulkan, true, false, &pNode->pChildSemaphore);
 
     fbrCreateProcess(&pNode->pProcess);
 
@@ -92,7 +92,7 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
     memcpy(pNode->nodeVerticesBuffer, nodeVertices, FBR_NODE_VERTEX_BUFFER_SIZE);
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
-        fbrCreateExternalFrameBuffer(pApp->pVulkan, &pNode->pFramebuffers[i], pApp->pVulkan->swapExtent);
+        fbrCreateFrameBuffer(pApp->pVulkan, true, pApp->pVulkan->swapExtent, &pNode->pFramebuffers[i]);
         fbrCreateUBO(pVulkan,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -113,9 +113,9 @@ void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode) {
     free(pNode->pName);
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
-        fbrCleanupUBO(pVulkan, pNode->pVertexUBOs[i]);
+        fbrDestroyUBO(pVulkan, pNode->pVertexUBOs[i]);
     }
-    fbrCleanupUBO(pVulkan, pNode->pIndexUBO);
+    fbrDestroyUBO(pVulkan, pNode->pIndexUBO);
 
     fbrDestroyProcess(pNode->pProcess);
 
@@ -123,7 +123,7 @@ void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode) {
     fbrDestroyIPC(pNode->pReceiverIPC);
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
-        fbrCreateExternalFrameBuffer(pVulkan, &pNode->pFramebuffers[i], pVulkan->swapExtent);
+        fbrDestroyFrameBuffer(pVulkan, pNode->pFramebuffers[i]);
     }
 
     free(pNode);

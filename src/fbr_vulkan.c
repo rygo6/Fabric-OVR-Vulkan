@@ -258,39 +258,83 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
     FBR_LOG_DEBUG("Failed to find a queue that supports both graphics and present!");
 }
 
-static void createLogicalDevice(FbrVulkan *pVulkan) {
+static void createLogicalDevice(FbrVulkan *pVulkan, bool isChild) {
     findQueueFamilies(pVulkan);
 
     const uint32_t queueFamilyCount = 1;
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
     uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex };
 
-//    float queuePriority[] =  {pVulkan->isChild ? 0.1f : 1.0f, pVulkan->isChild ? 0.1f : 1.0f };
-    float queuePriority[] =  {1.0f };
+    float queuePriority[] =  {isChild ? 0.1f : 1.0f, isChild ? 0.1f : 1.0f };
+//    float queuePriority[] =  {1.0f };
     for (int i = 0; i < queueFamilyCount; ++i) {
         FBR_LOG_DEBUG("Creating queue with family.", uniqueQueueFamilies[i]);
         VkDeviceQueueCreateInfo queueCreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                 .queueFamilyIndex = uniqueQueueFamilies[i],
-                .queueCount = 1,
+                .queueCount = 2,
                 .pQueuePriorities = queuePriority
         };
         queueCreateInfos[i] = queueCreateInfo;
     }
 
-//    VkPhysicalDeviceFeatures supportedFeatures;
-//    vkGetPhysicalDeviceFeatures(pVulkan->physicalDevice, &supportedFeatures);
-//    if (!supportedFeatures.robustBufferAccess)
-//        FBR_LOG_DEBUG("robustBufferAccess no support!");
-//    if (!supportedFeatures.samplerAnisotropy)
-//        FBR_LOG_DEBUG("samplerAnisotropy no support!");
+    // TODO come up with something better for this
+    VkPhysicalDeviceRobustness2FeaturesEXT supportedPhysicalDeviceRobustness2Features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT
+    };
+    VkPhysicalDeviceVulkan13Features supportedPhysicalDeviceVulkan13Features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .pNext = &supportedPhysicalDeviceRobustness2Features
+    };
+    VkPhysicalDeviceVulkan12Features supportedPhysicalDeviceVulkan12Features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext = &supportedPhysicalDeviceVulkan13Features
+    };
+    VkPhysicalDeviceVulkan11Features supportedPhysicalDeviceVulkan11Features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .pNext = &supportedPhysicalDeviceVulkan12Features
+    };
+    VkPhysicalDeviceFeatures2 supportedPhysicalDeviceFeatures2 = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &supportedPhysicalDeviceVulkan11Features,
+    };
+    vkGetPhysicalDeviceFeatures2(pVulkan->physicalDevice, &supportedPhysicalDeviceFeatures2);
+    if (!supportedPhysicalDeviceFeatures2.features.robustBufferAccess)
+        FBR_LOG_ERROR("robustBufferAccess no support!");
+    if (!supportedPhysicalDeviceFeatures2.features.samplerAnisotropy)
+        FBR_LOG_ERROR("samplerAnisotropy no support!");
+    if (!supportedPhysicalDeviceRobustness2Features.robustImageAccess2)
+        FBR_LOG_ERROR("robustImageAccess2 no support!");
+    if (!supportedPhysicalDeviceRobustness2Features.robustBufferAccess2)
+        FBR_LOG_ERROR("robustBufferAccess2 no support!");
+    if (!supportedPhysicalDeviceRobustness2Features.nullDescriptor)
+        FBR_LOG_ERROR("nullDescriptor no support!");
+    if (!supportedPhysicalDeviceVulkan13Features.synchronization2)
+        FBR_LOG_ERROR("synchronization2 no support!");
+    if (!supportedPhysicalDeviceVulkan13Features.robustImageAccess)
+        FBR_LOG_ERROR("robustImageAccess no support!");
+    if (!supportedPhysicalDeviceVulkan13Features.shaderDemoteToHelperInvocation)
+        FBR_LOG_ERROR("shaderDemoteToHelperInvocation no support!");
+    if (!supportedPhysicalDeviceVulkan13Features.shaderTerminateInvocation)
+        FBR_LOG_ERROR("shaderTerminateInvocation no support!");
 
+
+
+    VkPhysicalDeviceRobustness2FeaturesEXT physicalDeviceRobustness2Features = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+            .pNext = VK_NULL_HANDLE,
+            .robustBufferAccess2 = true,
+            .robustImageAccess2 = true,
+            .nullDescriptor = true,
+    };
     // TODO enable robust buffer access 2 ??
     VkPhysicalDeviceVulkan13Features enabledFeatures13 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             .synchronization2 = true,
             .robustImageAccess = true,
-            .pNext = NULL,
+            .shaderTerminateInvocation = true,
+            .shaderDemoteToHelperInvocation = true,
+            .pNext = &physicalDeviceRobustness2Features,
     };
     // TODO enabel swapFramebuffer ?
     VkPhysicalDeviceVulkan12Features enabledFeatures12 = {
@@ -299,12 +343,18 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
             .imagelessFramebuffer = true,
             .pNext = &enabledFeatures13,
     };
+    VkPhysicalDeviceVulkan11Features enabledFeatures11 = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
+            .pNext = &enabledFeatures12,
+    };
     VkPhysicalDeviceFeatures2 enabledFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR,
-            .pNext = &enabledFeatures12,
+            .pNext = &enabledFeatures11,
             .features = {
                     .samplerAnisotropy = true,
-                    .robustBufferAccess = true
+                    .robustBufferAccess = true,
+                    .fragmentStoresAndAtomics = true,
+                    .vertexPipelineStoresAndAtomics = true,
             }
     };
 
@@ -351,8 +401,8 @@ static void createLogicalDevice(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("failed to create logical device!");
     }
 
-//    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->queue);
-    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->queue);
+    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, isChild ? 1 : 0, &pVulkan->queue);
+//    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->queue);
 }
 
 static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableFormats, uint32_t formatCount) {
@@ -727,7 +777,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     // device
     setupDebugMessenger(pVulkan);
     pickPhysicalDevice(pVulkan);
-    createLogicalDevice(pVulkan);
+    createLogicalDevice(pVulkan, pApp->isChild);
 
     // render
     createSwapChain(pVulkan);
@@ -742,7 +792,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     createTextureSampler(pVulkan);
 
     if (!pApp->isChild) {
-        fbrCreateTimelineSemaphore(pVulkan, true, &pVulkan->pMainSemaphore);
+        fbrCreateTimelineSemaphore(pVulkan, true, true, &pVulkan->pMainSemaphore);
     }
 }
 

@@ -81,6 +81,6 @@ void fbrCreateExternalUBO(const FbrVulkan *pVulkan,
                           VkDeviceSize bufferSize,
                           FbrUniformBufferObject **ppAllocUBO);
 
-void fbrCleanupUBO(const FbrVulkan *pVulkan, FbrUniformBufferObject *pUBO);
+void fbrDestroyUBO(const FbrVulkan *pVulkan, FbrUniformBufferObject *pUBO);
 
 #endif //FABRIC_BUFFER_H

@@ -479,7 +479,7 @@ void fbrCreateExternalUBO(const FbrVulkan *pVulkan,
                 &pUBO->pUniformBufferMapped);
 }
 
-void fbrCleanupUBO(const FbrVulkan *pVulkan, FbrUniformBufferObject *pUBO) {
+void fbrDestroyUBO(const FbrVulkan *pVulkan, FbrUniformBufferObject *pUBO) {
     vkDestroyBuffer(pVulkan->device, pUBO->uniformBuffer, NULL);
 
     if (pUBO->pUniformBufferMapped != NULL)

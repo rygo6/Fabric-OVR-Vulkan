@@ -77,7 +77,11 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     glm_perspective(90, 1, .01f, 10, pCamera->proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
-//    fbrCreateUBO(pVulkan, &pCamera->ubo, sizeof(FbrCameraUBO));
+//    fbrCreateUBO(pVulkan,
+//                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+//                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+//                 sizeof(FbrCameraUBO),
+//                 &pCamera->pUBO);
     fbrCreateExternalUBO(pVulkan, sizeof(FbrCameraUBO), &pCamera->pUBO);
 
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
@@ -85,6 +89,6 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
 }
 
 void fbrDestroyCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
-    fbrCleanupUBO(pVulkan, pCameraState->pUBO);
+    fbrDestroyUBO(pVulkan, pCameraState->pUBO);
     free(pCameraState);
 }

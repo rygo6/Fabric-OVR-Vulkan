@@ -38,19 +38,19 @@
 //    }
 //}
 
-static VkResult createExternalTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, FbrTimelineSemaphore *pTimelineSemaphore) {
+static VkResult createExternalTimelineSemaphore(const FbrVulkan *pVulkan, bool external, bool readOnly, FbrTimelineSemaphore *pTimelineSemaphore) {
     const VkExportSemaphoreWin32HandleInfoKHR exportSemaphoreWin32HandleInfo = {
             .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
             .pNext = VK_NULL_HANDLE,
             // TODO are these the best security options? Read seems to affect it and solves issue of
-            // child corrupting semaphore on crash
+            // child corrupting semaphore on crash... but not 100%
             .dwAccess = readOnly ? GENERIC_READ : GENERIC_ALL,
             .pAttributes = VK_NULL_HANDLE,
 //            .name = L"FBR_SEMAPHORE"
     };
     const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
-            .pNext = &exportSemaphoreWin32HandleInfo,
+            .pNext = external ? &exportSemaphoreWin32HandleInfo : VK_NULL_HANDLE,
             .handleTypes = FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
     };
     const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
@@ -111,19 +111,21 @@ static VkResult importTimelineSemaphore(const FbrVulkan *pVulkan, HANDLE externa
     return VK_SUCCESS;
 }
 
-VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
+VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, bool external, bool readOnly, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
     *ppAllocTimelineSemaphore = calloc(1, sizeof(FbrTimelineSemaphore));
     FbrTimelineSemaphore *pTimelineSemaphore = *ppAllocTimelineSemaphore;
 
-    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, readOnly, pTimelineSemaphore));
-    FBR_VK_CHECK_RETURN(getWin32Handle(pVulkan, pTimelineSemaphore));
+    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, external, readOnly, pTimelineSemaphore));
+    if (external) {
+        FBR_VK_CHECK_RETURN(getWin32Handle(pVulkan, pTimelineSemaphore));
+    }
 }
 
 VkResult fbrImportTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, HANDLE externalTimelineSemaphore, FbrTimelineSemaphore **ppAllocTimelineSemaphore) {
     *ppAllocTimelineSemaphore = calloc(1, sizeof(FbrTimelineSemaphore));
     FbrTimelineSemaphore *pTimelineSemaphore = *ppAllocTimelineSemaphore;
 
-    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, readOnly, pTimelineSemaphore));
+    FBR_VK_CHECK_RETURN(createExternalTimelineSemaphore(pVulkan, true, readOnly, pTimelineSemaphore));
     FBR_VK_CHECK_RETURN(importTimelineSemaphore(pVulkan, externalTimelineSemaphore, pTimelineSemaphore));
 }
 
@@ -131,6 +133,6 @@ void fbrDestroyTimelineSemaphore(const FbrVulkan *pVulkan, FbrTimelineSemaphore 
     if (pTimelineSemaphore->externalHandle != NULL)
         CloseHandle(pTimelineSemaphore->externalHandle);
 
-    vkDestroySemaphore(pVulkan->device, pTimelineSemaphore->semaphore, NULL); // should be done if imported?!?
+    vkDestroySemaphore(pVulkan->device, pTimelineSemaphore->semaphore, NULL);
     free(pTimelineSemaphore);
 }

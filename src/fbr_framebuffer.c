@@ -176,16 +176,17 @@ void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFra
     );
 }
 
-void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, VkExtent2D extent) {
+void fbrCreateFrameBuffer(const FbrVulkan *pVulkan, bool external, VkExtent2D extent, FbrFramebuffer **ppAllocFramebuffer) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
 
-    fbrCreateExternalTexture(pVulkan,
-                             &pFramebuffer->pTexture,
-                             extent,
-                             FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                             pVulkan->swapImageFormat);
+    fbrCreateTexture(pVulkan,
+                     external,
+                     extent,
+                     FBR_EXTERNAL_FRAMEBUFFER_USAGE,
+                     pVulkan->swapImageFormat,
+                     &pFramebuffer->pTexture);
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                       VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
@@ -195,10 +196,9 @@ void fbrCreateExternalFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppA
                       FBR_EXTERNAL_FRAMEBUFFER_USAGE,
                       pVulkan->swapImageFormat,
                       extent);
-//    createSyncObjects(pVulkan, pFramebuffer);
 }
 
-void fbrImportFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer **ppAllocFramebuffer, HANDLE externalMemory, VkExtent2D extent) {
+void fbrImportFrameBuffer(const FbrVulkan *pVulkan, HANDLE externalMemory, VkExtent2D extent, FbrFramebuffer **ppAllocFramebuffer) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
@@ -227,8 +227,6 @@ void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffe
 
     vkDestroyFramebuffer(pVulkan->device, pFramebuffer->framebuffer, NULL);
     vkDestroyRenderPass(pVulkan->device, pFramebuffer->renderPass, NULL);
-
-//    vkDestroySemaphore(pVulkan->device, pFramebuffer->semaphore, NULL);
 
     free(pFramebuffer);
 }
