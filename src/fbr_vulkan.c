@@ -230,13 +230,20 @@ static void pickPhysicalDevice(FbrVulkan *pVulkan) {
 
 static void findQueueFamilies(FbrVulkan *pVulkan) {
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(pVulkan->physicalDevice,
+    vkGetPhysicalDeviceQueueFamilyProperties2(pVulkan->physicalDevice,
                                              &queueFamilyCount,
                                              NULL);
-    VkQueueFamilyProperties queueFamilies[queueFamilyCount];
-    vkGetPhysicalDeviceQueueFamilyProperties(pVulkan->physicalDevice,
+    VkQueueFamilyGlobalPriorityPropertiesEXT queueFamilyGlobalPriorityProperties[queueFamilyCount];
+    VkQueueFamilyProperties2 queueFamilies[queueFamilyCount];
+    for (int i = 0; i < queueFamilyCount; ++i) {
+        queueFamilyGlobalPriorityProperties[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_EXT;
+        queueFamilyGlobalPriorityProperties[i].pNext = VK_NULL_HANDLE;
+        queueFamilies[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
+        queueFamilies[i].pNext = &queueFamilyGlobalPriorityProperties[i];
+    }
+    vkGetPhysicalDeviceQueueFamilyProperties2(pVulkan->physicalDevice,
                                              &queueFamilyCount,
-                                             (VkQueueFamilyProperties *) &queueFamilies);
+                                              (VkQueueFamilyProperties2 *) &queueFamilies);
 
     if (queueFamilyCount == 0) {
         FBR_LOG_DEBUG("Failed to get queue properties.");
@@ -244,7 +251,9 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
 
     // Taking a cue from SteamVR Vulkan example and just assuming queue that supports both graphics and present is the only one we want. Don't entirely know if that's right.
     for (int i = 0; i < queueFamilyCount; ++i) {
-        VkBool32 graphicsSupport = queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+        VkBool32 queueSupport = queueFamilyGlobalPriorityProperties[i].priorityCount > 0;
+
+        VkBool32 graphicsSupport = queueFamilies[i].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
 
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(pVulkan->physicalDevice, i, pVulkan->surface, &presentSupport);
@@ -258,19 +267,24 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
     FBR_LOG_DEBUG("Failed to find a queue that supports both graphics and present!");
 }
 
-static void createLogicalDevice(FbrVulkan *pVulkan, bool isChild) {
+VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     findQueueFamilies(pVulkan);
 
     const uint32_t queueFamilyCount = 1;
     VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
     uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex };
 
-    float queuePriority[] =  {isChild ? 0.1f : 1.0f, isChild ? 0.1f : 1.0f };
+    float queuePriority[] =  {pVulkan->isChild ? 0.0f : 1.0f, pVulkan->isChild ? 0.0f : 1.0f };
 //    float queuePriority[] =  {1.0f };
     for (int i = 0; i < queueFamilyCount; ++i) {
         FBR_LOG_DEBUG("Creating queue with family.", uniqueQueueFamilies[i]);
+        VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,
+                .globalPriority = pVulkan->isChild ? VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT
+        };
         VkDeviceQueueCreateInfo queueCreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .pNext = &queueGlobalPriorityCreateInfo,
                 .queueFamilyIndex = uniqueQueueFamilies[i],
                 .queueCount = 2,
                 .pQueuePriorities = queuePriority
@@ -279,8 +293,12 @@ static void createLogicalDevice(FbrVulkan *pVulkan, bool isChild) {
     }
 
     // TODO come up with something better for this
+    VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT supportedPhysicalDeviceGlobalPriorityQueryFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT
+    };
     VkPhysicalDeviceRobustness2FeaturesEXT supportedPhysicalDeviceRobustness2Features = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+            .pNext = &supportedPhysicalDeviceGlobalPriorityQueryFeatures
     };
     VkPhysicalDeviceVulkan13Features supportedPhysicalDeviceVulkan13Features = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
@@ -317,12 +335,17 @@ static void createLogicalDevice(FbrVulkan *pVulkan, bool isChild) {
         FBR_LOG_ERROR("shaderDemoteToHelperInvocation no support!");
     if (!supportedPhysicalDeviceVulkan13Features.shaderTerminateInvocation)
         FBR_LOG_ERROR("shaderTerminateInvocation no support!");
+    if (!supportedPhysicalDeviceGlobalPriorityQueryFeatures.globalPriorityQuery)
+        FBR_LOG_ERROR("globalPriorityQuery no support!");
 
 
-
+    VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT physicalDeviceGlobalPriorityQueryFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT,
+            .globalPriorityQuery = true,
+    };
     VkPhysicalDeviceRobustness2FeaturesEXT physicalDeviceRobustness2Features = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = &physicalDeviceGlobalPriorityQueryFeatures,
             .robustBufferAccess2 = true,
             .robustImageAccess2 = true,
             .nullDescriptor = true,
@@ -380,28 +403,19 @@ static void createLogicalDevice(FbrVulkan *pVulkan, bool isChild) {
         FBR_LOG_DEBUG("Required Device Extension",pRequiredDeviceExtensions[i]);
     }
 
-    VkDeviceCreateInfo createInfo = {
+    const VkDeviceCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = &enabledFeatures,
             .queueCreateInfoCount = queueFamilyCount,
             .pQueueCreateInfos = queueCreateInfos,
             .pEnabledFeatures = VK_NULL_HANDLE,
             .enabledExtensionCount = requiredDeviceExtensionCount,
             .ppEnabledExtensionNames = pRequiredDeviceExtensions,
-            .pNext = &enabledFeatures,
+            .ppEnabledLayerNames = pVulkan->enableValidationLayers ? pRequiredInstanceLayers : VK_NULL_HANDLE,
+            .enabledLayerCount = pVulkan->enableValidationLayers ? requiredInstanceLayerCount : 0,
+
     };
-
-    if (pVulkan->enableValidationLayers) {
-        createInfo.enabledLayerCount = requiredInstanceLayerCount;
-        createInfo.ppEnabledLayerNames = pRequiredInstanceLayers;
-    } else {
-        createInfo.enabledLayerCount = 0;
-    }
-
-    if (vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create logical device!");
-    }
-
-    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, isChild ? 1 : 0, &pVulkan->queue);
+    FBR_VK_CHECK_RETURN(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
 //    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->queue);
 }
 
@@ -777,7 +791,8 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     // device
     setupDebugMessenger(pVulkan);
     pickPhysicalDevice(pVulkan);
-    createLogicalDevice(pVulkan, pApp->isChild);
+    createLogicalDevice(pVulkan);
+    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->queue);
 
     // render
     createSwapChain(pVulkan);
@@ -799,7 +814,11 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
 void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWidth, int screenHeight, bool enableValidationLayers) {
     *ppAllocVulkan = calloc(1, sizeof(FbrVulkan));
     FbrVulkan *pVulkan = *ppAllocVulkan;
+
+    // tf need better place for child flag
+    pVulkan->isChild = pApp->isChild;
     isChid = pApp->isChild;
+
     pVulkan->enableValidationLayers = enableValidationLayers;
     pVulkan->screenWidth = screenWidth;
     pVulkan->screenHeight = screenHeight;

@@ -20,7 +20,7 @@ if (WIN32)
 
     add_compile_definitions(WIN32)
 
-    set(VULKAN_SDK_PATH "C:/VulkanSDK/1.3.236.0")
+    set(VULKAN_SDK_PATH "C:/VulkanSDK/1.3.239.0")
     set(GLFW_SDK_PATH "C:/Developer/glfw-3.3.8.bin.WIN64")
     set(CGLM_SDK_PATH "C:/Developer/cglm")
 

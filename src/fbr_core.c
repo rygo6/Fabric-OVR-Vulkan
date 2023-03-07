@@ -1,7 +1,6 @@
 #include "fbr_core.h"
 #include "fbr_mesh.h"
 #include "fbr_pipeline.h"
-#include "fbr_texture.h"
 #include "fbr_camera.h"
 #include "fbr_log.h"
 #include "fbr_vulkan.h"
@@ -12,12 +11,15 @@
 
 #include "cglm/cglm.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+
 static void waitForQueueFence(FbrVulkan *pVulkan) {
     vkWaitForFences(pVulkan->device, 1, &pVulkan->queueFence, VK_TRUE, UINT64_MAX);
     vkResetFences(pVulkan->device, 1, &pVulkan->queueFence);
 }
 
-static void waitForTimeLine(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore) {
+static void waitForTimeLine(FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore) {
     const VkSemaphoreWaitInfo semaphoreWaitInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             .pNext = NULL,
@@ -154,7 +156,7 @@ static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemapho
                                         VK_NULL_HANDLE));
 }
 
-static void submitQueueAndPresent(FbrApp *pApp, FbrTimelineSemaphore *pSemaphore, uint32_t swapIndex) {
+static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemaphore, uint32_t swapIndex) {
     // https://www.khronos.org/blog/vulkan-timeline-semaphores
     const uint64_t waitValue = pSemaphore->waitValue++;
     const uint64_t signalValue = pSemaphore->waitValue;
@@ -167,7 +169,7 @@ static void submitQueueAndPresent(FbrApp *pApp, FbrTimelineSemaphore *pSemaphore
             },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pApp->pVulkan->swapAcquireComplete,
+                    .semaphore = pVulkan->swapAcquireComplete,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             }
     };
@@ -181,13 +183,13 @@ static void submitQueueAndPresent(FbrApp *pApp, FbrTimelineSemaphore *pSemaphore
             },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pApp->pVulkan->renderCompleteSemaphore,
+                    .semaphore = pVulkan->renderCompleteSemaphore,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             }
     };
     const VkCommandBufferSubmitInfo commandBufferInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
-            .commandBuffer = pApp->pVulkan->commandBuffer,
+            .commandBuffer = pVulkan->commandBuffer,
     };
     const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
@@ -199,7 +201,7 @@ static void submitQueueAndPresent(FbrApp *pApp, FbrTimelineSemaphore *pSemaphore
             .commandBufferInfoCount = 1,
             .pCommandBufferInfos = &commandBufferInfo,
     };
-    FBR_VK_CHECK_COMMAND(vkQueueSubmit2(pApp->pVulkan->queue,
+    FBR_VK_CHECK_COMMAND(vkQueueSubmit2(pVulkan->queue,
                    1,
                    &submitInfo,
                    VK_NULL_HANDLE));
@@ -207,12 +209,12 @@ static void submitQueueAndPresent(FbrApp *pApp, FbrTimelineSemaphore *pSemaphore
     const VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &pApp->pVulkan->renderCompleteSemaphore,
+            .pWaitSemaphores = &pVulkan->renderCompleteSemaphore,
             .swapchainCount = 1,
-            .pSwapchains = &pApp->pVulkan->swapChain,
+            .pSwapchains = &pVulkan->swapChain,
             .pImageIndices = &swapIndex,
     };
-    FBR_VK_CHECK_COMMAND(vkQueuePresentKHR(pApp->pVulkan->queue, &presentInfo));
+    FBR_VK_CHECK_COMMAND(vkQueuePresentKHR(pVulkan->queue, &presentInfo));
 }
 
 static void beginFrameCommandBuffer(FbrVulkan *pVulkan) {
@@ -316,6 +318,9 @@ static void childMainLoop(FbrApp *pApp) {
         FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
 
         submitQueue(pVulkan, pChildSemaphore);
+
+        // todo for light cleanup excess is time exceeds
+//        _exit(0);
     }
 
 }
@@ -389,7 +394,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
 
-        submitQueueAndPresent(pApp, pMainSemaphore, swapIndex);
+        submitQueueAndPresent(pVulkan, pMainSemaphore, swapIndex);
     }
 
 

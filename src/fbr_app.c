@@ -166,7 +166,8 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
     pApp->isChild = isChild;
 
     initWindow(pApp);
-    fbrInitInput(pApp);
+    if (!pApp->isChild)
+        fbrInitInput(pApp);
     fbrCreateVulkan(pApp,
                     &pApp->pVulkan,
                     FBR_DEFAULT_SCREEN_WIDTH,
