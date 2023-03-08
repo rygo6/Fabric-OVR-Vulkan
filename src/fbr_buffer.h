@@ -66,20 +66,17 @@ void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
                                        VkDeviceMemory *bufferMemory,
                                        VkDeviceSize bufferSize);
 
-void fbrCreateUBO(const FbrVulkan *pVulkan,
-                  VkMemoryPropertyFlags properties,
-                  VkBufferUsageFlags usage,
-                  VkDeviceSize bufferSize,
-                  FbrUniformBufferObject **ppAllocUBO);
+VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
+                      VkMemoryPropertyFlags properties,
+                      VkBufferUsageFlags usage,
+                      VkDeviceSize bufferSize,
+                      bool external,
+                      FbrUniformBufferObject **ppAllocUBO);
 
 void fbrImportUBO(const FbrVulkan *pVulkan,
                   VkDeviceSize bufferSize,
                   HANDLE externalMemory,
                   FbrUniformBufferObject **ppAllocUBO);
-
-void fbrCreateExternalUBO(const FbrVulkan *pVulkan,
-                          VkDeviceSize bufferSize,
-                          FbrUniformBufferObject **ppAllocUBO);
 
 void fbrDestroyUBO(const FbrVulkan *pVulkan, FbrUniformBufferObject *pUBO);
 

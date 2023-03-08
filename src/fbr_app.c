@@ -92,15 +92,43 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         DUPLICATE_SAME_ACCESS);
         FBR_LOG_DEBUG("export", camDupHandle);
 
-        HANDLE texDupHandle;
+        HANDLE tex0DupHandle;
         DuplicateHandle(GetCurrentProcess(),
                         pApp->pTestNode->pFramebuffers[0]->pTexture->externalMemory,
                         pApp->pTestNode->pProcess->pi.hProcess,
-                        &texDupHandle,
+                        &tex0DupHandle,
                         0,
                         false,
                         DUPLICATE_SAME_ACCESS);
-        FBR_LOG_DEBUG("export", texDupHandle);
+        FBR_LOG_DEBUG("export", tex0DupHandle);
+        HANDLE tex1DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pFramebuffers[1]->pTexture->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &tex1DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", tex1DupHandle);
+
+        HANDLE vert0DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pVertexUBOs[0]->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &vert0DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", vert0DupHandle);
+        HANDLE vert1DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pVertexUBOs[1]->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &vert1DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", vert1DupHandle);
 
         HANDLE parentSemDupHandle;
         DuplicateHandle(GetCurrentProcess(),
@@ -126,7 +154,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                 .cameraExternalHandle = camDupHandle,
                 .framebufferWidth = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.width,
                 .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.height,
-                .framebufferExternalHandle = texDupHandle,
+                .framebuffer0ExternalHandle = tex0DupHandle,
+                .framebuffer1ExternalHandle = tex1DupHandle,
+                .vertexUBO0ExternalHandle = vert0DupHandle,
+                .vertexUBO1ExternalHandle = vert1DupHandle,
                 .parentSemaphoreExternalHandle = parentSemDupHandle,
                 .childSemaphoreExternalHandle = childSemDupHandle,
         };

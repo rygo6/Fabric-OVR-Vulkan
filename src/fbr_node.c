@@ -69,7 +69,7 @@ void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pN
     memcpy(pNode->pVertexUBOs[0]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
-void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode) {
+VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode) {
     *ppAllocNode = calloc(1, sizeof(FbrNode));
     FbrNode *pNode = *ppAllocNode;
     pNode->pName = strdup(pName);
@@ -85,7 +85,7 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
 
     if (fbrCreateProducerIPC(&pNode->pProducerIPC) != 0){
         FBR_LOG_ERROR("fbrCreateProducerIPC fail");
-        return;
+        return VK_ERROR_UNKNOWN;
     }
     // todo create receiverIPC
 
@@ -93,19 +93,22 @@ void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode)
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
         fbrCreateFrameBuffer(pApp->pVulkan, true, pApp->pVulkan->swapExtent, &pNode->pFramebuffers[i]);
-        fbrCreateUBO(pVulkan,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                     FBR_NODE_VERTEX_BUFFER_SIZE,
-                     &pNode->pVertexUBOs[i]);
+        FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
+                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                         FBR_NODE_VERTEX_BUFFER_SIZE,
+                                         true,
+                                         &pNode->pVertexUBOs[i]));
         fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
     }
 
-    fbrCreateUBO(pVulkan,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
-                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                 FBR_NODE_INDEX_BUFFER_SIZE,
-                 &pNode->pIndexUBO);
+    FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
+                                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                     FBR_NODE_INDEX_BUFFER_SIZE,
+                                     false,
+                                     &pNode->pIndexUBO));
     fbrMemCopyMappedUBO(pNode->pIndexUBO, nodeIndices, FBR_NODE_INDEX_BUFFER_SIZE);
 }
 

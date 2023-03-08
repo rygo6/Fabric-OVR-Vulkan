@@ -1,6 +1,7 @@
 #include "fbr_camera.h"
 #include "fbr_buffer.h"
 #include "fbr_log.h"
+#include "fbr_vulkan.h"
 
 #include <windows.h>
 
@@ -67,7 +68,7 @@ void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, H
     fbrImportUBO(pVulkan, sizeof(FbrCameraUBO), externalMemory, &pCamera->pUBO);
 }
 
-void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
+VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
 
@@ -77,12 +78,12 @@ void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     glm_perspective(90, 1, .01f, 10, pCamera->proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
-//    fbrCreateUBO(pVulkan,
-//                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-//                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-//                 sizeof(FbrCameraUBO),
-//                 &pCamera->pUBO);
-    fbrCreateExternalUBO(pVulkan, sizeof(FbrCameraUBO), &pCamera->pUBO);
+    FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                     sizeof(FbrCameraUBO),
+                                     true,
+                                     &pCamera->pUBO));
 
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateCameraUBO(pCamera);

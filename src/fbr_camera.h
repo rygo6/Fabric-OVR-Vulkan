@@ -26,7 +26,7 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
 void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory);
 
-void fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState);
+VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState);
 
 void fbrDestroyCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);
 

@@ -250,10 +250,12 @@ static void childMainLoop(FbrApp *pApp) {
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
 //    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
+    VkSemaphore pWaitSemaphores[] = {pParentSemaphore->semaphore,
+                                   pChildSemaphore->semaphore};
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
 
-    const uint64_t timelineStep = 4;
+    const uint64_t timelineStep = 16;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
     pParentSemaphore->waitValue += timelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
@@ -265,32 +267,26 @@ static void childMainLoop(FbrApp *pApp) {
 
 //        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
-        uint64_t childValue;
-        FBR_VK_CHECK_COMMAND(vkGetSemaphoreCounterValue(pVulkan->device, pChildSemaphore->semaphore, &childValue));
-        FBR_LOG_DEBUG("Waiting For Child Seamphore", pChildSemaphore->waitValue, childValue);
-        waitForTimeLine(pVulkan, pChildSemaphore);
+        // wait on both parent and child
+        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .pNext = NULL,
+                .flags = 0,
+                .semaphoreCount = 2,
+                .pSemaphores = (const VkSemaphore[]) {pParentSemaphore->semaphore,
+                                                      pChildSemaphore->semaphore},
+                .pValues = (const uint64_t[]) {pParentSemaphore->waitValue,
+                                               pChildSemaphore->waitValue}
+        };
+        FBR_VK_CHECK_COMMAND(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
-        // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
-        // wait on timeline should be enough!!!
-        if (pVulkan->enableValidationLayers)
-            FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
-
-        // check parent timeline semaphore, if parent timeline value past what it should be
-        // it means child took too long to render
-        uint64_t value;
-        vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &value);
-        if (value >= pParentSemaphore->waitValue) {
-            FBR_LOG_DEBUG("Child took to long!", value, pParentSemaphore->waitValue);
-            pParentSemaphore->waitValue = value;
-        } else {
-            waitForTimeLine(pVulkan, pParentSemaphore);
-        }
+        // Update to current parent time, don't let it go faster that parent allows. TODO can be be predictive to start just in time for parent frame flip?
+        vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
         pParentSemaphore->waitValue += timelineStep;
 
-
-//        uint64_t value;
-//        vkGetSemaphoreCounterValue(pApp->pVulkan->device, pApp->parentTimelineSemaphore, &value);
-//        FBR_LOG_DEBUG("child import semaphore", value);
+        // for some reason this fixes a bug with validation layers thinking the queue hasnt finished wait on timeline should be enough!!!
+        if (pVulkan->enableValidationLayers)
+            FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
 
         // Todo there is some trickery to de done here with multiple frames per child node framebuffer
         // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
@@ -307,14 +303,6 @@ static void childMainLoop(FbrApp *pApp) {
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
-        //swap pass
-//            beginRenderPass(pApp->pVulkan, pApp->pVulkan->renderPass, pApp->pVulkan->pSwapChainFramebuffers[swapIndex]);
-//            //cube 1
-//            fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-//            recordRenderPass(pApp->pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh);
-//            // end swap pass
-//            vkCmdEndRenderPass(pApp->pVulkan->commandBuffer);
-
         FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
 
         submitQueue(pVulkan, pChildSemaphore);
@@ -325,6 +313,8 @@ static void childMainLoop(FbrApp *pApp) {
 
 }
 
+#define THREAD_PRIORITY_MOST_URGENT 15
+
 static void parentMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
@@ -332,6 +322,9 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrTimelineSemaphore *pMainSemaphore = pVulkan->pMainSemaphore;
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
+
+    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
+    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         // todo switch to vulkan timing primitives

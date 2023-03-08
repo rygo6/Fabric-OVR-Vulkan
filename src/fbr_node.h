@@ -43,7 +43,7 @@ typedef struct FbrNode {
 
 void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pNode);
 
-void fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
+VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
 
 void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode);
 
