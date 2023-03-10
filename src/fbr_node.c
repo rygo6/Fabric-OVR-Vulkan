@@ -15,8 +15,7 @@ const uint16_t nodeIndices[] = {
         0, 1, 2, 2, 3, 0
 };
 
-void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pNode) {
-//    glm_quat_copy(pCamera->transform.rot, pNode->transform.rot);
+void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNode *pNode) {
     fbrUpdateTransformMatrix(&pNode->transform);
 
     mat4 viewProj;
@@ -66,7 +65,7 @@ void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrNode *pN
     glm_project(ul, mvp, viewport, ulScreen);
     glm_vec2_copy(ulScreen, pNode->nodeVerticesBuffer[3].texCoord);
 
-    memcpy(pNode->pVertexUBOs[0]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
+    memcpy(pNode->pVertexUBOs[timelineSwitch]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
 VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode) {
@@ -99,7 +98,7 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
                                          FBR_NODE_VERTEX_BUFFER_SIZE,
                                          true,
                                          &pNode->pVertexUBOs[i]));
-        fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
+//        fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
     }
 
     FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,

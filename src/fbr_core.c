@@ -99,18 +99,19 @@ static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
     vkCmdDrawIndexed(pVulkan->commandBuffer, pMesh->indexCount, 1, 0, 0, 0);
 }
 
-static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrNode *pNode, VkDescriptorSet descriptorSet) {
+static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrNode *pNode, int timelineSwitch, VkDescriptorSet pDescriptorSets[]) {
     vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->graphicsPipeline);
     vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pPipeline->pipelineLayout,
                             0,
                             1,
-                            &descriptorSet,
+                            &pDescriptorSets[timelineSwitch],
                             0,
                             NULL);
 
-    VkBuffer vertexBuffers[] = {pNode->pVertexUBOs[0]->uniformBuffer};
+
+    VkBuffer vertexBuffers[] = {pNode->pVertexUBOs[timelineSwitch]->uniformBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
 
@@ -246,7 +247,10 @@ static void childMainLoop(FbrApp *pApp) {
 
     // does the pointer indirection here actually cause issue!?
     FbrVulkan *pVulkan = pApp->pVulkan;
-    FbrFramebuffer *pFrameBuffer = pApp->pNodeParent->pFramebuffer;
+    FbrFramebuffer *pFrameBuffers[] = {pApp->pNodeParent->pFramebuffers[0],
+                                       pApp->pNodeParent->pFramebuffers[1]};
+    FbrUniformBufferObject *pVertexUBOs[] = {pApp->pNodeParent->pVertexUBOs[0],
+                                             pApp->pNodeParent->pVertexUBOs[1]};
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
 //    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
@@ -292,11 +296,15 @@ static void childMainLoop(FbrApp *pApp) {
         // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
         beginFrameCommandBuffer(pVulkan);
 
+        int timelineSwitch = (int)(pChildSemaphore->waitValue % 2);
         beginRenderPassImageless(pVulkan,
-                                 pFrameBuffer->renderPass,
-                                 pFrameBuffer->framebuffer,
-                                 pFrameBuffer->pTexture->imageView,
+                                 pVulkan->renderPass,
+                                 pFrameBuffers[timelineSwitch]->framebuffer,
+                                 pFrameBuffers[timelineSwitch]->pTexture->imageView,
                                  (VkClearValue){{{0.0f, 0.0f, 0.00f, 0.0f}}});
+
+        fbrUpdateNodeParentMesh(pVulkan, pCamera, timelineSwitch, pApp->pNodeParent);
+
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
         recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pNodeParent->parentFramebufferDescriptorSet);
@@ -325,6 +333,8 @@ static void parentMainLoop(FbrApp *pApp) {
 
     // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
     SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
+
+    int priorChildSwitch;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         // todo switch to vulkan timing primitives
@@ -374,13 +384,35 @@ static void parentMainLoop(FbrApp *pApp) {
                                  pVulkan->swapFramebuffer,
                                  pVulkan->pSwapImageViews[swapIndex],
                                  (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
+
+        vkGetSemaphoreCounterValue(pVulkan->device, pApp->pTestNode->pChildSemaphore->semaphore, &pApp->pTestNode->pChildSemaphore->waitValue);
+        int timelineSwitch = (int)(pApp->pTestNode->pChildSemaphore->waitValue % 2);
+//        timelineSwitch = timelineSwitch == 0 ? 1 : 0;
+//        if (priorChildSwitch != timelineSwitch){
+//            priorChildSwitch = timelineSwitch;
+//            fbrUpdateNodeMesh(pVulkan, pCamera, timelineSwitch, pApp->pTestNode);
+//        }
+
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
         recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pVulkan->swapDescriptorSet);
         //cube2
 
-        fbrUpdateNodeMesh(pVulkan, pCamera, pApp->pTestNode);
-        recordNodeRenderPass(pVulkan, pApp->pCompPipeline, pApp->pTestNode, pApp->compDescriptorSet);
+        fbrUpdateTransformMatrix(&pApp->pTestNode->transform);
+
+
+//        printf("parent\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
+//               pCamera->transform.matrix[0][0],pCamera->transform.matrix[0][1],pCamera->transform.matrix[0][2],pCamera->transform.matrix[0][3],
+//               pCamera->transform.matrix[1][0],pCamera->transform.matrix[1][1],pCamera->transform.matrix[1][2],pCamera->transform.matrix[1][3],
+//               pCamera->transform.matrix[2][0],pCamera->transform.matrix[2][1],pCamera->transform.matrix[2][2],pCamera->transform.matrix[2][3],
+//               pCamera->transform.matrix[3][0],pCamera->transform.matrix[3][1],pCamera->transform.matrix[3][2],pCamera->transform.matrix[3][3]);
+
+//        vec3 pos;
+//        glm_vec3_copy(pCamera->transform.pos, pos);
+//        FBR_LOG_DEBUG("parent", pos[0], pos[1], pos[2]);
+//        FBR_LOG_DEBUG("parent", pCamera->transform.rot[3]);
+
+        recordNodeRenderPass(pVulkan, pApp->pCompPipeline, pApp->pTestNode, timelineSwitch, pApp->pCompDescriptorSets);
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);

@@ -28,14 +28,6 @@ VkResult fbrBufferMemoryTypeFromProperties(const FbrVulkan *pVulkan,
                                            VkMemoryRequirements *pMemRequirements,
                                            uint32_t *pMemoryTypeBits);
 
-void importBuffer(const FbrVulkan *pVulkan,
-                  VkDeviceSize size,
-                  VkBufferUsageFlags usage,
-                  VkMemoryPropertyFlags properties,
-                  HANDLE externalMemory,
-                  VkBuffer *pBuffer,
-                  VkDeviceMemory *pBufferMemory);
-
 VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer);
 
 VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer);
@@ -74,6 +66,8 @@ VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
                       FbrUniformBufferObject **ppAllocUBO);
 
 void fbrImportUBO(const FbrVulkan *pVulkan,
+                  VkMemoryPropertyFlags properties,
+                  VkBufferUsageFlags usage,
                   VkDeviceSize bufferSize,
                   HANDLE externalMemory,
                   FbrUniformBufferObject **ppAllocUBO);

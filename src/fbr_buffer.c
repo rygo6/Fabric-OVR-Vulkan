@@ -52,9 +52,9 @@ VkResult fbrBufferMemoryTypeFromProperties(const FbrVulkan *pVulkan,
 }
 
 void importBuffer(const FbrVulkan *pVulkan,
-                  VkDeviceSize size,
-                  VkBufferUsageFlags usage,
                   VkMemoryPropertyFlags properties,
+                  VkBufferUsageFlags usage,
+                  VkDeviceSize size,
                   HANDLE externalMemory,
                   VkBuffer *pBuffer,
                   VkDeviceMemory *pBufferMemory) {
@@ -384,19 +384,26 @@ VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
 }
 
 void fbrImportUBO(const FbrVulkan *pVulkan,
+                  VkMemoryPropertyFlags properties,
+                  VkBufferUsageFlags usage,
                   VkDeviceSize bufferSize,
                   HANDLE externalMemory,
                   FbrUniformBufferObject **ppAllocUBO) {
     *ppAllocUBO = calloc(1, sizeof(FbrUniformBufferObject));
     FbrUniformBufferObject *pUBO = *ppAllocUBO;
     importBuffer(pVulkan,
+                 properties,
+                 usage,
                  bufferSize,
-                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  externalMemory,
-                 // Todo change to pass in whole FbrUBO object
                  &pUBO->uniformBuffer,
                  &pUBO->uniformBufferMemory);
+    vkMapMemory(pVulkan->device,
+                pUBO->uniformBufferMemory,
+                0,
+                bufferSize,
+                0,
+                &pUBO->pUniformBufferMapped);
     pUBO->externalMemory = externalMemory;
     // don't need to set or map anything because parent does it!
 }

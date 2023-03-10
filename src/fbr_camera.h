@@ -9,12 +9,12 @@
 typedef struct FbrCameraUBO {
     mat4 view;
     mat4 proj;
+    mat4 trs;
 } FbrCameraUBO;
 
 typedef struct FbrCamera {
     FbrEntity entity;
     FbrTransform transform;
-    mat4 proj;
 
     FbrCameraUBO uboData;
     FbrUniformBufferObject *pUBO;

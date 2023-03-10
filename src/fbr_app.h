@@ -41,7 +41,7 @@ typedef struct FbrApp {
     FbrPipeline *pSwapPipeline;
 
     FbrPipeline *pCompPipeline;
-    VkDescriptorSet compDescriptorSet;
+    VkDescriptorSet pCompDescriptorSets[2];
 
     // parent tests
     FbrNode *pTestNode;

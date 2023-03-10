@@ -78,7 +78,12 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              pApp->pCamera,
                              pApp->pCompPipeline->descriptorSetLayout,
                              pApp->pTestNode->pFramebuffers[0]->pTexture->imageView,
-                             &pApp->compDescriptorSet);
+                             &pApp->pCompDescriptorSets[0]);
+        fbrInitDescriptorSet(pApp->pVulkan,
+                             pApp->pCamera,
+                             pApp->pCompPipeline->descriptorSetLayout,
+                             pApp->pTestNode->pFramebuffers[1]->pTexture->imageView,
+                             &pApp->pCompDescriptorSets[1]);
 
 
         // todo below can go into create node
@@ -165,6 +170,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     } else {
 
         fbrCreateNodeParent(&pApp->pNodeParent);
+        glm_vec3_add(pApp->pNodeParent->transform.pos, (vec3) {1, 0, 0}, pApp->pNodeParent->transform.pos);
 
         // for debugging ipc now, wait for camera
         while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
@@ -177,7 +183,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTestTexture, "textures/UV_Grid_Sm.jpg", false);
 
         fbrCreatePipeline(pApp->pVulkan,
-                          pApp->pNodeParent->pFramebuffer->renderPass,
+                          pApp->pVulkan->renderPass,
                           "./shaders/vert.spv",
                           "./shaders/frag.spv",
 //                          "./shaders/frag_crasher.spv",
@@ -219,7 +225,8 @@ void fbrCleanup(FbrApp *pApp) {
         fbrDestroyNode(pApp->pVulkan, pApp->pTestNode);
         fbrDestroyCamera(pApp->pVulkan, pApp->pCamera);
         fbrCleanupPipeline(pApp->pVulkan, pApp->pSwapPipeline);
-        vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compDescriptorSet);
+        vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompDescriptorSets[0]);
+        vkFreeDescriptorSets(pApp->pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompDescriptorSets[1]);
     }
 
     fbrDestroyTexture(pApp->pVulkan, pApp->pTestTexture);

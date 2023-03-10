@@ -12,7 +12,7 @@ typedef struct FbrFramebuffer {
     FbrTexture *pTexture;
 
     VkSampleCountFlagBits samples;
-    VkRenderPass renderPass;
+//    VkRenderPass renderPass;
     VkFramebuffer framebuffer;
 
 //    uint64_t waitValue;

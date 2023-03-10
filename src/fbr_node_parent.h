@@ -6,9 +6,11 @@
 #include <windows.h>
 
 typedef struct FbrNodeParent {
+    FbrTransform transform;
+
     FbrIPC *pReceiverIPC;
 
-    FbrFramebuffer *pFramebuffer;
+//    FbrFramebuffer *pFramebuffer;
 
     FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
     FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
@@ -17,8 +19,12 @@ typedef struct FbrNodeParent {
     FbrTimelineSemaphore *pChildSemaphore;
     FbrCamera *pCamera;
 
+    Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
+
     VkDescriptorSet parentFramebufferDescriptorSet; // todo this doesnt belong here
 } FbrNodeParent;
+
+void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int timelineSwitch, FbrNodeParent *pNode);
 
 void fbrCreateNodeParent(FbrNodeParent **ppAllocNodeParent);
 

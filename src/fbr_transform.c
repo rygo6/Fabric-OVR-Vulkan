@@ -7,10 +7,8 @@ void fbrInitTransform(FbrTransform *transform) {
 }
 
 void fbrUpdateTransformMatrix(FbrTransform *transform) {
-    mat4 newTransform = GLM_MAT4_IDENTITY_INIT;
-    glm_translate_to(newTransform, transform->pos, newTransform);
-    glm_quat_rotate(newTransform, transform->rot, newTransform);
-    glm_mat4_copy(newTransform, transform->matrix);
+    glm_translate_to(GLM_MAT4_IDENTITY, transform->pos, transform->matrix);
+    glm_quat_rotate(transform->matrix, transform->rot, transform->matrix);
 }
 
 void fbrTransformUp(FbrTransform *pTransform, vec3 dest) {

@@ -6,7 +6,6 @@
 #include <windows.h>
 
 void fbrUpdateCameraUBO(FbrCamera *pCamera) {
-    glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.view);
     memcpy(pCamera->pUBO->pUniformBufferMapped, &pCamera->uboData, sizeof(FbrCameraUBO));
 }
 
@@ -33,8 +32,10 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             glm_quat_rotatev(pCamera->transform.rot, deltaPos, deltaPos);
             glm_vec3_add(pCamera->transform.pos, deltaPos, pCamera->transform.pos);
 
-//            fbrUpdateTransformMatrix(&pCamera->transform);
-            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->transform.matrix);
+            fbrUpdateTransformMatrix(&pCamera->transform);
+
+            glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.trs);
+            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->uboData.view);
             break;
         }
         case FBR_MOUSE_POS_INPUT: {
@@ -43,8 +44,10 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             glm_quatv(rotQ, glm_rad(yRot), GLM_YUP);
             glm_quat_mul(pCamera->transform.rot, rotQ, pCamera->transform.rot);
 
-//            fbrUpdateTransformMatrix(&pCamera->transform);
-            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->transform.matrix);
+            fbrUpdateTransformMatrix(&pCamera->transform);
+
+            glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.trs);
+            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->uboData.view);
             break;
         }
         case FBR_MOUSE_BUTTON_INPUT: {
@@ -62,10 +65,18 @@ void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
 void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
+    fbrInitTransform(&pCamera->transform);
+    glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
+    glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
+    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
+    fbrUpdateTransformMatrix(&pCamera->transform);
 
-    // don't need to set or map anything because parent does it!
-
-    fbrImportUBO(pVulkan, sizeof(FbrCameraUBO), externalMemory, &pCamera->pUBO);
+    fbrImportUBO(pVulkan,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                 sizeof(FbrCameraUBO),
+                 externalMemory,
+                 &pCamera->pUBO);
 }
 
 VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
@@ -75,17 +86,16 @@ VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraStat
     fbrInitTransform(&pCamera->transform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
     glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, .01f, 10, pCamera->proj);
+    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
     FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
-                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                      sizeof(FbrCameraUBO),
                                      true,
                                      &pCamera->pUBO));
 
-    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateCameraUBO(pCamera);
 }
 
