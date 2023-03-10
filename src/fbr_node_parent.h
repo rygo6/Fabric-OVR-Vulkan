@@ -10,8 +10,6 @@ typedef struct FbrNodeParent {
 
     FbrIPC *pReceiverIPC;
 
-//    FbrFramebuffer *pFramebuffer;
-
     FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
     FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
 

@@ -24,7 +24,6 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
     if (action == GLFW_REPEAT)
         return;
 
-//    fbrLogDebugInfo2("fbrKeyEvent", %d, key, %d, action);
     inputEvents[currentEventIndex].type = FBR_KEY_INPUT;
     inputEvents[currentEventIndex].keyInput.key = key;
     inputEvents[currentEventIndex].keyInput.action = action;
@@ -36,7 +35,6 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 }
 
 static void cursor_position_callback(GLFWwindow *window, double xPos, double yPos) {
-//    fbrLogDebugInfo2("fbrMouseEvent position", %f, xPos, %f, yPos);
     inputEvents[currentEventIndex].type = FBR_MOUSE_POS_INPUT;
     inputEvents[currentEventIndex].mousePosInput.xPos = xPos;
     inputEvents[currentEventIndex].mousePosInput.yPos = yPos;
@@ -51,7 +49,6 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
     if (action == GLFW_REPEAT)
         return;
 
-//    fbrLogDebugInfo2("fbrMouseEvent button", %d, button, %d, action);
     inputEvents[currentEventIndex].type = FBR_MOUSE_BUTTON_INPUT;
     inputEvents[currentEventIndex].mouseButtonInput.button = button;
     inputEvents[currentEventIndex].mouseButtonInput.action = action;

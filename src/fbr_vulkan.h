@@ -62,6 +62,7 @@ typedef struct FbrVulkan {
 
     VkRenderPass renderPass;
 
+    // go in swap object
     VkSwapchainKHR swapChain;
     uint32_t swapImageCount;
     VkImage *pSwapImages;
@@ -71,11 +72,9 @@ typedef struct FbrVulkan {
     VkExtent2D swapExtent;
     VkFramebuffer swapFramebuffer;
     VkDescriptorSet swapDescriptorSet;
-
     VkSemaphore swapAcquireComplete;
     VkSemaphore renderCompleteSemaphore;
 
-    VkFence queueFence;
 
     //todo should go elsewhere?
     FbrTimelineSemaphore *pMainSemaphore;

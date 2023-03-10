@@ -32,8 +32,6 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int ti
     glm_mat4_quat(rot, pCamera->transform.rot);
     glm_vec3_copy(pos, pCamera->transform.pos);
 
-    FBR_LOG_DEBUG("child",pos[0], pos[1], pos[2]);
-
     mat4 viewProj;
     glm_mat4_mul(pCamera->uboData.proj, pCamera->uboData.view, viewProj);
     mat4 mvp;

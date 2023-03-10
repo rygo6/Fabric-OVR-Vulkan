@@ -38,20 +38,15 @@ typedef struct FbrApp {
     FbrMesh *pTestQuadMesh;
     FbrTexture *pTestTexture;
 
+    // go in swap object
     FbrPipeline *pSwapPipeline;
 
     FbrPipeline *pCompPipeline;
     VkDescriptorSet pCompDescriptorSets[2];
 
-    // parent tests
+    // node tests
     FbrNode *pTestNode;
-
-    // child tests
     FbrNodeParent *pNodeParent;
-//    FbrIPC *pParentProcessReceiverIPC; //Todo put in parent process type
-//    FbrFramebuffer *pParentProcessFramebuffer;
-//    VkDescriptorSet parentFramebufferDescriptorSet;
-//    FbrTimelineSemaphore *pParentSemaphore
 } FbrApp;
 
 void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTest);

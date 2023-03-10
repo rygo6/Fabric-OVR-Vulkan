@@ -14,11 +14,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void waitForQueueFence(FbrVulkan *pVulkan) {
-    vkWaitForFences(pVulkan->device, 1, &pVulkan->queueFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(pVulkan->device, 1, &pVulkan->queueFence);
-}
-
 static void waitForTimeLine(FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore) {
     const VkSemaphoreWaitInfo semaphoreWaitInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
@@ -207,6 +202,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSem
                    &submitInfo,
                    VK_NULL_HANDLE));
 
+    // TODO want to use this?? https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_present_id.html
     const VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
@@ -249,19 +245,15 @@ static void childMainLoop(FbrApp *pApp) {
     FbrVulkan *pVulkan = pApp->pVulkan;
     FbrFramebuffer *pFrameBuffers[] = {pApp->pNodeParent->pFramebuffers[0],
                                        pApp->pNodeParent->pFramebuffers[1]};
-    FbrUniformBufferObject *pVertexUBOs[] = {pApp->pNodeParent->pVertexUBOs[0],
-                                             pApp->pNodeParent->pVertexUBOs[1]};
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
 //    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
-    VkSemaphore pWaitSemaphores[] = {pParentSemaphore->semaphore,
-                                   pChildSemaphore->semaphore};
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
 
-    const uint64_t timelineStep = 16;
+    const uint64_t parentTimelineStep = 16;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
-    pParentSemaphore->waitValue += timelineStep;
+    pParentSemaphore->waitValue += parentTimelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
@@ -284,9 +276,10 @@ static void childMainLoop(FbrApp *pApp) {
         };
         FBR_VK_CHECK_COMMAND(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
-        // Update to current parent time, don't let it go faster that parent allows. TODO can be be predictive to start just in time for parent frame flip?
+        // Update to current parent time, don't let it go faster that parent allows.
+        // TODO can be be predictive to start just in time for parent frame flip?
         vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
-        pParentSemaphore->waitValue += timelineStep;
+        pParentSemaphore->waitValue += parentTimelineStep;
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished wait on timeline should be enough!!!
         if (pVulkan->enableValidationLayers)
@@ -315,26 +308,27 @@ static void childMainLoop(FbrApp *pApp) {
 
         submitQueue(pVulkan, pChildSemaphore);
 
-        // todo for light cleanup excess is time exceeds
+        // todo for light cleanup exit if time exceeds
 //        _exit(0);
     }
-
 }
 
+static void setHighPriority(){
+    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
 #define THREAD_PRIORITY_MOST_URGENT 15
+    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
+    SetPriorityClass(GetCurrentThread(), REALTIME_PRIORITY_CLASS);
+}
 
 static void parentMainLoop(FbrApp *pApp) {
+    setHighPriority();
+
     double lastFrameTime = glfwGetTime();
 
     FbrVulkan *pVulkan = pApp->pVulkan;
     FbrTimelineSemaphore *pMainSemaphore = pVulkan->pMainSemaphore;
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
-
-    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
-    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
-
-    int priorChildSwitch;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         // todo switch to vulkan timing primitives
@@ -351,21 +345,8 @@ static void parentMainLoop(FbrApp *pApp) {
         if (pVulkan->enableValidationLayers)
             FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
 
-
-//        uint64_t value;
-//        FBR_VK_CHECK_COMMAND(vkGetSemaphoreCounterValue(pVulkan->device, pMainSemaphore->semaphore, &value));
-//        FBR_LOG_DEBUG("pMainSemaphore", value, value % 16);
-
         processInputFrame(pApp);
         fbrUpdateCameraUBO(pCamera);
-
-        // somehow need to signal semaphore after UBO updating
-//        VkSemaphoreSignalInfo signalInfo;
-//        signalInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO;
-//        signalInfo.pNext = NULL;
-//        signalInfo.semaphore = timeline;
-//        signalInfo.value = 7;
-//        vkSignalSemaphore(dev, &signalInfo);
 
         // Get open swap image
         uint32_t swapIndex;
@@ -387,11 +368,6 @@ static void parentMainLoop(FbrApp *pApp) {
 
         vkGetSemaphoreCounterValue(pVulkan->device, pApp->pTestNode->pChildSemaphore->semaphore, &pApp->pTestNode->pChildSemaphore->waitValue);
         int timelineSwitch = (int)(pApp->pTestNode->pChildSemaphore->waitValue % 2);
-//        timelineSwitch = timelineSwitch == 0 ? 1 : 0;
-//        if (priorChildSwitch != timelineSwitch){
-//            priorChildSwitch = timelineSwitch;
-//            fbrUpdateNodeMesh(pVulkan, pCamera, timelineSwitch, pApp->pTestNode);
-//        }
 
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
@@ -399,18 +375,6 @@ static void parentMainLoop(FbrApp *pApp) {
         //cube2
 
         fbrUpdateTransformMatrix(&pApp->pTestNode->transform);
-
-
-//        printf("parent\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
-//               pCamera->transform.matrix[0][0],pCamera->transform.matrix[0][1],pCamera->transform.matrix[0][2],pCamera->transform.matrix[0][3],
-//               pCamera->transform.matrix[1][0],pCamera->transform.matrix[1][1],pCamera->transform.matrix[1][2],pCamera->transform.matrix[1][3],
-//               pCamera->transform.matrix[2][0],pCamera->transform.matrix[2][1],pCamera->transform.matrix[2][2],pCamera->transform.matrix[2][3],
-//               pCamera->transform.matrix[3][0],pCamera->transform.matrix[3][1],pCamera->transform.matrix[3][2],pCamera->transform.matrix[3][3]);
-
-//        vec3 pos;
-//        glm_vec3_copy(pCamera->transform.pos, pos);
-//        FBR_LOG_DEBUG("parent", pos[0], pos[1], pos[2]);
-//        FBR_LOG_DEBUG("parent", pCamera->transform.rot[3]);
 
         recordNodeRenderPass(pVulkan, pApp->pCompPipeline, pApp->pTestNode, timelineSwitch, pApp->pCompDescriptorSets);
 

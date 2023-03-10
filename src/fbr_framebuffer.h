@@ -8,16 +8,9 @@
 #define FBR_FRAMEBUFFER_USAGE (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 
 typedef struct FbrFramebuffer {
-
     FbrTexture *pTexture;
-
-    VkSampleCountFlagBits samples;
-//    VkRenderPass renderPass;
     VkFramebuffer framebuffer;
-
-//    uint64_t waitValue;
-//    VkSemaphore semaphore;
-
+    VkSampleCountFlagBits samples;
 } FbrFramebuffer;
 
 void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer);

@@ -1,7 +1,3 @@
-//
-// Created by rygo6 on 11/28/2022.
-//
-
 #ifndef FABRIC_INPUT_H
 #define FABRIC_INPUT_H
 

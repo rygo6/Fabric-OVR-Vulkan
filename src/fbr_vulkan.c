@@ -740,12 +740,6 @@ static VkResult createSyncObjects(FbrVulkan *pVulkan) { // todo move to swap syn
     };
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->swapAcquireComplete));
     FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore));
-
-    const VkFenceCreateInfo fenceCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-    };
-    FBR_VK_CHECK_RETURN(vkCreateFence(pVulkan->device, &fenceCreateInfo, NULL, &pVulkan->queueFence));
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {

@@ -7,9 +7,6 @@ typedef struct FbrPipeline {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     VkDescriptorSetLayout descriptorSetLayout;
-
-
-
 } FbrPipeline;
 
 void fbrInitDescriptorSet(const FbrVulkan *pVulkan,

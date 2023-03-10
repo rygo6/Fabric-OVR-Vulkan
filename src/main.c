@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
+#include <processthreadsapi.h>
+#include <winbase.h>
 
 
 // https://forums.developer.nvidia.com/t/windows-vk-ext-global-priority/196010/2
