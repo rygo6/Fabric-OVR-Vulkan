@@ -378,6 +378,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
                     .robustBufferAccess = true,
                     .fragmentStoresAndAtomics = true,
                     .vertexPipelineStoresAndAtomics = true,
+                    .tessellationShader = true,
             }
     };
 
@@ -522,6 +523,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     }
 
     // just going to assume we can blit to swap
+    // no, better to render to swap?
 //    VkImageUsageFlags nImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 //    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
 //        nImageUsageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
