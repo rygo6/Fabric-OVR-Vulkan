@@ -61,7 +61,7 @@ void importBuffer(const FbrVulkan *pVulkan,
 
     VkExternalMemoryBufferCreateInfoKHR externalMemoryBufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .handleTypes = FBR_EXTERNAL_MEMORY_HANDLE_TYPE
     };
     VkBufferCreateInfo bufferCreateInfo = {
@@ -85,7 +85,7 @@ void importBuffer(const FbrVulkan *pVulkan,
     // dedicated?
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
-//            .pNext = VK_NULL_HANDLE,
+//            .pNext = NULL,
 //            .image = pTestTexture->image,
 //            .buffer = VK_NULL_HANDLE
 //    };
@@ -115,12 +115,12 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
                                VkDeviceMemory *pBufferMemory) {
     VkExternalMemoryBufferCreateInfoKHR externalMemoryBufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .handleTypes = FBR_EXTERNAL_MEMORY_HANDLE_TYPE
     };
     VkBufferCreateInfo bufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .pNext = external ? &externalMemoryBufferCreateInfo : VK_NULL_HANDLE,
+            .pNext = external ? &externalMemoryBufferCreateInfo : NULL,
             .size = size,
             .usage = usage,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -149,7 +149,7 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
     };
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = external ? &exportAllocInfo : VK_NULL_HANDLE,
+            .pNext = external ? &exportAllocInfo : NULL,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = memTypeIndex
     };

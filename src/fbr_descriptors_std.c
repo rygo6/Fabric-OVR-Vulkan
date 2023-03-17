@@ -9,7 +9,7 @@ static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                           VkDescriptorSetLayout *pSetLayout) {
     VkDescriptorSetLayoutCreateInfo layoutInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .flags = 0,
             .bindingCount = bindingCount,
             .pBindings = pBindings,
@@ -26,7 +26,7 @@ static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
                                       VkDescriptorSet *pDescriptorSet) {
     const VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .descriptorPool = pVulkan->descriptorPool,
             .descriptorSetCount = descriptorSetCount,
             .pSetLayouts = pSetLayouts,
@@ -79,27 +79,27 @@ VkResult fbrCreateDescriptorSet_CameraUBO_TextureSampler(const FbrVulkan *pVulka
     const VkWriteDescriptorSet descriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = VK_NULL_HANDLE,
+                    .pNext = NULL,
                     .dstSet = *pDescriptorSet,
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImageInfo = VK_NULL_HANDLE,
+                    .pImageInfo = NULL,
                     .pBufferInfo = &bufferInfo,
-                    .pTexelBufferView = VK_NULL_HANDLE,
+                    .pTexelBufferView = NULL,
             },
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = VK_NULL_HANDLE,
+                    .pNext = NULL,
                     .dstSet = *pDescriptorSet,
                     .dstBinding = 1,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .pImageInfo = &imageInfo,
-                    .pBufferInfo = VK_NULL_HANDLE,
-                    .pTexelBufferView = VK_NULL_HANDLE,
+                    .pBufferInfo = NULL,
+                    .pTexelBufferView = NULL,
             },
     };
     vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);

@@ -237,7 +237,7 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
     VkQueueFamilyProperties2 queueFamilies[queueFamilyCount];
     for (int i = 0; i < queueFamilyCount; ++i) {
         queueFamilyGlobalPriorityProperties[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_EXT;
-        queueFamilyGlobalPriorityProperties[i].pNext = VK_NULL_HANDLE;
+        queueFamilyGlobalPriorityProperties[i].pNext = NULL;
         queueFamilies[i].sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
         queueFamilies[i].pNext = &queueFamilyGlobalPriorityProperties[i];
     }
@@ -409,10 +409,10 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
             .pNext = &enabledFeatures,
             .queueCreateInfoCount = queueFamilyCount,
             .pQueueCreateInfos = queueCreateInfos,
-            .pEnabledFeatures = VK_NULL_HANDLE,
+            .pEnabledFeatures = NULL,
             .enabledExtensionCount = requiredDeviceExtensionCount,
             .ppEnabledExtensionNames = pRequiredDeviceExtensions,
-            .ppEnabledLayerNames = pVulkan->enableValidationLayers ? pRequiredInstanceLayers : VK_NULL_HANDLE,
+            .ppEnabledLayerNames = pVulkan->enableValidationLayers ? pRequiredInstanceLayers : NULL,
             .enabledLayerCount = pVulkan->enableValidationLayers ? requiredInstanceLayerCount : 0,
 
     };

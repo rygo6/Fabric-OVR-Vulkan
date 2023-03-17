@@ -56,7 +56,7 @@ static void importTexture(const FbrVulkan *pVulkan,
     VkExternalMemoryHandleTypeFlags externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
     VkExternalMemoryImageCreateInfo externalImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .handleTypes = externalHandleType
     };
 
@@ -90,7 +90,7 @@ static void importTexture(const FbrVulkan *pVulkan,
     // todo your supposed check if it wants dedicated memory
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
 //            .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO_KHR,
-//            .pNext = VK_NULL_HANDLE,
+//            .pNext = NULL,
 //            .image = pTestTexture->image,
 //            .buffer = VK_NULL_HANDLE
 //    };
@@ -146,7 +146,7 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     VkExternalMemoryHandleTypeFlagBits externalHandleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
     VkExternalMemoryImageCreateInfo externalImageInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .handleTypes = externalHandleType,
     };
     VkImageCreateInfo imageCreateInfo = {

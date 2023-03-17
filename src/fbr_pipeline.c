@@ -172,7 +172,7 @@ static void initPipeline(const FbrVulkan *pVulkan,
     };
     const VkPipelineRobustnessCreateInfoEXT pipelineRobustnessCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_ROBUSTNESS_CREATE_INFO_EXT,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT,
             .uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT,
             .vertexInputs = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT,

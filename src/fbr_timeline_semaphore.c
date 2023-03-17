@@ -11,7 +11,7 @@
     // TODO validate external timeline semaphore
 //    const VkSemaphoreTypeCreateInfo semaphoreTypeCreateInfo = {
 //            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-//            .pNext = VK_NULL_HANDLE,
+//            .pNext = NULL,
 //            .initialValue = 0,
 //            .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
 //    };
@@ -41,16 +41,16 @@
 static VkResult createExternalTimelineSemaphore(const FbrVulkan *pVulkan, bool external, bool readOnly, FbrTimelineSemaphore *pTimelineSemaphore) {
     const VkExportSemaphoreWin32HandleInfoKHR exportSemaphoreWin32HandleInfo = {
             .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             // TODO are these the best security options? Read seems to affect it and solves issue of
             // child corrupting semaphore on crash... but not 100%
             .dwAccess = readOnly ? GENERIC_READ : GENERIC_ALL,
-            .pAttributes = VK_NULL_HANDLE,
+            .pAttributes = NULL,
 //            .name = L"FBR_SEMAPHORE"
     };
     const VkExportSemaphoreCreateInfo exportSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
-            .pNext = external ? &exportSemaphoreWin32HandleInfo : VK_NULL_HANDLE,
+            .pNext = external ? &exportSemaphoreWin32HandleInfo : NULL,
             .handleTypes = FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
     };
     const VkSemaphoreTypeCreateInfo timelineSemaphoreTypeCreateInfo = {
@@ -73,7 +73,7 @@ static VkResult getWin32Handle(const FbrVulkan *pVulkan, FbrTimelineSemaphore *p
 #if WIN32
     const VkSemaphoreGetWin32HandleInfoKHR semaphoreGetWin32HandleInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .handleType = FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
             .semaphore = pTimelineSemaphore->semaphore,
     };
@@ -93,7 +93,7 @@ static VkResult importTimelineSemaphore(const FbrVulkan *pVulkan, HANDLE externa
 #if WIN32
     const VkImportSemaphoreWin32HandleInfoKHR importSemaphoreWin32HandleInfoKhr = {
             .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .handle = externalTimelineSemaphore,
             .handleType = FBR_EXTERNAL_SEMAPHORE_HANDLE_TYPE,
             .semaphore = pTimelineSemaphore->semaphore,

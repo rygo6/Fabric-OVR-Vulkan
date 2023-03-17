@@ -138,7 +138,7 @@ static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemapho
     };
     const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .waitSemaphoreInfoCount = 1,
             .pWaitSemaphoreInfos = &waitSemaphoreSubmitInfo,
             .signalSemaphoreInfoCount = 1,
@@ -189,7 +189,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSem
     };
     const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
-            .pNext = VK_NULL_HANDLE,
+            .pNext = NULL,
             .waitSemaphoreInfoCount = 2,
             .pWaitSemaphoreInfos = waitSemaphoreSubmitInfos,
             .signalSemaphoreInfoCount = 2,
