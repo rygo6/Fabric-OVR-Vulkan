@@ -92,22 +92,22 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
         fbrCreateFrameBuffer(pApp->pVulkan, true, pApp->pVulkan->swapExtent, &pNode->pFramebuffers[i]);
-        FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
+        VK_CHECK(fbrCreateUBO(pVulkan,
                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                         FBR_NODE_VERTEX_BUFFER_SIZE,
-                                         true,
-                                         &pNode->pVertexUBOs[i]));
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                              FBR_NODE_VERTEX_BUFFER_SIZE,
+                              true,
+                              &pNode->pVertexUBOs[i]));
 //        fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
     }
 
-    FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
+    VK_CHECK(fbrCreateUBO(pVulkan,
                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
                                      VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                     FBR_NODE_INDEX_BUFFER_SIZE,
-                                     false,
-                                     &pNode->pIndexUBO));
+                          FBR_NODE_INDEX_BUFFER_SIZE,
+                          false,
+                          &pNode->pIndexUBO));
     fbrMemCopyMappedUBO(pNode->pIndexUBO, nodeIndices, FBR_NODE_INDEX_BUFFER_SIZE);
 }
 

@@ -19,7 +19,6 @@ typedef struct FbrNodeParent {
 
     Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
 
-    VkDescriptorSet parentFramebufferDescriptorSet; // todo this doesnt belong here
 } FbrNodeParent;
 
 void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int timelineSwitch, FbrNodeParent *pNode);

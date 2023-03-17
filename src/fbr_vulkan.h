@@ -14,14 +14,14 @@
     } while (0)
 
 // todo there needs to be some mechanic of dealloc if this fails
-#define FBR_VK_CHECK_RETURN(command) \
-    do { \
-        VkResult result = command; \
-        if (result != VK_SUCCESS) { \
-            printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result); \
-            return result; \
-            } \
-    } while (0)
+#define VK_CHECK(command)                                                                           \
+do {                                                                                                \
+    VkResult result = (command);                                                                    \
+    if (result != VK_SUCCESS) {                                                                     \
+        printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);                   \
+        return result;                                                                              \
+    }                                                                                               \
+} while(0)
 
 #define FBR_VK_CHECK_COMMAND(command)\
     do { \
@@ -71,7 +71,6 @@ typedef struct FbrVulkan {
     VkImageUsageFlags swapUsage;
     VkExtent2D swapExtent;
     VkFramebuffer swapFramebuffer;
-    VkDescriptorSet swapDescriptorSet;
     VkSemaphore swapAcquireComplete;
     VkSemaphore renderCompleteSemaphore;
 

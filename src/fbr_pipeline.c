@@ -41,98 +41,21 @@ static VkShaderModule createShaderModule(const FbrVulkan *pVulkan, const char *c
     return shaderModule;
 }
 
-// Describes the layout of inputs for shaders
-static VkResult initDescriptorSetLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
-    VkDescriptorSetLayoutBinding bindings[] = {
-            {
-                    .binding = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImmutableSamplers = NULL,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            },
-            {
-                    .binding = 1,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImmutableSamplers = NULL,
-                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-            }
-    };
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 2,
-            .pBindings = bindings,
-    };
-
-    FBR_VK_CHECK_RETURN(vkCreateDescriptorSetLayout(pVulkan->device, &layoutInfo, NULL, &pPipeline->descriptorSetLayout));
-}
-
-// what actually gets fed to shaders
-void fbrInitDescriptorSet(const FbrVulkan *pVulkan,
-                          const FbrCamera *pCameraState,
-                          VkDescriptorSetLayout descriptorSetLayout,
-                          VkImageView imageView,
-                          VkDescriptorSet *pDescriptorSet) {
-
-    VkDescriptorSetAllocateInfo allocInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = pVulkan->descriptorPool,
-            .descriptorSetCount = 1,
-            .pSetLayouts = &descriptorSetLayout,
-    };
-    FBR_VK_CHECK(vkAllocateDescriptorSets(pVulkan->device, &allocInfo, pDescriptorSet));
-
-    VkDescriptorBufferInfo bufferInfo = {
-            .buffer = pCameraState->pUBO->uniformBuffer,
-            .offset = 0,
-            .range = sizeof(FbrCameraUBO),
-    };
-    VkDescriptorImageInfo imageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = imageView,
-            .sampler = pVulkan->sampler,
-    };
-    VkWriteDescriptorSet descriptorWrites[] = {
-            {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = *pDescriptorSet,
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    .pBufferInfo = &bufferInfo,
-            },
-            {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = *pDescriptorSet,
-                    .dstBinding = 1,
-                    .dstArrayElement = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1,
-                    .pImageInfo = &imageInfo,
-            },
-    };
-    vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
-}
-
 // full description of a pipeline, but only shaders get hard-bound to it, different descriptor sets can be attached
-static void initPipelineLayout(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
-    VkPushConstantRange pushConstant = {
+static void initPipelineLayout(const FbrVulkan *pVulkan, uint32_t setLayoutCount, const VkDescriptorSetLayout *pSetLayouts, FbrPipeline *pPipeline) {
+    const VkPushConstantRange pushConstant = {
             .offset = 0,
             .size = sizeof(mat4),
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
     };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+    const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = &pPipeline->descriptorSetLayout,
+            .pNext = NULL,
+            .setLayoutCount = setLayoutCount,
+            .pSetLayouts = pSetLayouts,
             .pPushConstantRanges = &pushConstant,
             .pushConstantRangeCount  = 1
     };
-
     FBR_VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, &pPipeline->pipelineLayout));
 }
 
@@ -284,21 +207,20 @@ static void initPipeline(const FbrVulkan *pVulkan,
 
 void fbrCreatePipeline(const FbrVulkan *pVulkan,
                        VkRenderPass renderPass,
+                       uint32_t setLayoutCount,
+                       const VkDescriptorSetLayout *pSetLayouts,
                        const char* pVertShaderPath,
                        const char* pFragShaderPath,
                        FbrPipeline **ppAllocPipeline) {
     *ppAllocPipeline = calloc(1, sizeof(FbrPipeline));
     FbrPipeline *pPipeline = *ppAllocPipeline;
 
-    initDescriptorSetLayout(pVulkan, pPipeline);
-
-    initPipelineLayout(pVulkan, pPipeline);
+    initPipelineLayout(pVulkan, setLayoutCount, pSetLayouts, pPipeline);
 
     initPipeline(pVulkan, renderPass, pVertShaderPath, pFragShaderPath, pPipeline);
 }
 
 void fbrCleanupPipeline(const FbrVulkan *pVulkan, FbrPipeline *pPipeline) {
-    vkDestroyDescriptorSetLayout(pVulkan->device, pPipeline->descriptorSetLayout, NULL);
     vkDestroyPipeline(pVulkan->device, pPipeline->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pVulkan->device, pPipeline->pipelineLayout, NULL);
     free(pPipeline);

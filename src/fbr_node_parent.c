@@ -94,7 +94,6 @@ void fbrCreateNodeParent(FbrNodeParent **ppAllocNodeParent) {
 
 void fbrDestroyNodeParent(FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) {
     // Should I be destroy imported things???
-    vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pNodeParent->parentFramebufferDescriptorSet);
     fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[0]);
     fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[1]);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pParentSemaphore);

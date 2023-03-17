@@ -89,12 +89,12 @@ VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraStat
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateTransformMatrix(&pCamera->transform);
 
-    FBR_VK_CHECK_RETURN(fbrCreateUBO(pVulkan,
+    VK_CHECK(fbrCreateUBO(pVulkan,
                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                     sizeof(FbrCameraUBO),
-                                     true,
-                                     &pCamera->pUBO));
+                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                          sizeof(FbrCameraUBO),
+                          true,
+                          &pCamera->pUBO));
 
     fbrUpdateCameraUBO(pCamera);
 }

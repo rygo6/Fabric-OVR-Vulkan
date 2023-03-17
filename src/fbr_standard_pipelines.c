@@ -6,7 +6,7 @@
 
 //void fbrCreateUnlitStandardPipeline(const FbrVulkan *pVulkan, FbrCamera *pCamera, FbrTexture *pTexture, FbrPipeline *pPipeline){
 //    VkDescriptorSetLayout descriptorSetLayout
-
+//
 //    VkDescriptorSetLayoutBinding bindings[] = {
 //            {
 //                    .binding = 0,
@@ -55,6 +55,5 @@
 //                    .pImageInfo = &imageInfo,
 //            },
 //    };
-
-
+//
 //}

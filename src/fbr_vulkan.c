@@ -115,9 +115,9 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
 static VkResult createInstance(FbrVulkan *pVulkan) {
     if (pVulkan->enableValidationLayers) {
         uint32_t availableLayerCount = 0;
-        FBR_VK_CHECK_RETURN(vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL));
+        VK_CHECK(vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL));
         VkLayerProperties availableLayers[availableLayerCount];
-        FBR_VK_CHECK_RETURN(vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers));
+        VK_CHECK(vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers));
 
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
         FBR_LOG_DEBUG("Available Layer Count: ", availableLayerCount);
@@ -150,9 +150,9 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
 
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
     uint32_t availableExtensionCount = 0;
-    FBR_VK_CHECK_RETURN(vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL));
+    VK_CHECK(vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL));
     VkExtensionProperties availableExtensions[availableExtensionCount];
-    FBR_VK_CHECK_RETURN(vkEnumerateInstanceExtensionProperties( NULL, &availableExtensionCount, availableExtensions));
+    VK_CHECK(vkEnumerateInstanceExtensionProperties( NULL, &availableExtensionCount, availableExtensions));
     FBR_LOG_DEBUG("Available Instance Extension Count: ", availableExtensionCount);
     for (int i = 0; i < availableExtensionCount; ++i){
         char* extensionName = availableExtensions[i].extensionName;
@@ -186,7 +186,7 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-    FBR_VK_CHECK_RETURN(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
+    VK_CHECK(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
 
     return VK_SUCCESS;
 }
@@ -416,7 +416,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
             .enabledLayerCount = pVulkan->enableValidationLayers ? requiredInstanceLayerCount : 0,
 
     };
-    FBR_VK_CHECK_RETURN(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
+    VK_CHECK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
 //    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->queue);
 }
 
@@ -688,7 +688,7 @@ static VkResult createFramebuffer(FbrVulkan *pVulkan) {
             .layers = 1,
             .attachmentCount = 1,
     };
-    FBR_VK_CHECK_RETURN(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->swapFramebuffer));
+    VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->swapFramebuffer));
 }
 
 static void createCommandPool(FbrVulkan *pVulkan) {
@@ -740,8 +740,8 @@ static VkResult createSyncObjects(FbrVulkan *pVulkan) { // todo move to swap syn
     const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
-    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->swapAcquireComplete));
-    FBR_VK_CHECK_RETURN(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore));
+    VK_CHECK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->swapAcquireComplete));
+    VK_CHECK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore));
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
@@ -833,8 +833,6 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     if (pVulkan->pMainSemaphore != NULL)
         fbrDestroyTimelineSemaphore(pVulkan, pVulkan->pMainSemaphore);
-
-    vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pVulkan->swapDescriptorSet);
 
     vkDestroyFramebuffer(pVulkan->device, pVulkan->swapFramebuffer, NULL);
 

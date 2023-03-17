@@ -126,15 +126,15 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    FBR_VK_CHECK_RETURN(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
+    VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
 
     VkMemoryRequirements memRequirements = {};
     uint32_t memTypeIndex;
-    FBR_VK_CHECK_RETURN(fbrBufferMemoryTypeFromProperties(pVulkan,
-                                                   *pBuffer,
-                                                   properties,
-                                                   &memRequirements,
-                                                   &memTypeIndex));
+    VK_CHECK(fbrBufferMemoryTypeFromProperties(pVulkan,
+                                               *pBuffer,
+                                               properties,
+                                               &memRequirements,
+                                               &memTypeIndex));
 
     // dedicated needed??
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
@@ -153,9 +153,9 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = memTypeIndex
     };
-    FBR_VK_CHECK_RETURN(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, pBufferMemory));
+    VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, pBufferMemory));
 
-    FBR_VK_CHECK_RETURN(vkBindBufferMemory(pVulkan->device, *pBuffer, *pBufferMemory, 0));
+    VK_CHECK(vkBindBufferMemory(pVulkan->device, *pBuffer, *pBufferMemory, 0));
 }
 
 VkResult getExternalHandle(const FbrVulkan *pVulkan,
@@ -171,7 +171,7 @@ VkResult getExternalHandle(const FbrVulkan *pVulkan,
     if (getMemoryWin32HandleFunc == NULL) {
         FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
     }
-    FBR_VK_CHECK_RETURN(getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, pExternalHandle));
+    VK_CHECK(getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, pExternalHandle));
 }
 
 // TODO this immediate command buffer creating destroy a whole command buffer and waiting each frame is horribly inefficient
@@ -183,14 +183,14 @@ VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffe
             .commandBufferCount = 1,
     };
 
-    FBR_VK_CHECK_RETURN(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
+    VK_CHECK(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
 
     VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    FBR_VK_CHECK_RETURN(vkBeginCommandBuffer(*pCommandBuffer, &beginInfo));
+    VK_CHECK(vkBeginCommandBuffer(*pCommandBuffer, &beginInfo));
 
     return VK_SUCCESS;
 }
@@ -208,8 +208,8 @@ VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer 
             .pCommandBufferInfos = &commandBufferInfo,
     };
 
-    FBR_VK_CHECK_RETURN(vkQueueSubmit2(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
-    FBR_VK_CHECK_RETURN(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    VK_CHECK(vkQueueSubmit2(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
+    VK_CHECK(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
 
@@ -363,23 +363,23 @@ VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
                       FbrUniformBufferObject **ppAllocUBO) {
     *ppAllocUBO = calloc(1, sizeof(FbrUniformBufferObject));
     FbrUniformBufferObject *pUBO = *ppAllocUBO;
-    FBR_VK_CHECK_RETURN(createAllocBindBuffer(pVulkan,
-                                              properties,
-                                              usage,
-                                              bufferSize,
-                                              external,
-                                              &pUBO->uniformBuffer,
-                                              &pUBO->uniformBufferMemory));
-    FBR_VK_CHECK_RETURN(vkMapMemory(pVulkan->device,
-                                    pUBO->uniformBufferMemory,
-                                    0,
-                                    bufferSize,
-                                    0,
-                                    &pUBO->pUniformBufferMapped));
+    VK_CHECK(createAllocBindBuffer(pVulkan,
+                                   properties,
+                                   usage,
+                                   bufferSize,
+                                   external,
+                                   &pUBO->uniformBuffer,
+                                   &pUBO->uniformBufferMemory));
+    VK_CHECK(vkMapMemory(pVulkan->device,
+                         pUBO->uniformBufferMemory,
+                         0,
+                         bufferSize,
+                         0,
+                         &pUBO->pUniformBufferMapped));
     if (external) {
-        FBR_VK_CHECK_RETURN(getExternalHandle(pVulkan,
-                                              &pUBO->uniformBufferMemory,
-                                              &pUBO->externalMemory));
+        VK_CHECK(getExternalHandle(pVulkan,
+                                   &pUBO->uniformBufferMemory,
+                                   &pUBO->externalMemory));
     }
 }
 

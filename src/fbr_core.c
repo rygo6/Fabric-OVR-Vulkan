@@ -70,7 +70,7 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass rend
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void recordRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
+static void recordRenderMesh(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
     vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->graphicsPipeline);
 
     vkCmdBindDescriptorSets(pVulkan->commandBuffer,
@@ -246,7 +246,6 @@ static void childMainLoop(FbrApp *pApp) {
     FbrFramebuffer *pFrameBuffers[] = {pApp->pNodeParent->pFramebuffers[0],
                                        pApp->pNodeParent->pFramebuffers[1]};
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
-//    FbrTimelineSemaphore *pChildSemaphore = pApp->pVulkan->pMainSemaphore;
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
@@ -300,7 +299,10 @@ static void childMainLoop(FbrApp *pApp) {
 
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-        recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pNodeParent->parentFramebufferDescriptorSet);
+        recordRenderMesh(pVulkan,
+                         pApp->pSwapPipeline,
+                         pApp->pTestQuadMesh,
+                         pApp->pTestQuadDescriptorSet);
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
@@ -371,7 +373,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-        recordRenderPass(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pVulkan->swapDescriptorSet);
+        recordRenderMesh(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pTestQuadDescriptorSet);
         //cube2
 
         fbrUpdateTransformMatrix(&pApp->pTestNode->transform);
