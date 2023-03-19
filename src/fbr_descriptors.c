@@ -1,7 +1,15 @@
-#include "fbr_descriptors_std.h"
+#include "fbr_descriptors.h"
 #include "fbr_vulkan.h"
 #include "fbr_camera.h"
 #include "fbr_texture.h"
+
+static VkDescriptorBufferInfo cameraBufferInfo(const FbrCamera *pCamera) {
+    return (VkDescriptorBufferInfo) {
+            .buffer = pCamera->pUBO->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrCameraUBO),
+    };
+}
 
 static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                           uint32_t bindingCount,
@@ -36,7 +44,7 @@ static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
                                       pDescriptorSet));
 }
 
-static VkResult createSetLayout_VertUBO_FragSampler(const FbrVulkan *pVulkan, FbrSetLayout_VertUBO_FragSampler *pSetLayout) {
+static VkResult createSetLayout_VertUBO_FragSampler(const FbrVulkan *pVulkan, FbrSetLayout_uvUBO_ufSampler *pSetLayout) {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
@@ -56,21 +64,20 @@ static VkResult createSetLayout_VertUBO_FragSampler(const FbrVulkan *pVulkan, Fb
     VK_CHECK(createDescriptorSetLayout(pVulkan, 2, bindings, pSetLayout));
 }
 
-static VkResult createSetLayouts_Std(const FbrVulkan *pVulkan, FbrDescriptors_Std *pDescriptors_Std) {
-    createSetLayout_VertUBO_FragSampler(pVulkan, &pDescriptors_Std->dsl_VertUBO_FragSampler);
+static VkResult createSetLayouts_Std(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std) {
+    createSetLayout_VertUBO_FragSampler(pVulkan, &pDescriptors_Std->setLayout_uvUBO_ufSampler);
 }
 
-VkResult fbrCreateDescriptorSet_CameraUBO_TextureSampler(const FbrVulkan *pVulkan,
-                                                         FbrSetLayout_VertUBO_FragSampler setLayout,
-                                                         const FbrCamera *pCamera,
-                                                         const FbrTexture *pTexture,
-                                                         FbrDescriptorSet_CameraUBO_TextureSampler *pDescriptorSet) {
-    VK_CHECK(allocateDescriptorSet(pVulkan, 1, &setLayout, pDescriptorSet));
-    const VkDescriptorBufferInfo bufferInfo = {
-            .buffer = pCamera->pUBO->uniformBuffer,
-            .offset = 0,
-            .range = sizeof(FbrCameraUBO),
-    };
+VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
+                                               FbrSetLayout_uvUBO_ufSampler setLayout_uvUBO_ufSampler,
+                                               const FbrCamera *pCamera,
+                                               const FbrTexture *pTexture,
+                                               FbrDescriptorSet_uvCamera_ufTexture *pDescriptorSet) {
+    VK_CHECK(allocateDescriptorSet(pVulkan,
+                                   1,
+                                   &setLayout_uvUBO_ufSampler,
+                                   pDescriptorSet));
+    const VkDescriptorBufferInfo bufferInfo = cameraBufferInfo(pCamera);
     const VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pTexture->imageView,
@@ -102,17 +109,22 @@ VkResult fbrCreateDescriptorSet_CameraUBO_TextureSampler(const FbrVulkan *pVulka
                     .pTexelBufferView = NULL,
             },
     };
-    vkUpdateDescriptorSets(pVulkan->device, 2, descriptorWrites, 0, NULL);
+    vkUpdateDescriptorSets(pVulkan->device,
+                           2,
+                           descriptorWrites,
+                           0,
+                           NULL);
 }
 
-VkResult fbrCreateDescriptors_Std(const FbrVulkan *pVulkan, FbrDescriptors_Std **ppAllocDescriptors_Std) {
-    *ppAllocDescriptors_Std = calloc(1, sizeof(FbrDescriptors_Std));
-    FbrDescriptors_Std *pDescriptors_Std = *ppAllocDescriptors_Std;
+VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std) {
+    *ppAllocDescriptors_Std = calloc(1, sizeof(FbrDescriptors));
+    FbrDescriptors *pDescriptors_Std = *ppAllocDescriptors_Std;
 
     createSetLayouts_Std(pVulkan, pDescriptors_Std);
 }
 
 VkResult fbrDestroyDescriptors_Std(const FbrVulkan *pVulkan,
-                                  FbrDescriptors_Std *pDescriptors_Std) {
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors_Std->dsl_VertUBO_FragSampler, NULL);
+                                   FbrDescriptors *pDescriptors_Std) {
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors_Std->setLayout_uvUBO_ufSampler, NULL);
+    free(pDescriptors_Std);
 }

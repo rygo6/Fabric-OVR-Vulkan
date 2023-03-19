@@ -3,14 +3,14 @@
 #include "fbr_camera.h"
 #include "fbr_mesh.h"
 #include "fbr_texture.h"
-#include "fbr_pipeline.h"
 #include "fbr_vulkan.h"
 #include "fbr_ipc.h"
 #include "fbr_ipc_targets.h"
 #include "fbr_node.h"
 #include "fbr_process.h"
 #include "fbr_node_parent.h"
-#include "fbr_descriptors_std.h"
+#include "fbr_descriptors.h"
+#include "fbr_pipelines.h"
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
 #define FBR_DEFAULT_SCREEN_HEIGHT 600
@@ -42,7 +42,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
     FbrVulkan *pVulkan = pApp->pVulkan;
 
-    fbrCreateDescriptors_Std(pVulkan, &pApp->pDescriptorsStd);
+    fbrCreateDescriptors(pVulkan, &pApp->pDescriptors);
+    fbrCreatePipelines(pVulkan, pApp->pDescriptors, &pApp->pPipelines);
 
     if (!pApp->isChild) {
 
@@ -53,41 +54,27 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                                  &pApp->pTestQuadTexture,
                                  "textures/test.jpg",
                                  true);
-        fbrCreatePipeline(pVulkan,
-                          pVulkan->renderPass,
-                          1,
-                          &pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                          "./shaders/vert.spv",
-                          "./shaders/frag.spv",
-                          &pApp->pSwapPipeline);
-        fbrCreateDescriptorSet_CameraUBO_TextureSampler(pApp->pVulkan,
-                                                        pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                                                         pApp->pCamera,
-                                                         pApp->pTestQuadTexture,
-                                                         &pApp->pTestQuadDescriptorSet);
 
+        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
+                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
+                                              pApp->pCamera,
+                                              pApp->pTestQuadTexture,
+                                              &pApp->pTestQuadDescriptorSet);
+
+        return;
 
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
         glm_vec3_add(pApp->pTestNode->transform.pos, (vec3) {1, 0, 0}, pApp->pTestNode->transform.pos);
-
-        fbrCreatePipeline(pApp->pVulkan,
-                          pApp->pVulkan->renderPass,
-                          1,
-                          &pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                          "./shaders/vert_comp.spv",
-//                          "./shaders/vert.spv",
-                          "./shaders/frag.spv",
-                          &pApp->pCompPipeline);
-        fbrCreateDescriptorSet_CameraUBO_TextureSampler(pApp->pVulkan,
-                                                        pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                                                         pApp->pCamera,
-                                                         pApp->pTestNode->pFramebuffers[0]->pTexture,
-                                                         &pApp->pCompDescriptorSets[0]);
-        fbrCreateDescriptorSet_CameraUBO_TextureSampler(pApp->pVulkan,
-                                                        pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                                                        pApp->pCamera,
-                                                        pApp->pTestNode->pFramebuffers[1]->pTexture,
-                                                        &pApp->pCompDescriptorSets[1]);
+        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
+                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
+                                              pApp->pCamera,
+                                              pApp->pTestNode->pFramebuffers[0]->pTexture,
+                                              &pApp->pCompDescriptorSets[0]);
+        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
+                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
+                                              pApp->pCamera,
+                                              pApp->pTestNode->pFramebuffers[1]->pTexture,
+                                              &pApp->pCompDescriptorSets[1]);
 
         // todo below can go into create node
         HANDLE camDupHandle;
@@ -178,26 +165,17 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         // for debugging ipc now, wait for camera
         while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
             FBR_LOG_DEBUG("Wait Message", pApp->pNodeParent->pReceiverIPC->pIPCBuffer->tail, pApp->pNodeParent->pReceiverIPC->pIPCBuffer->head);
-//            Sleep(1000);
         }
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
         glm_vec3_add(pApp->pTestQuadMesh->transform.pos, (vec3) {1, 0, 0}, pApp->pTestQuadMesh->transform.pos);
         fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTestQuadTexture, "textures/UV_Grid_Sm.jpg", false);
 
-        fbrCreatePipeline(pApp->pVulkan,
-                          pApp->pVulkan->renderPass,
-                          1,
-                          &pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                          "./shaders/vert.spv",
-                          "./shaders/frag.spv",
-//                          "./shaders/frag_crasher.spv",
-                          &pApp->pSwapPipeline);
-        fbrCreateDescriptorSet_CameraUBO_TextureSampler(pApp->pVulkan,
-                                                        pApp->pDescriptorsStd->dsl_VertUBO_FragSampler,
-                                                        pApp->pNodeParent->pCamera,
-                                                        pApp->pTestQuadTexture,
-                                                        &pApp->pTestQuadDescriptorSet);
+        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
+                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
+                                              pApp->pNodeParent->pCamera,
+                                              pApp->pTestQuadTexture,
+                                              &pApp->pTestQuadDescriptorSet);
     }
 }
 
@@ -231,7 +209,7 @@ void fbrCleanup(FbrApp *pApp) {
     else{
         fbrDestroyNode(pVulkan, pApp->pTestNode);
         fbrDestroyCamera(pVulkan, pApp->pCamera);
-        fbrCleanupPipeline(pVulkan, pApp->pSwapPipeline);
+        fbrDestroyPipelines(pVulkan, pApp->pPipelines);
         vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompDescriptorSets[0]);
         vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompDescriptorSets[1]);
     }
@@ -240,7 +218,7 @@ void fbrCleanup(FbrApp *pApp) {
     fbrCleanupMesh(pVulkan, pApp->pTestQuadMesh);
     vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pTestQuadDescriptorSet);
 
-    fbrDestroyDescriptors_Std(pVulkan, pApp->pDescriptorsStd);
+    fbrDestroyDescriptors_Std(pVulkan, pApp->pDescriptors);
 
     fbrCleanupVulkan(pVulkan);
 

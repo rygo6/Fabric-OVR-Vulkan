@@ -1,6 +1,5 @@
 #include "fbr_core.h"
 #include "fbr_mesh.h"
-#include "fbr_pipeline.h"
 #include "fbr_camera.h"
 #include "fbr_log.h"
 #include "fbr_vulkan.h"
@@ -8,6 +7,7 @@
 #include "fbr_node.h"
 #include "fbr_framebuffer.h"
 #include "fbr_node_parent.h"
+#include "fbr_pipelines.h"
 
 #include "cglm/cglm.h"
 
@@ -70,12 +70,12 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass rend
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void recordRenderMesh(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
-    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->graphicsPipeline);
+static void recordRenderMesh(const FbrVulkan *pVulkan, VkPipelineLayout pipelineLayout, VkPipeline pipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
+    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pPipeline->pipelineLayout,
+                            pipelineLayout,
                             0,
                             1,
                             &descriptorSet,
@@ -89,16 +89,16 @@ static void recordRenderMesh(const FbrVulkan *pVulkan, const FbrPipeline *pPipel
     vkCmdBindIndexBuffer(pVulkan->commandBuffer, pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     //upload the matrix to the GPU via push constants
-    vkCmdPushConstants(pVulkan->commandBuffer, pPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
+    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
 
     vkCmdDrawIndexed(pVulkan->commandBuffer, pMesh->indexCount, 1, 0, 0, 0);
 }
 
-static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pPipeline, const FbrNode *pNode, int timelineSwitch, VkDescriptorSet pDescriptorSets[]) {
-    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipeline->graphicsPipeline);
+static void recordNodeRenderPass(const FbrVulkan *pVulkan, VkPipelineLayout pipelineLayout, VkPipeline pipeline, const FbrNode *pNode, int timelineSwitch, VkDescriptorSet pDescriptorSets[]) {
+    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pPipeline->pipelineLayout,
+                            pipelineLayout,
                             0,
                             1,
                             &pDescriptorSets[timelineSwitch],
@@ -112,7 +112,7 @@ static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrPipeline *pP
 
     vkCmdBindIndexBuffer(pVulkan->commandBuffer, pNode->pIndexUBO->uniformBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdPushConstants(pVulkan->commandBuffer, pPipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
+    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
 
     vkCmdDrawIndexed(pVulkan->commandBuffer, FBR_NODE_INDEX_COUNT, 1, 0, 0, 0);
 }
@@ -249,6 +249,7 @@ static void childMainLoop(FbrApp *pApp) {
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
+    FbrPipelines *pPipelines = pApp->pPipelines;
 
     const uint64_t parentTimelineStep = 16;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
@@ -300,7 +301,8 @@ static void childMainLoop(FbrApp *pApp) {
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
         recordRenderMesh(pVulkan,
-                         pApp->pSwapPipeline,
+                         pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
+                         pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
                          pApp->pTestQuadMesh,
                          pApp->pTestQuadDescriptorSet);
         // end framebuffer pass
@@ -331,6 +333,8 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrTimelineSemaphore *pMainSemaphore = pVulkan->pMainSemaphore;
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
+    FbrPipelines *pPipelines = pApp->pPipelines;
+//    FbrNode *pTestNode = pApp->pTestNode;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         // todo switch to vulkan timing primitives
@@ -368,17 +372,26 @@ static void parentMainLoop(FbrApp *pApp) {
                                  pVulkan->pSwapImageViews[swapIndex],
                                  (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
 
-        vkGetSemaphoreCounterValue(pVulkan->device, pApp->pTestNode->pChildSemaphore->semaphore, &pApp->pTestNode->pChildSemaphore->waitValue);
-        int timelineSwitch = (int)(pApp->pTestNode->pChildSemaphore->waitValue % 2);
+
 
         //cube 1
         fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
-        recordRenderMesh(pVulkan, pApp->pSwapPipeline, pApp->pTestQuadMesh, pApp->pTestQuadDescriptorSet);
-        //cube2
+        recordRenderMesh(pVulkan,
+                         pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
+                         pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
+                         pApp->pTestQuadMesh,
+                         pApp->pTestQuadDescriptorSet);
 
-        fbrUpdateTransformMatrix(&pApp->pTestNode->transform);
-
-        recordNodeRenderPass(pVulkan, pApp->pCompPipeline, pApp->pTestNode, timelineSwitch, pApp->pCompDescriptorSets);
+        //test node
+//        vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore, &pTestNode->pChildSemaphore->waitValue);
+//        int timelineSwitch = (int)(pTestNode->pChildSemaphore->waitValue % 2);
+//        fbrUpdateTransformMatrix(&pTestNode->transform);
+//        recordNodeRenderPass(pVulkan,
+//                             pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
+//                             pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
+//                             pTestNode,
+//                             timelineSwitch,
+//                             pApp->pCompDescriptorSets);
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);

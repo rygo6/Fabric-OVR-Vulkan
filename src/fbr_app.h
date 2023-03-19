@@ -8,7 +8,6 @@
 
 typedef struct FbrCamera FbrCamera;
 typedef struct FbrMesh FbrMesh;
-typedef struct FbrPipeline FbrPipeline;
 typedef struct FbrTexture FbrTexture;
 typedef struct FbrVulkan FbrVulkan;
 typedef struct FbrFramebuffer FbrFramebuffer;
@@ -17,7 +16,8 @@ typedef struct FbrIPC FbrIPC;
 typedef struct FbrNode FbrNode;
 typedef struct FbrTimelineSemaphore FbrTimelineSemaphore;
 typedef struct FbrNodeParent FbrNodeParent;
-typedef struct FbrDescriptors_Std FbrDescriptors_Std;
+typedef struct FbrDescriptors FbrDescriptors;
+typedef struct FbrPipelines FbrPipelines;
 
 typedef enum FbrIPCTargetType FbrIPCTargetType;
 
@@ -41,14 +41,11 @@ typedef struct FbrApp {
     FbrTexture *pTestQuadTexture;
     VkDescriptorSet pTestQuadDescriptorSet;
 
-    // go in swap object
-    FbrPipeline *pSwapPipeline;
-
-    FbrPipeline *pCompPipeline;
     VkDescriptorSet pCompDescriptorSets[2];
 
     // go in fbrvulkan?
-    FbrDescriptors_Std *pDescriptorsStd;
+    FbrDescriptors *pDescriptors;
+    FbrPipelines *pPipelines;
 
     // node tests
     FbrNode *pTestNode;

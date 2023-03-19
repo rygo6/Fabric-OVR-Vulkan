@@ -530,9 +530,9 @@ static void createSwapChain(FbrVulkan *pVulkan) {
 //    } else {
 //        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
 //    }
-    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == false) {
-        FBR_LOG_ERROR("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT");
-    }
+//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == false) {
+//        FBR_LOG_ERROR("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT");
+//    }
 
     VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
