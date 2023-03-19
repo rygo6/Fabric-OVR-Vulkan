@@ -507,7 +507,6 @@ static void createSwapChain(FbrVulkan *pVulkan) {
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
     pVulkan->swapImageFormat = surfaceFormat.format;
     pVulkan->swapExtent = chooseSwapExtent(pVulkan, capabilities);
-    pVulkan->swapUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     // I am setting this to 2 on the premise you get the least latency in VR.
     pVulkan->swapImageCount = 2;
@@ -515,24 +514,19 @@ static void createSwapChain(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("swapImageCount is less than minImageCount", pVulkan->swapImageCount, capabilities.minImageCount);
     }
 
+    pVulkan->swapUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
+//        pVulkan->swapUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+//    } else {
+//        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
+//    }
+
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
         preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     } else {
         preTransform = capabilities.currentTransform;
     }
-
-    // just going to assume we can blit to swap
-    // no, better to render to swap?
-//    VkImageUsageFlags nImageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
-//        nImageUsageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-//    } else {
-//        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
-//    }
-//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == false) {
-//        FBR_LOG_ERROR("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT");
-//    }
 
     VkSwapchainCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,

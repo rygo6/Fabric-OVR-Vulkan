@@ -334,7 +334,7 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
     FbrPipelines *pPipelines = pApp->pPipelines;
-//    FbrNode *pTestNode = pApp->pTestNode;
+    FbrNode *pTestNode = pApp->pTestNode;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         // todo switch to vulkan timing primitives
@@ -383,15 +383,15 @@ static void parentMainLoop(FbrApp *pApp) {
                          pApp->pTestQuadDescriptorSet);
 
         //test node
-//        vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore, &pTestNode->pChildSemaphore->waitValue);
-//        int timelineSwitch = (int)(pTestNode->pChildSemaphore->waitValue % 2);
-//        fbrUpdateTransformMatrix(&pTestNode->transform);
-//        recordNodeRenderPass(pVulkan,
-//                             pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
-//                             pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
-//                             pTestNode,
-//                             timelineSwitch,
-//                             pApp->pCompDescriptorSets);
+        vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore, &pTestNode->pChildSemaphore->waitValue);
+        int timelineSwitch = (int)(pTestNode->pChildSemaphore->waitValue % 2);
+        fbrUpdateTransformMatrix(&pTestNode->transform);
+        recordNodeRenderPass(pVulkan,
+                             pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
+                             pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
+                             pTestNode,
+                             timelineSwitch,
+                             pApp->pCompDescriptorSets);
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);

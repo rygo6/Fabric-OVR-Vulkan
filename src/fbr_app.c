@@ -61,8 +61,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                                               pApp->pTestQuadTexture,
                                               &pApp->pTestQuadDescriptorSet);
 
-        return;
-
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
         glm_vec3_add(pApp->pTestNode->transform.pos, (vec3) {1, 0, 0}, pApp->pTestNode->transform.pos);
         fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
