@@ -3,14 +3,6 @@
 #include "fbr_camera.h"
 #include "fbr_texture.h"
 
-//static VkDescriptorBufferInfo cameraBufferInfo(const FbrCamera *pCamera) {
-//    return (VkDescriptorBufferInfo) {
-//            .buffer = pCamera->pUBO->uniformBuffer,
-//            .offset = 0,
-//            .range = sizeof(FbrCameraUBO),
-//    };
-//}
-
 static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                           uint32_t bindingCount,
                                           const VkDescriptorSetLayoutBinding *pBindings,
@@ -28,26 +20,6 @@ static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                          pSetLayout));
     return VK_SUCCESS;
 }
-
-//static VkResult createSetLayout_vUBO_fSampler(const FbrVulkan *pVulkan, FbrSetLayout_vUniform_fSampler *pSetLayout) {
-//    VkDescriptorSetLayoutBinding bindings[] = {
-//            {
-//                    .binding = 0,
-//                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-//                    .descriptorCount = 1,
-//                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-//                    .pImmutableSamplers = NULL,
-//            },
-//            {
-//                    .binding = 1,
-//                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-//                    .descriptorCount = 1,
-//                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-//                    .pImmutableSamplers = NULL,
-//            }
-//    };
-//    VK_CHECK(createDescriptorSetLayout(pVulkan, 2, bindings, pSetLayout));
-//}
 
 static VkResult createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout) {
     VkDescriptorSetLayoutBinding bindings[] = {
@@ -131,54 +103,6 @@ static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
                                       pDescriptorSet));
     return VK_SUCCESS;
 }
-
-//VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
-//                                               FbrSetLayout_vUniform_fSampler setLayout_uvUBO_ufSampler,
-//                                               const FbrCamera *pCamera,
-//                                               const FbrTexture *pTexture,
-//                                               FbrDescriptorSet_vCamera_fTexture *pDescriptorSet) {
-//    VK_CHECK(allocateDescriptorSet(pVulkan,
-//                                   1,
-//                                   &setLayout_uvUBO_ufSampler,
-//                                   pDescriptorSet));
-//    const VkDescriptorBufferInfo bufferInfo = cameraBufferInfo(pCamera);
-//    const VkDescriptorImageInfo imageInfo = {
-//            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-//            .imageView = pTexture->imageView,
-//            .sampler = pVulkan->sampler,
-//    };
-//    const VkWriteDescriptorSet descriptorWrites[] = {
-//            {
-//                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-//                    .pNext = NULL,
-//                    .dstSet = *pDescriptorSet,
-//                    .dstBinding = 0,
-//                    .dstArrayElement = 0,
-//                    .descriptorCount = 1,
-//                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-//                    .pImageInfo = NULL,
-//                    .pBufferInfo = &bufferInfo,
-//                    .pTexelBufferView = NULL,
-//            },
-//            {
-//                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-//                    .pNext = NULL,
-//                    .dstSet = *pDescriptorSet,
-//                    .dstBinding = 1,
-//                    .dstArrayElement = 0,
-//                    .descriptorCount = 1,
-//                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-//                    .pImageInfo = &imageInfo,
-//                    .pBufferInfo = NULL,
-//                    .pTexelBufferView = NULL,
-//            },
-//    };
-//    vkUpdateDescriptorSets(pVulkan->device,
-//                           2,
-//                           descriptorWrites,
-//                           0,
-//                           NULL);
-//}
 
 VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             FbrSetLayoutGlobal setLayout,

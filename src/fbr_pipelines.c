@@ -4,25 +4,6 @@
 #include "fbr_log.h"
 #include "fbr_mesh.h"
 
-//static VkResult createPipeLayout_pvMat4_uvUBO_ufSampler(const FbrVulkan *pVulkan,
-//                                                        const FbrSetLayout_vUniform_fSampler *pSetLayout,
-//                                                        FbrPipeLayout_pvMat4_uvUBO_ufSampler *pipelineLayout) {
-//    const VkPushConstantRange pushConstant = {
-//            .offset = 0,
-//            .size = sizeof(mat4),
-//            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-//    };
-//    const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-//            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-//            .pNext = NULL,
-//            .setLayoutCount = 1,
-//            .pSetLayouts = pSetLayout,
-//            .pPushConstantRanges = &pushConstant,
-//            .pushConstantRangeCount  = 1
-//    };
-//    VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, pipelineLayout));
-//}
-
 static VkResult createPipeLayoutStandard(const FbrVulkan *pVulkan,
                                          const FbrDescriptors *pDescriptors,
                                          VkPipelineLayout *pipelineLayout) {
@@ -49,10 +30,6 @@ static VkResult createPipeLayoutStandard(const FbrVulkan *pVulkan,
 static VkResult createPipelineLayouts(const FbrVulkan *pVulkan,
                                   const FbrDescriptors *pDescriptors,
                                   FbrPipelines *pPipelines) {
-
-//    VK_CHECK(createPipeLayout_pvMat4_uvUBO_ufSampler(pVulkan,
-//                                                     &pDescriptors->setLayout_vUniform_fSampler,
-//                                                     &pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler));
 
     VK_CHECK(createPipeLayoutStandard(pVulkan,
                                       pDescriptors,
@@ -258,12 +235,6 @@ VkResult fbrCreatePipe(const FbrVulkan *pVulkan,
 
 static VkResult createPipes(const FbrVulkan *pVulkan,
                             FbrPipelines *pPipes) {
-
-//    VK_CHECK(fbrCreatePipe(pVulkan,
-//                                                  pPipes->pipeLayout_pvMat4_uvUBO_ufSampler,
-//                                                  "./shaders/vert.spv",
-//                                                  "./shaders/frag.spv",
-//                                                  &pPipes->pipe_pvMat4_uvCamera_ufTexture_ivVertex));
 
     VK_CHECK(fbrCreatePipe(pVulkan,
                            pPipes->pipeLayoutStandard,

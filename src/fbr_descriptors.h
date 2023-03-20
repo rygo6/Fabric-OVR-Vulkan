@@ -5,14 +5,6 @@
 #include "fbr_camera.h"
 #include <vulkan/vulkan.h>
 
-
-
-// VertStage.Uniform _ FragStage.Sampler
-//typedef VkDescriptorSetLayout FbrSetLayout_vUniform_fSampler;
-//typedef VkDescriptorSet FbrSet_vUniform_fSampler;
-//// Uniform.VertStage.Camera _ Uniform.FragStage.Texture
-//typedef FbrSet_vUniform_fSampler FbrDescriptorSet_vCamera_fTexture;
-
 //Global Binding 0
 #define FBR_GLOBAL_SET_INDEX 0
 typedef VkDescriptorSetLayout FbrSetLayoutGlobal;
@@ -40,15 +32,11 @@ typedef VkDescriptorSet FbrSetObject;
 
 
 typedef struct FbrDescriptors {
-//    FbrSetLayout_vUniform_fSampler setLayout_vUniform_fSampler;
-
     FbrSetLayoutGlobal setLayoutGlobal;
     FbrSetLayoutPass setLayoutPass;
     FbrSetLayoutMaterial setLayoutMaterial;
     FbrSetLayoutObject setLayoutObject;
-
-    VkDescriptorSet setGlobal;
-
+    FbrSetGlobal setGlobal;
 } FbrDescriptors;
 
 //VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
