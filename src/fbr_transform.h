@@ -2,30 +2,39 @@
 #define FABRIC_TRANSFORM_H
 
 #include "fbr_app.h"
+#include "fbr_buffer.h"
+#include "fbr_vulkan.h"
 
 #include <cglm/cglm.h>
 
 typedef struct FbrComponent {
 } FbrComponent;
 
+typedef struct FbrTransformUBO {
+    mat4 model;
+} FbrTransformUBO;
+
 typedef struct FbrTransform {
     vec3 pos;
     versor rot;
-    mat4 matrix;
+    FbrTransformUBO uboData;
+    FbrUniformBufferObject *pUBO;
 } FbrTransform;
 
 typedef struct FbrEntity {
     int entityId;
 } FbrEntity;
 
-void fbrInitTransform(FbrTransform *transform); // should this be pointer? prolly
+void fbrInitTransform(FbrTransform *pTransform); // should this be pointer? prolly
 
-void fbrUpdateTransformMatrix(FbrTransform *transform);
+void fbrUpdateTransformMatrix(FbrTransform *pTransform);
 
 void fbrTransformUp(FbrTransform *pTransform, vec3 dest);
 
 void fbrTransformRight(FbrTransform *pTransform, vec3 dest);
 
 void fbrTransformForward(FbrTransform *pTransform, vec3 dest);
+
+VkResult fbrCreateTransform(const FbrVulkan *pVulkan, FbrTransform **ppAllocTransform);
 
 #endif //FABRIC_TRANSFORM_H

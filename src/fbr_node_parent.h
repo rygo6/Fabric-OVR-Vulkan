@@ -6,7 +6,7 @@
 #include <windows.h>
 
 typedef struct FbrNodeParent {
-    FbrTransform transform;
+    FbrTransform *pTransform;
 
     FbrIPC *pReceiverIPC;
 
@@ -23,9 +23,9 @@ typedef struct FbrNodeParent {
 
 void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int timelineSwitch, FbrNodeParent *pNode);
 
-void fbrCreateNodeParent(FbrNodeParent **ppAllocNodeParent);
+void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent);
 
-void fbrDestroyNodeParent(FbrVulkan *pVulkan, FbrNodeParent *pNodeParent);
+void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent);
 
 // IPC
 

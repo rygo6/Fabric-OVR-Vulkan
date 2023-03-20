@@ -19,7 +19,7 @@ typedef struct FbrNodeVertex {
 } FbrNodeVertex;
 
 typedef struct FbrNode {
-    FbrTransform transform;
+    FbrTransform *pTransform;
 
     char *pName;
 

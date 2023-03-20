@@ -514,7 +514,7 @@ static void createSwapChain(FbrVulkan *pVulkan) {
         FBR_LOG_DEBUG("swapImageCount is less than minImageCount", pVulkan->swapImageCount, capabilities.minImageCount);
     }
 
-    pVulkan->swapUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+    pVulkan->swapUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
 //    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
 //        pVulkan->swapUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 //    } else {
@@ -698,7 +698,7 @@ static void createDescriptorPool(FbrVulkan *pVulkan) {
     const VkDescriptorPoolSize poolSizes[2] = {
             {
                     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 3,
+                    .descriptorCount = 4,
             },
             {
                     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -710,7 +710,7 @@ static void createDescriptorPool(FbrVulkan *pVulkan) {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .poolSizeCount = 2,
             .pPoolSizes = poolSizes,
-            .maxSets = 3,
+            .maxSets = 6,
     };
 
     if (vkCreateDescriptorPool(pVulkan->device, &poolInfo, NULL, &pVulkan->descriptorPool) != VK_SUCCESS) {

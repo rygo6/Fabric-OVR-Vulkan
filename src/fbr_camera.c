@@ -29,25 +29,25 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
                 deltaPos[0] = -moveAmount;
             }
 
-            glm_quat_rotatev(pCamera->transform.rot, deltaPos, deltaPos);
-            glm_vec3_add(pCamera->transform.pos, deltaPos, pCamera->transform.pos);
+            glm_quat_rotatev(pCamera->pTransform->rot, deltaPos, deltaPos);
+            glm_vec3_add(pCamera->pTransform->pos, deltaPos, pCamera->pTransform->pos);
 
-            fbrUpdateTransformMatrix(&pCamera->transform);
+            fbrUpdateTransformMatrix(pCamera->pTransform);
 
-            glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.trs);
-            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->uboData.view);
+            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->uboData.trs);
+            glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->uboData.view);
             break;
         }
         case FBR_MOUSE_POS_INPUT: {
             float yRot = (float) -pInputEvent->mousePosInput.xDelta / 10.0f;
             versor rotQ;
             glm_quatv(rotQ, glm_rad(yRot), GLM_YUP);
-            glm_quat_mul(pCamera->transform.rot, rotQ, pCamera->transform.rot);
+            glm_quat_mul(pCamera->pTransform->rot, rotQ, pCamera->pTransform->rot);
 
-            fbrUpdateTransformMatrix(&pCamera->transform);
+            fbrUpdateTransformMatrix(pCamera->pTransform);
 
-            glm_mat4_copy(pCamera->transform.matrix, pCamera->uboData.trs);
-            glm_quat_look(pCamera->transform.pos, pCamera->transform.rot, pCamera->uboData.view);
+            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->uboData.trs);
+            glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->uboData.view);
             break;
         }
         case FBR_MOUSE_BUTTON_INPUT: {
@@ -65,11 +65,11 @@ void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
 void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
-    fbrInitTransform(&pCamera->transform);
-    glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
-    glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
+    fbrCreateTransform(pVulkan, &pCamera->pTransform);
+    glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
+    glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
-    fbrUpdateTransformMatrix(&pCamera->transform);
+    fbrUpdateTransformMatrix(pCamera->pTransform);
 
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
@@ -83,14 +83,14 @@ VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraStat
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
 
-    fbrInitTransform(&pCamera->transform);
-    glm_vec3_copy((vec3){0, 0, -1}, pCamera->transform.pos);
-    glm_quatv(pCamera->transform.rot, glm_rad(-180), GLM_YUP);
+    fbrCreateTransform(pVulkan, &pCamera->pTransform);
+    glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
+    glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
-    fbrUpdateTransformMatrix(&pCamera->transform);
+    fbrUpdateTransformMatrix(pCamera->pTransform);
 
     VK_CHECK(fbrCreateUBO(pVulkan,
-                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
                           VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                           sizeof(FbrCameraUBO),
                           true,

@@ -11,6 +11,7 @@
 #include "fbr_node_parent.h"
 #include "fbr_descriptors.h"
 #include "fbr_pipelines.h"
+#include "fbr_transform.h"
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
 #define FBR_DEFAULT_SCREEN_HEIGHT 600
@@ -47,32 +48,49 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
     if (!pApp->isChild) {
 
-        fbrCreateCamera(pVulkan, &pApp->pCamera);
+        fbrCreateCamera(pVulkan,
+                        &pApp->pCamera);
+        fbrCreateSetGlobal(pApp->pVulkan,
+                           pApp->pDescriptors->setLayoutGlobal,
+                           pApp->pCamera,
+                           &pApp->pDescriptors->setGlobal);
 
-        fbrCreateMesh(pVulkan, &pApp->pTestQuadMesh);
+        // First Quad
+        fbrCreateMesh(pVulkan,
+                      &pApp->pTestQuadMesh);
+        fbrCreateTransform(pVulkan,
+                           &pApp->pTestQuadTransform);
         fbrCreateTextureFromFile(pVulkan,
                                  &pApp->pTestQuadTexture,
                                  "textures/test.jpg",
                                  true);
+        fbrCreateSetMaterial(pApp->pVulkan,
+                           pApp->pDescriptors->setLayoutMaterial,
+                           pApp->pTestQuadTexture,
+                           &pApp->testQuadMaterialSet);
+        fbrCreateSetObject(pApp->pVulkan,
+                             pApp->pDescriptors->setLayoutObject,
+                             pApp->pTestQuadTransform,
+                             &pApp->testQuadObjectSet);
 
-        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
-                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
-                                              pApp->pCamera,
-                                              pApp->pTestQuadTexture,
-                                              &pApp->pTestQuadDescriptorSet);
-
+        // Comp Node Quad
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
-        glm_vec3_add(pApp->pTestNode->transform.pos, (vec3) {1, 0, 0}, pApp->pTestNode->transform.pos);
-        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
-                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
-                                              pApp->pCamera,
-                                              pApp->pTestNode->pFramebuffers[0]->pTexture,
-                                              &pApp->pCompDescriptorSets[0]);
-        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
-                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
-                                              pApp->pCamera,
-                                              pApp->pTestNode->pFramebuffers[1]->pTexture,
-                                              &pApp->pCompDescriptorSets[1]);
+        glm_vec3_add(pApp->pTestNode->pTransform->pos,
+                     (vec3) {1, 0, 0},
+                     pApp->pTestNode->pTransform->pos);
+        fbrCreateSetMaterial(pApp->pVulkan,
+                             pApp->pDescriptors->setLayoutMaterial,
+                             pApp->pTestNode->pFramebuffers[0]->pTexture,
+                             &pApp->pCompMaterialSets[0]);
+        fbrCreateSetMaterial(pApp->pVulkan,
+                             pApp->pDescriptors->setLayoutMaterial,
+                             pApp->pTestNode->pFramebuffers[1]->pTexture,
+                             &pApp->pCompMaterialSets[1]);
+        fbrCreateSetObject(pApp->pVulkan,
+                           pApp->pDescriptors->setLayoutObject,
+                           pApp->pTestNode->pTransform,
+                           &pApp->compObjectSet);
+
 
         // todo below can go into create node
         HANDLE camDupHandle;
@@ -157,23 +175,38 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_NODE_PARENT, &importNodeParentParam);
     } else {
 
-        fbrCreateNodeParent(&pApp->pNodeParent);
-        glm_vec3_add(pApp->pNodeParent->transform.pos, (vec3) {1, 0, 0}, pApp->pNodeParent->transform.pos);
+        fbrCreateNodeParent(pVulkan, &pApp->pNodeParent);
+        glm_vec3_add(pApp->pNodeParent->pTransform->pos,
+                     (vec3) {1, 0, 0},
+                     pApp->pNodeParent->pTransform->pos);
 
         // for debugging ipc now, wait for camera
         while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
             FBR_LOG_DEBUG("Wait Message", pApp->pNodeParent->pReceiverIPC->pIPCBuffer->tail, pApp->pNodeParent->pReceiverIPC->pIPCBuffer->head);
         }
+        fbrCreateSetGlobal(pApp->pVulkan,
+                           pApp->pDescriptors->setLayoutGlobal,
+                           pApp->pNodeParent->pCamera,
+                           &pApp->pDescriptors->setGlobal);
 
         fbrCreateMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
-        glm_vec3_add(pApp->pTestQuadMesh->transform.pos, (vec3) {1, 0, 0}, pApp->pTestQuadMesh->transform.pos);
-        fbrCreateTextureFromFile(pApp->pVulkan, &pApp->pTestQuadTexture, "textures/UV_Grid_Sm.jpg", false);
-
-        fbrCreateDescriptorSet_Camera_Texture(pApp->pVulkan,
-                                              pApp->pDescriptors->setLayout_uvUBO_ufSampler,
-                                              pApp->pNodeParent->pCamera,
-                                              pApp->pTestQuadTexture,
-                                              &pApp->pTestQuadDescriptorSet);
+        fbrCreateTransform(pVulkan,
+                           &pApp->pTestQuadTransform);
+        glm_vec3_add(pApp->pTestQuadTransform->pos,
+                     (vec3) {1, 0, 0},
+                     pApp->pTestQuadTransform->pos);
+        fbrCreateTextureFromFile(pApp->pVulkan,
+                                 &pApp->pTestQuadTexture,
+                                 "textures/UV_Grid_Sm.jpg",
+                                 false);
+        fbrCreateSetMaterial(pApp->pVulkan,
+                             pApp->pDescriptors->setLayoutMaterial,
+                             pApp->pTestQuadTexture,
+                             &pApp->testQuadMaterialSet);
+        fbrCreateSetObject(pApp->pVulkan,
+                           pApp->pDescriptors->setLayoutObject,
+                           pApp->pTestQuadTransform,
+                           &pApp->testQuadObjectSet);
     }
 }
 
@@ -208,15 +241,17 @@ void fbrCleanup(FbrApp *pApp) {
         fbrDestroyNode(pVulkan, pApp->pTestNode);
         fbrDestroyCamera(pVulkan, pApp->pCamera);
         fbrDestroyPipelines(pVulkan, pApp->pPipelines);
-        vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompDescriptorSets[0]);
-        vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompDescriptorSets[1]);
+        vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompMaterialSets[0]);
+        vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompMaterialSets[1]);
+        vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compObjectSet);
     }
 
     fbrDestroyTexture(pVulkan, pApp->pTestQuadTexture);
     fbrCleanupMesh(pVulkan, pApp->pTestQuadMesh);
-    vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pTestQuadDescriptorSet);
+    vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->testQuadMaterialSet);
+    vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->testQuadObjectSet);
 
-    fbrDestroyDescriptors_Std(pVulkan, pApp->pDescriptors);
+    fbrDestroyDescriptors(pVulkan, pApp->pDescriptors);
 
     fbrCleanupVulkan(pVulkan);
 

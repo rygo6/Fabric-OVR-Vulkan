@@ -16,21 +16,21 @@ const uint16_t nodeIndices[] = {
 };
 
 void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNode *pNode) {
-    fbrUpdateTransformMatrix(&pNode->transform);
+    fbrUpdateTransformMatrix(pNode->pTransform);
 
     mat4 viewProj;
     glm_mat4_mul(pCamera->uboData.proj, pCamera->uboData.view, viewProj);
     mat4 mvp;
-    glm_mat4_mul(viewProj, pNode->transform.matrix, mvp);
+    glm_mat4_mul(viewProj, pNode->pTransform->uboData.model, mvp);
 
     vec4 viewport = {0.0f, 0.0f, 1.0f, 1.0f};
 
     vec3 up = {0.0f, 1.0f, 0.0f};
-    glm_quat_rotatev(pCamera->transform.rot, up, up);
+    glm_quat_rotatev(pCamera->pTransform->rot, up, up);
     glm_vec3_scale(up, 0.5f, up);
 
     vec3 right = {1.0f, 0.0f, 0.0f};
-    glm_quat_rotatev(pCamera->transform.rot, right, right);
+    glm_quat_rotatev(pCamera->pTransform->rot, right, right);
     glm_vec3_scale(right, 0.5f, right);
 
     vec3 ll;
@@ -74,9 +74,9 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
     pNode->pName = strdup(pName);
     pNode->radius = 1.0f;
 
-    fbrInitTransform(&pNode->transform);
-
     FbrVulkan *pVulkan = pApp->pVulkan;
+
+    fbrCreateTransform(pVulkan, &pNode->pTransform);
 
     fbrCreateTimelineSemaphore(pVulkan, true, false, &pNode->pChildSemaphore);
 

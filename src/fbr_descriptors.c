@@ -3,13 +3,13 @@
 #include "fbr_camera.h"
 #include "fbr_texture.h"
 
-static VkDescriptorBufferInfo cameraBufferInfo(const FbrCamera *pCamera) {
-    return (VkDescriptorBufferInfo) {
-            .buffer = pCamera->pUBO->uniformBuffer,
-            .offset = 0,
-            .range = sizeof(FbrCameraUBO),
-    };
-}
+//static VkDescriptorBufferInfo cameraBufferInfo(const FbrCamera *pCamera) {
+//    return (VkDescriptorBufferInfo) {
+//            .buffer = pCamera->pUBO->uniformBuffer,
+//            .offset = 0,
+//            .range = sizeof(FbrCameraUBO),
+//    };
+//}
 
 static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                           uint32_t bindingCount,
@@ -26,6 +26,93 @@ static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                          &layoutInfo,
                                          NULL,
                                          pSetLayout));
+    return VK_SUCCESS;
+}
+
+//static VkResult createSetLayout_vUBO_fSampler(const FbrVulkan *pVulkan, FbrSetLayout_vUniform_fSampler *pSetLayout) {
+//    VkDescriptorSetLayoutBinding bindings[] = {
+//            {
+//                    .binding = 0,
+//                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+//                    .descriptorCount = 1,
+//                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+//                    .pImmutableSamplers = NULL,
+//            },
+//            {
+//                    .binding = 1,
+//                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+//                    .descriptorCount = 1,
+//                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+//                    .pImmutableSamplers = NULL,
+//            }
+//    };
+//    VK_CHECK(createDescriptorSetLayout(pVulkan, 2, bindings, pSetLayout));
+//}
+
+static VkResult createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout) {
+    VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    return VK_SUCCESS;
+}
+
+static VkResult createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout) {
+    VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    return VK_SUCCESS;
+}
+
+static VkResult createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout) {
+    VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    return VK_SUCCESS;
+}
+
+static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout) {
+    VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    return VK_SUCCESS;
+}
+
+static VkResult createSetLayouts_Std(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std) {
+//    createSetLayout_vUBO_fSampler(pVulkan, &pDescriptors_Std->setLayout_vUniform_fSampler);
+
+    createSetLayoutGlobal(pVulkan, &pDescriptors_Std->setLayoutGlobal);
+    createSetLayoutPass(pVulkan, &pDescriptors_Std->setLayoutPass);
+    createSetLayoutMaterial(pVulkan, &pDescriptors_Std->setLayoutMaterial);
+    createSetLayoutObject(pVulkan, &pDescriptors_Std->setLayoutObject);
+    return VK_SUCCESS;
 }
 
 static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
@@ -42,52 +129,75 @@ static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
     VK_CHECK(vkAllocateDescriptorSets(pVulkan->device,
                                       &allocInfo,
                                       pDescriptorSet));
+    return VK_SUCCESS;
 }
 
-static VkResult createSetLayout_VertUBO_FragSampler(const FbrVulkan *pVulkan, FbrSetLayout_uvUBO_ufSampler *pSetLayout) {
-    VkDescriptorSetLayoutBinding bindings[] = {
-            {
-                    .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                    .pImmutableSamplers = NULL,
-            },
-            {
-                    .binding = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            }
-    };
-    VK_CHECK(createDescriptorSetLayout(pVulkan, 2, bindings, pSetLayout));
-}
+//VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
+//                                               FbrSetLayout_vUniform_fSampler setLayout_uvUBO_ufSampler,
+//                                               const FbrCamera *pCamera,
+//                                               const FbrTexture *pTexture,
+//                                               FbrDescriptorSet_vCamera_fTexture *pDescriptorSet) {
+//    VK_CHECK(allocateDescriptorSet(pVulkan,
+//                                   1,
+//                                   &setLayout_uvUBO_ufSampler,
+//                                   pDescriptorSet));
+//    const VkDescriptorBufferInfo bufferInfo = cameraBufferInfo(pCamera);
+//    const VkDescriptorImageInfo imageInfo = {
+//            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+//            .imageView = pTexture->imageView,
+//            .sampler = pVulkan->sampler,
+//    };
+//    const VkWriteDescriptorSet descriptorWrites[] = {
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+//                    .pNext = NULL,
+//                    .dstSet = *pDescriptorSet,
+//                    .dstBinding = 0,
+//                    .dstArrayElement = 0,
+//                    .descriptorCount = 1,
+//                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+//                    .pImageInfo = NULL,
+//                    .pBufferInfo = &bufferInfo,
+//                    .pTexelBufferView = NULL,
+//            },
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+//                    .pNext = NULL,
+//                    .dstSet = *pDescriptorSet,
+//                    .dstBinding = 1,
+//                    .dstArrayElement = 0,
+//                    .descriptorCount = 1,
+//                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+//                    .pImageInfo = &imageInfo,
+//                    .pBufferInfo = NULL,
+//                    .pTexelBufferView = NULL,
+//            },
+//    };
+//    vkUpdateDescriptorSets(pVulkan->device,
+//                           2,
+//                           descriptorWrites,
+//                           0,
+//                           NULL);
+//}
 
-static VkResult createSetLayouts_Std(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std) {
-    createSetLayout_VertUBO_FragSampler(pVulkan, &pDescriptors_Std->setLayout_uvUBO_ufSampler);
-}
-
-VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
-                                               FbrSetLayout_uvUBO_ufSampler setLayout_uvUBO_ufSampler,
-                                               const FbrCamera *pCamera,
-                                               const FbrTexture *pTexture,
-                                               FbrDescriptorSet_uvCamera_ufTexture *pDescriptorSet) {
+VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
+                            FbrSetLayoutGlobal setLayout,
+                           const FbrCamera *pCamera,
+                            FbrSetGlobal *pSet) {
     VK_CHECK(allocateDescriptorSet(pVulkan,
                                    1,
-                                   &setLayout_uvUBO_ufSampler,
-                                   pDescriptorSet));
-    const VkDescriptorBufferInfo bufferInfo = cameraBufferInfo(pCamera);
-    const VkDescriptorImageInfo imageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pTexture->imageView,
-            .sampler = pVulkan->sampler,
+                                   &setLayout,
+                                   pSet));
+    const VkDescriptorBufferInfo bufferInfo = {
+            .buffer = pCamera->pUBO->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrCameraUBO),
     };
-    const VkWriteDescriptorSet descriptorWrites[] = {
+    const VkWriteDescriptorSet pDescriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
-                    .dstSet = *pDescriptorSet,
+                    .dstSet = *pSet,
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
@@ -96,11 +206,34 @@ VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
                     .pBufferInfo = &bufferInfo,
                     .pTexelBufferView = NULL,
             },
+    };
+    vkUpdateDescriptorSets(pVulkan->device,
+                           1,
+                           pDescriptorWrites,
+                           0,
+                           NULL);
+    return VK_SUCCESS;
+}
+
+VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
+                            FbrSetLayoutMaterial setLayout,
+                            const FbrTexture *pTexture,
+                            FbrSetMaterial *pSet) {
+    VK_CHECK(allocateDescriptorSet(pVulkan,
+                                   1,
+                                   &setLayout,
+                                   pSet));
+    const VkDescriptorImageInfo imageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pTexture->imageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkWriteDescriptorSet pDescriptorWrites[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
-                    .dstSet = *pDescriptorSet,
-                    .dstBinding = 1,
+                    .dstSet = *pSet,
+                    .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -110,21 +243,62 @@ VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
             },
     };
     vkUpdateDescriptorSets(pVulkan->device,
-                           2,
-                           descriptorWrites,
+                           1,
+                           pDescriptorWrites,
                            0,
                            NULL);
+    return VK_SUCCESS;
 }
 
-VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std) {
+
+VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
+                              FbrSetLayoutObject setLayout,
+                              const FbrTransform *pTransform,
+                              FbrSetObject *pSet) {
+    VK_CHECK(allocateDescriptorSet(pVulkan,
+                                   1,
+                                   &setLayout,
+                                   pSet));
+    const VkDescriptorBufferInfo bufferInfo = {
+            .buffer = pTransform->pUBO->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrTransform),
+    };
+    const VkWriteDescriptorSet pDescriptorWrites[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pImageInfo = NULL,
+                    .pBufferInfo = &bufferInfo,
+                    .pTexelBufferView = NULL,
+            },
+    };
+    vkUpdateDescriptorSets(pVulkan->device,
+                           1,
+                           pDescriptorWrites,
+                           0,
+                           NULL);
+    return VK_SUCCESS;
+}
+
+VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan,
+                              FbrDescriptors **ppAllocDescriptors_Std) {
     *ppAllocDescriptors_Std = calloc(1, sizeof(FbrDescriptors));
     FbrDescriptors *pDescriptors_Std = *ppAllocDescriptors_Std;
-
     createSetLayouts_Std(pVulkan, pDescriptors_Std);
 }
 
-VkResult fbrDestroyDescriptors_Std(const FbrVulkan *pVulkan,
-                                   FbrDescriptors *pDescriptors_Std) {
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors_Std->setLayout_uvUBO_ufSampler, NULL);
-    free(pDescriptors_Std);
+void fbrDestroyDescriptors(const FbrVulkan *pVulkan,
+                           FbrDescriptors *pDescriptors) {
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutGlobal, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutPass, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutMaterial, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutObject, NULL);
+    vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pDescriptors->setGlobal);
+    free(pDescriptors);
 }

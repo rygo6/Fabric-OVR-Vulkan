@@ -18,6 +18,7 @@ typedef struct FbrTimelineSemaphore FbrTimelineSemaphore;
 typedef struct FbrNodeParent FbrNodeParent;
 typedef struct FbrDescriptors FbrDescriptors;
 typedef struct FbrPipelines FbrPipelines;
+typedef struct FbrTransform FbrTransform;
 
 typedef enum FbrIPCTargetType FbrIPCTargetType;
 
@@ -39,9 +40,13 @@ typedef struct FbrApp {
     // go in a fbr_scene?
     FbrMesh *pTestQuadMesh;
     FbrTexture *pTestQuadTexture;
-    VkDescriptorSet pTestQuadDescriptorSet;
+    FbrTransform *pTestQuadTransform;
+    VkDescriptorSet testQuadMaterialSet;
+    VkDescriptorSet testQuadObjectSet;
 
-    VkDescriptorSet pCompDescriptorSets[2];
+//    FbrTransform *pCompTransform;
+    VkDescriptorSet pCompMaterialSets[2];
+    VkDescriptorSet compObjectSet;
 
     // go in fbrvulkan?
     FbrDescriptors *pDescriptors;

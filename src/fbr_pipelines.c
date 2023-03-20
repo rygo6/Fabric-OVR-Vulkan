@@ -4,32 +4,61 @@
 #include "fbr_log.h"
 #include "fbr_mesh.h"
 
-static VkResult createPipelineLayout(const FbrVulkan *pVulkan,
-                                     uint32_t setLayoutCount,
-                                     const VkDescriptorSetLayout *pSetLayouts,
-                                     VkPipelineLayout *pipelineLayout) {
-    const VkPushConstantRange pushConstant = {
-            .offset = 0,
-            .size = sizeof(mat4),
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+//static VkResult createPipeLayout_pvMat4_uvUBO_ufSampler(const FbrVulkan *pVulkan,
+//                                                        const FbrSetLayout_vUniform_fSampler *pSetLayout,
+//                                                        FbrPipeLayout_pvMat4_uvUBO_ufSampler *pipelineLayout) {
+//    const VkPushConstantRange pushConstant = {
+//            .offset = 0,
+//            .size = sizeof(mat4),
+//            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+//    };
+//    const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+//            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+//            .pNext = NULL,
+//            .setLayoutCount = 1,
+//            .pSetLayouts = pSetLayout,
+//            .pPushConstantRanges = &pushConstant,
+//            .pushConstantRangeCount  = 1
+//    };
+//    VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, pipelineLayout));
+//}
+
+static VkResult createPipeLayoutStandard(const FbrVulkan *pVulkan,
+                                         const FbrDescriptors *pDescriptors,
+                                         VkPipelineLayout *pipelineLayout) {
+
+    VkDescriptorSetLayout pSetLayouts[] = {
+            pDescriptors->setLayoutGlobal,
+            pDescriptors->setLayoutPass,
+            pDescriptors->setLayoutMaterial,
+            pDescriptors->setLayoutObject
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .pNext = NULL,
-            .setLayoutCount = setLayoutCount,
+            .setLayoutCount = 4,
             .pSetLayouts = pSetLayouts,
-            .pPushConstantRanges = &pushConstant,
-            .pushConstantRangeCount  = 1
+            .pPushConstantRanges = NULL,
+            .pushConstantRangeCount  = 0
     };
     VK_CHECK(vkCreatePipelineLayout(pVulkan->device, &pipelineLayoutInfo, NULL, pipelineLayout));
+
+    return VK_SUCCESS;
 }
 
 static VkResult createPipelineLayouts(const FbrVulkan *pVulkan,
                                   const FbrDescriptors *pDescriptors,
                                   FbrPipelines *pPipelines) {
 
-    VK_CHECK(createPipelineLayout(pVulkan,1,&pDescriptors->setLayout_uvUBO_ufSampler,&pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler));
+//    VK_CHECK(createPipeLayout_pvMat4_uvUBO_ufSampler(pVulkan,
+//                                                     &pDescriptors->setLayout_vUniform_fSampler,
+//                                                     &pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler));
 
+    VK_CHECK(createPipeLayoutStandard(pVulkan,
+                                      pDescriptors,
+                                      &pPipelines->pipeLayoutStandard));
+
+    return VK_SUCCESS;
 }
 
 
@@ -63,14 +92,15 @@ static VkResult createShaderModule(const FbrVulkan *pVulkan,
             .pCode = (const uint32_t *) code,
     };
     VK_CHECK(vkCreateShaderModule(pVulkan->device, &createInfo, NULL, pShaderModule));
+
+    return VK_SUCCESS;
 }
 
-VkResult fbrCreatePipe_pvMat4_uvUBO_ufSampler_ivVertex(const FbrVulkan *pVulkan,
-                                                       FbrPipeLayout_pvMat4_uvUBO_ufSampler pipeLayout_pvMat4_uvUBO_ufSampler,
-                                                       const char *pVertShaderPath,
-                                                       const char *pFragShaderPath,
-                                                       FbrPipe_pvMat4_uvUBO_ufSampler_ivVertex *pPipeline) {
-
+VkResult fbrCreatePipe(const FbrVulkan *pVulkan,
+                       VkPipelineLayout pipeLayout,
+                       const char *pVertShaderPath,
+                       const char *pFragShaderPath,
+                       VkPipeline *pPipe) {
     // Shaders
     uint32_t vertLength;
     char *vertShaderCode = readBinaryFile(pVertShaderPath, &vertLength);
@@ -210,28 +240,38 @@ VkResult fbrCreatePipe_pvMat4_uvUBO_ufSampler_ivVertex(const FbrVulkan *pVulkan,
             .pMultisampleState = &multisampling,
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
-            .layout = pipeLayout_pvMat4_uvUBO_ufSampler,
+            .layout = pipeLayout,
             .renderPass = pVulkan->renderPass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
     };
-    VK_CHECK(vkCreateGraphicsPipelines(pVulkan->device,VK_NULL_HANDLE,1,&pipelineInfo,NULL,pPipeline));
+    VK_CHECK(vkCreateGraphicsPipelines(pVulkan->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pPipe));
 
     // Cleanup
     vkDestroyShaderModule(pVulkan->device, fragShaderModule, NULL);
     vkDestroyShaderModule(pVulkan->device, vertShaderModule, NULL);
     free(vertShaderCode);
     free(fragShaderCode);
+
+    return VK_SUCCESS;
 }
 
 static VkResult createPipes(const FbrVulkan *pVulkan,
-                        FbrPipelines *pPipes) {
+                            FbrPipelines *pPipes) {
 
-    VK_CHECK(fbrCreatePipe_pvMat4_uvUBO_ufSampler_ivVertex(pVulkan,
-                                                  pPipes->pipeLayout_pvMat4_uvUBO_ufSampler,
-                                                  "./shaders/vert.spv",
-                                                  "./shaders/frag.spv",
-                                                  &pPipes->pipe_pvMat4_uvCamera_ufTexture_ivVertex));
+//    VK_CHECK(fbrCreatePipe(pVulkan,
+//                                                  pPipes->pipeLayout_pvMat4_uvUBO_ufSampler,
+//                                                  "./shaders/vert.spv",
+//                                                  "./shaders/frag.spv",
+//                                                  &pPipes->pipe_pvMat4_uvCamera_ufTexture_ivVertex));
+
+    VK_CHECK(fbrCreatePipe(pVulkan,
+                           pPipes->pipeLayoutStandard,
+                           "./shaders/vert.spv",
+                           "./shaders/frag.spv",
+                           &pPipes->pipeStandard));
+
+    return VK_SUCCESS;
 }
 
 VkResult fbrCreatePipelines(const FbrVulkan *pVulkan,
@@ -242,12 +282,14 @@ VkResult fbrCreatePipelines(const FbrVulkan *pVulkan,
 
     VK_CHECK(createPipelineLayouts(pVulkan, pDescriptors, pPipes));
     VK_CHECK(createPipes(pVulkan, pPipes));
+
+    return VK_SUCCESS;
 }
 
-VkResult fbrDestroyPipelines(const FbrVulkan *pVulkan,
+void fbrDestroyPipelines(const FbrVulkan *pVulkan,
                              FbrPipelines *pPipelines) {
-    vkDestroyPipelineLayout(pVulkan->device, pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler, NULL);
-    vkDestroyPipeline(pVulkan->device, pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex, NULL);
+    vkDestroyPipelineLayout(pVulkan->device, pPipelines->pipeLayoutStandard, NULL);
+    vkDestroyPipeline(pVulkan->device, pPipelines->pipeStandard, NULL);
 
     free(pPipelines);
 }

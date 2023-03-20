@@ -14,10 +14,10 @@ const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
 };
 
 void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int timelineSwitch, FbrNodeParent *pNode) {
-    fbrUpdateTransformMatrix(&pNode->transform);
+    fbrUpdateTransformMatrix(pNode->pTransform);
 
     memcpy(&pCamera->uboData, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraUBO));
-    glm_mat4_copy(pCamera->uboData.trs, pCamera->transform.matrix);
+    glm_mat4_copy(pCamera->uboData.trs, pCamera->pTransform->uboData.model);
 
 //    printf("child\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
 //           pCamera->transform.matrix[0][0],pCamera->transform.matrix[0][1],pCamera->transform.matrix[0][2],pCamera->transform.matrix[0][3],
@@ -28,23 +28,23 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int ti
     vec4 pos;
     mat4 rot;
     vec3 scale;
-    glm_decompose(pCamera->transform.matrix, pos, rot, scale);
-    glm_mat4_quat(rot, pCamera->transform.rot);
-    glm_vec3_copy(pos, pCamera->transform.pos);
+    glm_decompose(pCamera->pTransform->uboData.model, pos, rot, scale);
+    glm_mat4_quat(rot, pCamera->pTransform->rot);
+    glm_vec3_copy(pos, pCamera->pTransform->pos);
 
     mat4 viewProj;
     glm_mat4_mul(pCamera->uboData.proj, pCamera->uboData.view, viewProj);
     mat4 mvp;
-    glm_mat4_mul(viewProj, pNode->transform.matrix, mvp);
+    glm_mat4_mul(viewProj, pNode->pTransform->uboData.model, mvp);
 
     vec4 viewport = {0.0f, 0.0f, 1.0f, 1.0f};
 
     vec3 up = {0.0f, 1.0f, 0.0f};
-    glm_quat_rotatev(pCamera->transform.rot, up, up);
+    glm_quat_rotatev(pCamera->pTransform->rot, up, up);
     glm_vec3_scale(up, 0.5f, up);
 
     vec3 right = {1.0f, 0.0f, 0.0f};
-    glm_quat_rotatev(pCamera->transform.rot, right, right);
+    glm_quat_rotatev(pCamera->pTransform->rot, right, right);
     glm_vec3_scale(right, 0.5f, right);
 
     vec3 ll;
@@ -82,17 +82,17 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int ti
     memcpy(pNode->pVertexUBOs[timelineSwitch]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
-void fbrCreateNodeParent(FbrNodeParent **ppAllocNodeParent) {
+void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent) {
     *ppAllocNodeParent = calloc(1, sizeof(FbrNodeParent));
     FbrNodeParent *pNodeParent = *ppAllocNodeParent;
     fbrCreateReceiverIPC(&pNodeParent->pReceiverIPC);
 
-    fbrInitTransform(&pNodeParent->transform);
+    fbrCreateTransform(pVulkan, &pNodeParent->pTransform);
 
     memcpy(pNodeParent->nodeVerticesBuffer, nodeVertices2, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
-void fbrDestroyNodeParent(FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) {
+void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) {
     // Should I be destroy imported things???
     fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[0]);
     fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[1]);

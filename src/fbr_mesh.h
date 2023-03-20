@@ -11,8 +11,6 @@ typedef struct Vertex {
 } Vertex;
 
 typedef struct FbrMesh {
-    FbrTransform transform;
-
     uint32_t indexCount;
     uint32_t vertexCount;
 
@@ -21,7 +19,6 @@ typedef struct FbrMesh {
 
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
-
 } FbrMesh;
 
 void fbrCreateMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState);

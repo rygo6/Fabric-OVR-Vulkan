@@ -13,9 +13,7 @@ typedef struct FbrCameraUBO {
 } FbrCameraUBO;
 
 typedef struct FbrCamera {
-    FbrEntity entity;
-    FbrTransform transform;
-
+    FbrTransform *pTransform;
     FbrCameraUBO uboData;
     FbrUniformBufferObject *pUBO;
 } FbrCamera;

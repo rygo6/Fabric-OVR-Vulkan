@@ -8,6 +8,7 @@
 #include "fbr_framebuffer.h"
 #include "fbr_node_parent.h"
 #include "fbr_pipelines.h"
+#include "fbr_descriptors.h"
 
 #include "cglm/cglm.h"
 
@@ -71,48 +72,46 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass rend
 }
 
 static void recordRenderMesh(const FbrVulkan *pVulkan, VkPipelineLayout pipelineLayout, VkPipeline pipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
-    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout,
-                            0,
-                            1,
-                            &descriptorSet,
-                            0,
-                            NULL);
+//    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+//
+//    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+//                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                            pipelineLayout,
+//                            0,
+//                            1,
+//                            &descriptorSet,
+//                            0,
+//                            NULL);
 
     VkBuffer vertexBuffers[] = {pMesh->vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
-
     vkCmdBindIndexBuffer(pVulkan->commandBuffer, pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     //upload the matrix to the GPU via push constants
-    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
+//    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
 
     vkCmdDrawIndexed(pVulkan->commandBuffer, pMesh->indexCount, 1, 0, 0, 0);
 }
 
 static void recordNodeRenderPass(const FbrVulkan *pVulkan, VkPipelineLayout pipelineLayout, VkPipeline pipeline, const FbrNode *pNode, int timelineSwitch, VkDescriptorSet pDescriptorSets[]) {
-    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout,
-                            0,
-                            1,
-                            &pDescriptorSets[timelineSwitch],
-                            0,
-                            NULL);
+//    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+//    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+//                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                            pipelineLayout,
+//                            0,
+//                            1,
+//                            &pDescriptorSets[timelineSwitch],
+//                            0,
+//                            NULL);
 
 
     VkBuffer vertexBuffers[] = {pNode->pVertexUBOs[timelineSwitch]->uniformBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
-
     vkCmdBindIndexBuffer(pVulkan->commandBuffer, pNode->pIndexUBO->uniformBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
+//    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
 
     vkCmdDrawIndexed(pVulkan->commandBuffer, FBR_NODE_INDEX_COUNT, 1, 0, 0, 0);
 }
@@ -250,6 +249,9 @@ static void childMainLoop(FbrApp *pApp) {
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
     FbrTime *pTime = pApp->pTime;
     FbrPipelines *pPipelines = pApp->pPipelines;
+    FbrDescriptors *pDescriptors = pApp->pDescriptors;
+
+    int printDebug = 0;
 
     const uint64_t parentTimelineStep = 16;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
@@ -296,15 +298,45 @@ static void childMainLoop(FbrApp *pApp) {
                                  pFrameBuffers[timelineSwitch]->pTexture->imageView,
                                  (VkClearValue){{{0.0f, 0.0f, 0.00f, 0.0f}}});
 
+        // not exactly order for this, but we need cam UBO data for each frame step
         fbrUpdateNodeParentMesh(pVulkan, pCamera, timelineSwitch, pApp->pNodeParent);
 
+        vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
+        // Global
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                0,
+                                NULL);
+        printf("Mat %d\n", printDebug++);
+        // Material
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_MATERIAL_SET_INDEX,
+                                1,
+                                &pApp->testQuadMaterialSet,
+                                0,
+                                NULL);
+
         //cube 1
-        fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
+        fbrUpdateTransformMatrix(pApp->pTestQuadTransform);
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_OBJECT_SET_INDEX,
+                                1,
+                                &pApp->testQuadObjectSet,
+                                0,
+                                NULL);
         recordRenderMesh(pVulkan,
-                         pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
-                         pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
+                         pPipelines->pipeLayoutStandard,
+                         pPipelines->pipeStandard,
                          pApp->pTestQuadMesh,
-                         pApp->pTestQuadDescriptorSet);
+                         pApp->testQuadMaterialSet);
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
@@ -334,6 +366,7 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
     FbrPipelines *pPipelines = pApp->pPipelines;
+    FbrDescriptors *pDescriptors = pApp->pDescriptors;
     FbrNode *pTestNode = pApp->pTestNode;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
@@ -372,26 +405,72 @@ static void parentMainLoop(FbrApp *pApp) {
                                  pVulkan->pSwapImageViews[swapIndex],
                                  (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
 
+        vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
+        // Global
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                0,
+                                NULL);
 
+        // Material
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_MATERIAL_SET_INDEX,
+                                1,
+                                &pApp->testQuadMaterialSet,
+                                0,
+                                NULL);
 
         //cube 1
-        fbrUpdateTransformMatrix(&pApp->pTestQuadMesh->transform);
+        fbrUpdateTransformMatrix(pApp->pTestQuadTransform);
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_OBJECT_SET_INDEX,
+                                1,
+                                &pApp->testQuadObjectSet,
+                                0,
+                                NULL);
         recordRenderMesh(pVulkan,
-                         pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
-                         pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
+                         pPipelines->pipeLayoutStandard,
+                         pPipelines->pipeStandard,
                          pApp->pTestQuadMesh,
-                         pApp->pTestQuadDescriptorSet);
+                         pApp->testQuadMaterialSet);
+
+
 
         //test node
         vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore, &pTestNode->pChildSemaphore->waitValue);
         int timelineSwitch = (int)(pTestNode->pChildSemaphore->waitValue % 2);
-        fbrUpdateTransformMatrix(&pTestNode->transform);
+        // Material
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_MATERIAL_SET_INDEX,
+                                1,
+                                &pApp->pCompMaterialSets[timelineSwitch],
+                                0,
+                                NULL);
+        fbrUpdateTransformMatrix(pTestNode->pTransform);
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_OBJECT_SET_INDEX,
+                                1,
+                                &pApp->compObjectSet,
+                                0,
+                                NULL);
         recordNodeRenderPass(pVulkan,
-                             pPipelines->pipeLayout_pvMat4_uvUBO_ufSampler,
-                             pPipelines->pipe_pvMat4_uvCamera_ufTexture_ivVertex,
+                             pPipelines->pipeLayoutStandard,
+                             pPipelines->pipeStandard,
                              pTestNode,
                              timelineSwitch,
-                             pApp->pCompDescriptorSets);
+                             pApp->pCompMaterialSets);
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
