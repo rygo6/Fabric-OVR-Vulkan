@@ -71,48 +71,19 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass rend
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-static void recordRenderMesh(const FbrVulkan *pVulkan, VkPipelineLayout pipelineLayout, VkPipeline pipeline, const FbrMesh *pMesh, VkDescriptorSet descriptorSet) {
-//    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-//
-//    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-//                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                            pipelineLayout,
-//                            0,
-//                            1,
-//                            &descriptorSet,
-//                            0,
-//                            NULL);
-
+static void recordRenderMesh(const FbrVulkan *pVulkan, const FbrMesh *pMesh) {
     VkBuffer vertexBuffers[] = {pMesh->vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(pVulkan->commandBuffer, pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-    //upload the matrix to the GPU via push constants
-//    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pMesh->transform.matrix);
-
     vkCmdDrawIndexed(pVulkan->commandBuffer, pMesh->indexCount, 1, 0, 0, 0);
 }
 
-static void recordNodeRenderPass(const FbrVulkan *pVulkan, VkPipelineLayout pipelineLayout, VkPipeline pipeline, const FbrNode *pNode, int timelineSwitch, VkDescriptorSet pDescriptorSets[]) {
-//    vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-//    vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-//                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                            pipelineLayout,
-//                            0,
-//                            1,
-//                            &pDescriptorSets[timelineSwitch],
-//                            0,
-//                            NULL);
-
-
+static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrNode *pNode, int timelineSwitch) {
     VkBuffer vertexBuffers[] = {pNode->pVertexUBOs[timelineSwitch]->uniformBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(pVulkan->commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(pVulkan->commandBuffer, pNode->pIndexUBO->uniformBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-//    vkCmdPushConstants(pVulkan->commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), pNode->transform.matrix);
-
     vkCmdDrawIndexed(pVulkan->commandBuffer, FBR_NODE_INDEX_COUNT, 1, 0, 0, 0);
 }
 
@@ -251,7 +222,7 @@ static void childMainLoop(FbrApp *pApp) {
     FbrPipelines *pPipelines = pApp->pPipelines;
     FbrDescriptors *pDescriptors = pApp->pDescriptors;
 
-    int printDebug = 0;
+//    bool firstRun = true;
 
     const uint64_t parentTimelineStep = 16;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
@@ -282,65 +253,71 @@ static void childMainLoop(FbrApp *pApp) {
         // TODO can be be predictive to start just in time for parent frame flip?
         vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
         pParentSemaphore->waitValue += parentTimelineStep;
+        int timelineSwitch = (int) (pChildSemaphore->waitValue % 2);
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished wait on timeline should be enough!!!
         if (pVulkan->enableValidationLayers)
             FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
 
-        // Todo there is some trickery to de done here with multiple frames per child node framebuffer
-        // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
-        beginFrameCommandBuffer(pVulkan);
-
-        int timelineSwitch = (int)(pChildSemaphore->waitValue % 2);
-        beginRenderPassImageless(pVulkan,
-                                 pVulkan->renderPass,
-                                 pFrameBuffers[timelineSwitch]->framebuffer,
-                                 pFrameBuffers[timelineSwitch]->pTexture->imageView,
-                                 (VkClearValue){{{0.0f, 0.0f, 0.00f, 0.0f}}});
-
         // not exactly order for this, but we need cam UBO data for each frame step
         fbrUpdateNodeParentMesh(pVulkan, pCamera, timelineSwitch, pApp->pNodeParent);
 
-        vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
-        // Global
-        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
-                                FBR_GLOBAL_SET_INDEX,
-                                1,
-                                &pDescriptors->setGlobal,
-                                0,
-                                NULL);
-        printf("Mat %d\n", printDebug++);
-        // Material
-        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
-                                FBR_MATERIAL_SET_INDEX,
-                                1,
-                                &pApp->testQuadMaterialSet,
-                                0,
-                                NULL);
+//        if (firstRun)
+        {
+//            firstRun = false;
 
-        //cube 1
-        fbrUpdateTransformMatrix(pApp->pTestQuadTransform);
-        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
-                                FBR_OBJECT_SET_INDEX,
-                                1,
-                                &pApp->testQuadObjectSet,
-                                0,
-                                NULL);
-        recordRenderMesh(pVulkan,
-                         pPipelines->pipeLayoutStandard,
-                         pPipelines->pipeStandard,
-                         pApp->pTestQuadMesh,
-                         pApp->testQuadMaterialSet);
-        // end framebuffer pass
-        vkCmdEndRenderPass(pVulkan->commandBuffer);
+            // Todo there is some trickery to de done here with multiple frames per child node framebuffer
+            // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
+            beginFrameCommandBuffer(pVulkan);
 
-        FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
+            beginRenderPassImageless(pVulkan,
+                                     pVulkan->renderPass,
+                                     pFrameBuffers[timelineSwitch]->framebuffer,
+                                     pFrameBuffers[timelineSwitch]->pTexture->imageView,
+                                     (VkClearValue) {{{0.0f, 0.0f, 0.00f, 0.0f}}});
+
+
+            vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
+            // Global
+            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pPipelines->pipeLayoutStandard,
+                                    FBR_GLOBAL_SET_INDEX,
+                                    1,
+                                    &pDescriptors->setGlobal,
+                                    0,
+                                    NULL);
+
+            // Material
+            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pPipelines->pipeLayoutStandard,
+                                    FBR_MATERIAL_SET_INDEX,
+                                    1,
+                                    &pApp->testQuadMaterialSet,
+                                    0,
+                                    NULL);
+
+            //cube 1
+            fbrUpdateTransformMatrix(pApp->pTestQuadTransform);
+            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pPipelines->pipeLayoutStandard,
+                                    FBR_OBJECT_SET_INDEX,
+                                    1,
+                                    &pApp->testQuadObjectSet,
+                                    0,
+                                    NULL);
+            recordRenderMesh(pVulkan,
+                             pApp->pTestQuadMesh);
+
+
+            // end framebuffer pass
+            vkCmdEndRenderPass(pVulkan->commandBuffer);
+
+            FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
+
+        }
 
         submitQueue(pVulkan, pChildSemaphore);
 
@@ -437,11 +414,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                 0,
                                 NULL);
         recordRenderMesh(pVulkan,
-                         pPipelines->pipeLayoutStandard,
-                         pPipelines->pipeStandard,
-                         pApp->pTestQuadMesh,
-                         pApp->testQuadMaterialSet);
-
+                         pApp->pTestQuadMesh);
 
 
         //test node
@@ -466,11 +439,8 @@ static void parentMainLoop(FbrApp *pApp) {
                                 0,
                                 NULL);
         recordNodeRenderPass(pVulkan,
-                             pPipelines->pipeLayoutStandard,
-                             pPipelines->pipeStandard,
                              pTestNode,
-                             timelineSwitch,
-                             pApp->pCompMaterialSets);
+                             timelineSwitch);
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
