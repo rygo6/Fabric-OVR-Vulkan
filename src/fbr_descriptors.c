@@ -6,7 +6,8 @@
 static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                           uint32_t bindingCount,
                                           const VkDescriptorSetLayoutBinding *pBindings,
-                                          VkDescriptorSetLayout *pSetLayout) {
+                                          VkDescriptorSetLayout *pSetLayout)
+{
     VkDescriptorSetLayoutCreateInfo layoutInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .pNext = NULL,
@@ -21,35 +22,42 @@ static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
     return VK_SUCCESS;
 }
 
-static VkResult createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout) {
+static VkResult createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout)
+{
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
                     .pImmutableSamplers = NULL,
             }
     };
     VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+
     return VK_SUCCESS;
 }
 
-static VkResult createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout) {
+static VkResult createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout)
+{
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             }
     };
     VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+
     return VK_SUCCESS;
 }
 
-static VkResult createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout) {
+static VkResult createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout)
+{
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
@@ -60,16 +68,19 @@ static VkResult createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMa
             }
     };
     VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+
     return VK_SUCCESS;
 }
 
-static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout) {
+static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout)
+{
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             }
     };
@@ -77,20 +88,46 @@ static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMate
     return VK_SUCCESS;
 }
 
-static VkResult createSetLayouts_Std(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std) {
-//    createSetLayout_vUBO_fSampler(pVulkan, &pDescriptors_Std->setLayout_vUniform_fSampler);
+static VkResult createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *pSetLayout)
+{
+    VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {
+                    .binding = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    return VK_SUCCESS;
+}
 
+static VkResult createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std)
+{
     createSetLayoutGlobal(pVulkan, &pDescriptors_Std->setLayoutGlobal);
     createSetLayoutPass(pVulkan, &pDescriptors_Std->setLayoutPass);
     createSetLayoutMaterial(pVulkan, &pDescriptors_Std->setLayoutMaterial);
     createSetLayoutObject(pVulkan, &pDescriptors_Std->setLayoutObject);
+
+    createSetLayoutNode(pVulkan, &pDescriptors_Std->setLayoutNode);
+
     return VK_SUCCESS;
 }
 
 static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
                                       uint32_t descriptorSetCount,
                                       const VkDescriptorSetLayout *pSetLayouts,
-                                      VkDescriptorSet *pDescriptorSet) {
+                                      VkDescriptorSet *pDescriptorSet)
+{
     const VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .pNext = NULL,
@@ -101,13 +138,15 @@ static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
     VK_CHECK(vkAllocateDescriptorSets(pVulkan->device,
                                       &allocInfo,
                                       pDescriptorSet));
+
     return VK_SUCCESS;
 }
 
 VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             FbrSetLayoutGlobal setLayout,
-                           const FbrCamera *pCamera,
-                            FbrSetGlobal *pSet) {
+                            const FbrCamera *pCamera,
+                            FbrSetGlobal *pSet)
+{
     VK_CHECK(allocateDescriptorSet(pVulkan,
                                    1,
                                    &setLayout,
@@ -140,9 +179,10 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
 }
 
 VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
-                            FbrSetLayoutMaterial setLayout,
-                            const FbrTexture *pTexture,
-                            FbrSetMaterial *pSet) {
+                              FbrSetLayoutMaterial setLayout,
+                              const FbrTexture *pTexture,
+                              FbrSetMaterial *pSet)
+{
     VK_CHECK(allocateDescriptorSet(pVulkan,
                                    1,
                                    &setLayout,
@@ -176,9 +216,10 @@ VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
 
 
 VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
-                              FbrSetLayoutObject setLayout,
-                              const FbrTransform *pTransform,
-                              FbrSetObject *pSet) {
+                            FbrSetLayoutObject setLayout,
+                            const FbrTransform *pTransform,
+                            FbrSetObject *pSet)
+{
     VK_CHECK(allocateDescriptorSet(pVulkan,
                                    1,
                                    &setLayout,
@@ -211,18 +252,25 @@ VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
 }
 
 VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan,
-                              FbrDescriptors **ppAllocDescriptors_Std) {
+                              FbrDescriptors **ppAllocDescriptors_Std)
+{
     *ppAllocDescriptors_Std = calloc(1, sizeof(FbrDescriptors));
     FbrDescriptors *pDescriptors_Std = *ppAllocDescriptors_Std;
-    createSetLayouts_Std(pVulkan, pDescriptors_Std);
+    createSetLayouts(pVulkan, pDescriptors_Std);
+
+    return VK_SUCCESS;
 }
 
 void fbrDestroyDescriptors(const FbrVulkan *pVulkan,
-                           FbrDescriptors *pDescriptors) {
+                           FbrDescriptors *pDescriptors)
+{
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutGlobal, NULL);
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutPass, NULL);
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutMaterial, NULL);
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutObject, NULL);
     vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pDescriptors->setGlobal);
+
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutNode, NULL);
+
     free(pDescriptors);
 }

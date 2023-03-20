@@ -3,24 +3,29 @@
 
 #include "fbr_app.h"
 
-
 typedef VkPipelineLayout FbrPipeLayoutStandard;
 typedef VkPipeline FbrPipeStandard;
+
+typedef VkPipelineLayout FbrPipeLayoutNode;
+typedef VkPipeline FbrPipeNode;
 
 typedef struct FbrPipelines {
     FbrPipeLayoutStandard pipeLayoutStandard;
     FbrPipeStandard pipeStandard;
+
+    FbrPipeLayoutNode pipeLayoutNode;
+    FbrPipeNode pipeNode;
 } FbrPipelines;
 
-VkResult fbrCreatePipe(const FbrVulkan *pVulkan,
-                       VkPipelineLayout pipeLayout,
-                       const char *pVertShaderPath,
-                       const char *pFragShaderPath,
-                       VkPipeline *pPipe);
+VkResult fbrCreatePipeStandard(const FbrVulkan *pVulkan,
+                               VkPipelineLayout layout,
+                               const char *pVertShaderPath,
+                               const char *pFragShaderPath,
+                               VkPipeline *pPipe);
 
 VkResult fbrCreatePipelines(const FbrVulkan *pVulkan,
-                                const FbrDescriptors *pDescriptors,
-                                FbrPipelines **ppAllocPipes);
+                            const FbrDescriptors *pDescriptors,
+                            FbrPipelines **ppAllocPipes);
 
 void fbrDestroyPipelines(const FbrVulkan *pVulkan,
                                  FbrPipelines *pPipelines);

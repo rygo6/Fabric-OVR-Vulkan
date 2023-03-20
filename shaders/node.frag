@@ -1,5 +1,5 @@
 #version 450
-layout (set = 0, binding = 2) uniform sampler2D color;
+layout (set = 3, binding = 2) uniform sampler2D color;
 
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec2 inUV;

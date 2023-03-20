@@ -1,16 +1,15 @@
 #version 450
 
-layout (set = 0, binding = 0) uniform UBO
-{
+layout (set = 0, binding = 0) uniform GlobalUBO {
     mat4 view;
     mat4 proj;
-} ubo;
+} globalUBO;
 
-layout (set = 0, binding = 1) uniform sampler2D depth;
-
-layout(push_constant) uniform constants {
+layout(set = 3, binding = 0) uniform ObjectUBO {
     mat4 model;
-} pushConstants;
+} objectUBO;
+layout (set = 3, binding = 1) uniform sampler2D depth;
+//layout (set = 3, binding = 2) uniform sampler2D color;
 
 layout(quads, equal_spacing, cw) in;
 
@@ -32,7 +31,6 @@ void main()
         mix(inNormal[3], inNormal[2], gl_TessCoord.x),
         gl_TessCoord.y);
 
-
     vec4 pos = mix(
         mix(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_TessCoord.x),
         mix(gl_in[3].gl_Position, gl_in[2].gl_Position, gl_TessCoord.x),
@@ -40,5 +38,5 @@ void main()
 
     pos.y -= textureLod(depth, outUV, 0.0).r;
 
-    gl_Position = ubo.proj * ubo.view * pushConstants.model * pos;
+    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
 }

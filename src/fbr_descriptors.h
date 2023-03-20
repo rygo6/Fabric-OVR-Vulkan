@@ -5,7 +5,7 @@
 #include "fbr_camera.h"
 #include <vulkan/vulkan.h>
 
-//Global Binding 0
+// Standard Pipeline
 #define FBR_GLOBAL_SET_INDEX 0
 typedef VkDescriptorSetLayout FbrSetLayoutGlobal;
 //typedef struct FbrGlobalSet { // Not used but should I?
@@ -13,11 +13,9 @@ typedef VkDescriptorSetLayout FbrSetLayoutGlobal;
 //} FbrGlobalSet;
 typedef VkDescriptorSet FbrSetGlobal;
 
-// Pass Binding 1
 #define FBR_PASS_SET_INDEX 1
 typedef VkDescriptorSetLayout FbrSetLayoutPass;
 
-// Material Binding 2
 #define FBR_MATERIAL_SET_INDEX 2
 typedef VkDescriptorSetLayout FbrSetLayoutMaterial;
 //typedef struct FbrMaterialSet { // Not used but should I?
@@ -25,10 +23,14 @@ typedef VkDescriptorSetLayout FbrSetLayoutMaterial;
 //} FbrMaterialSet;
 typedef VkDescriptorSet FbrSetMaterial;
 
-// Object Binding 3
 #define FBR_OBJECT_SET_INDEX 3
 typedef VkDescriptorSetLayout FbrSetLayoutObject;
 typedef VkDescriptorSet FbrSetObject;
+
+// Node Compositor Pipeline
+#define FBR_NODE_SET_INDEX 1
+typedef VkDescriptorSetLayout FbrSetLayoutNode;
+typedef VkDescriptorSet FbrSetNode;
 
 
 typedef struct FbrDescriptors {
@@ -37,16 +39,10 @@ typedef struct FbrDescriptors {
     FbrSetLayoutMaterial setLayoutMaterial;
     FbrSetLayoutObject setLayoutObject;
     FbrSetGlobal setGlobal;
-} FbrDescriptors;
 
-//VkResult fbrCreateDescriptorSet_Camera_Texture(const FbrVulkan *pVulkan,
-//                                               // Layout
-//                                               FbrSetLayout_vUniform_fSampler setLayout_uvUBO_ufSampler,
-//                                               // Values
-//                                               const FbrCamera *pCamera,
-//                                               const FbrTexture *pTexture,
-//                                               // Output
-//                                               FbrDescriptorSet_vCamera_fTexture *pDescriptorSet);
+    FbrSetLayoutNode setLayoutNode;
+
+} FbrDescriptors;
 
 VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             FbrSetLayoutGlobal setLayout,

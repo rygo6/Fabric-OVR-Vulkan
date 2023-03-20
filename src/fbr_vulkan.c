@@ -379,6 +379,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
                     .fragmentStoresAndAtomics = true,
                     .vertexPipelineStoresAndAtomics = true,
                     .tessellationShader = true,
+                    .fillModeNonSolid = true,
             }
     };
 
@@ -691,34 +692,37 @@ static void createCommandPool(FbrVulkan *pVulkan) {
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
     };
-    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device, &poolInfo, NULL, &pVulkan->commandPool));
+    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device,
+                                     &poolInfo,
+                                     NULL,
+                                     &pVulkan->commandPool));
 }
 
-static void createDescriptorPool(FbrVulkan *pVulkan) {
+static FBR_RESULT createDescriptorPool(FbrVulkan *pVulkan) {
     const VkDescriptorPoolSize poolSizes[2] = {
             {
                     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 4,
+                    .descriptorCount = 10,
             },
             {
                     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 3,
+                    .descriptorCount = 10,
             }
     };
-
-    VkDescriptorPoolCreateInfo poolInfo = {
+    const VkDescriptorPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .poolSizeCount = 2,
             .pPoolSizes = poolSizes,
-            .maxSets = 6,
+            .maxSets = 10,
     };
-
-    if (vkCreateDescriptorPool(pVulkan->device, &poolInfo, NULL, &pVulkan->descriptorPool) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create descriptor pool!");
-    }
+    FBR_ACK(vkCreateDescriptorPool(pVulkan->device,
+                                   &poolInfo,
+                                   NULL,
+                                   &pVulkan->descriptorPool))
+    FBR_SUCCESS
 }
 
-static void createCommandBuffer(FbrVulkan *pVulkan) {
+static FBR_RESULT createCommandBuffer(FbrVulkan *pVulkan) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .commandPool = pVulkan->commandPool,
@@ -726,8 +730,10 @@ static void createCommandBuffer(FbrVulkan *pVulkan) {
             .commandBufferCount = 1,
     };
 
-    if (vkAllocateCommandBuffers(pVulkan->device, &allocInfo, &pVulkan->commandBuffer) != VK_SUCCESS)
-        FBR_LOG_DEBUG("failed to allocate command buffers!");
+    FBR_ACK(vkAllocateCommandBuffers(pVulkan->device,
+                                     &allocInfo,
+                                     &pVulkan->commandBuffer))
+    FBR_SUCCESS
 }
 
 static VkResult createSyncObjects(FbrVulkan *pVulkan) { // todo move to swap sync objects?

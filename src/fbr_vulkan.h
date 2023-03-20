@@ -23,6 +23,18 @@ do {                                                                            
     }                                                                                               \
 } while(0)
 
+#define FBR_ACK(command)                                                                                              \
+{                                                                                                                       \
+    VkResult result = (command);                                                                                        \
+    if (result != VK_SUCCESS) {                                                                                         \
+        printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);                                       \
+        return result;                                                                                                  \
+    }                                                                                                                   \
+}
+
+#define FBR_RESULT VkResult
+#define FBR_SUCCESS return VK_SUCCESS;
+
 #define FBR_VK_CHECK_COMMAND(command)\
     do { \
         VkResult result = command;   \
@@ -41,6 +53,8 @@ do {                                                                            
             printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result); \
         } \
     } while (0)
+
+#define FBR_ALLOCATOR NULL
 
 typedef struct FbrVulkan {
     int screenWidth;
