@@ -88,11 +88,18 @@ static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMate
     return VK_SUCCESS;
 }
 
-static VkResult createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *pSetLayout)
+static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {
+                    .binding = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
@@ -100,15 +107,15 @@ static VkResult createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *
                     .pImmutableSamplers = NULL,
             },
             {
-                    .binding = 1,
+                    .binding = 2,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             }
     };
-    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
-    return VK_SUCCESS;
+    FBR_ACK(createDescriptorSetLayout(pVulkan, 3, bindings, pSetLayout))
+    FBR_SUCCESS
 }
 
 static VkResult createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std)
@@ -245,6 +252,78 @@ VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
     };
     vkUpdateDescriptorSets(pVulkan->device,
                            1,
+                           pDescriptorWrites,
+                           0,
+                           NULL);
+    return VK_SUCCESS;
+}
+
+VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
+                          FbrSetLayoutNode setLayout,
+                          const FbrTransform *pTransform,
+                          const FbrTexture *pDepthTexture,
+                          const FbrTexture *pColorTexture,
+                          FbrSetNode *pSet)
+{
+    VK_CHECK(allocateDescriptorSet(pVulkan,
+                                   1,
+                                   &setLayout,
+                                   pSet));
+    const VkDescriptorBufferInfo bufferInfo = {
+            .buffer = pTransform->pUBO->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrTransform),
+    };
+    const VkDescriptorImageInfo depthImageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pDepthTexture->imageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkDescriptorImageInfo colorImageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pColorTexture->imageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkWriteDescriptorSet pDescriptorWrites[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pImageInfo = NULL,
+                    .pBufferInfo = &bufferInfo,
+                    .pTexelBufferView = NULL,
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo = &depthImageInfo,
+                    .pBufferInfo = NULL,
+                    .pTexelBufferView = NULL,
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 2,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo = &colorImageInfo,
+                    .pBufferInfo = NULL,
+                    .pTexelBufferView = NULL,
+            },
+    };
+    vkUpdateDescriptorSets(pVulkan->device,
+                           sizeof(pDescriptorWrites) / sizeof(VkWriteDescriptorSet),
                            pDescriptorWrites,
                            0,
                            NULL);

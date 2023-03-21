@@ -382,7 +382,9 @@ static void parentMainLoop(FbrApp *pApp) {
                                  pVulkan->pSwapImageViews[swapIndex],
                                  (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
 
-        vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
+        vkCmdBindPipeline(pVulkan->commandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pPipelines->pipeStandard);
         // Global
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -421,21 +423,40 @@ static void parentMainLoop(FbrApp *pApp) {
         vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore, &pTestNode->pChildSemaphore->waitValue);
         int timelineSwitch = (int)(pTestNode->pChildSemaphore->waitValue % 2);
         // Material
+//        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->pipeLayoutNode,
+//                                FBR_MATERIAL_SET_INDEX,
+//                                1,
+//                                &pApp->pCompMaterialSets[timelineSwitch],
+//                                0,
+//                                NULL);
+        fbrUpdateTransformMatrix(pTestNode->pTransform);
+//        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->pipeLayoutStandard,
+//                                FBR_OBJECT_SET_INDEX,
+//                                1,
+//                                &pApp->compObjectSet,
+//                                0,
+//                                NULL);
+        vkCmdBindPipeline(pVulkan->commandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pPipelines->pipeNode);
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
-                                FBR_MATERIAL_SET_INDEX,
+                                pPipelines->pipeLayoutNode,
+                                FBR_GLOBAL_SET_INDEX,
                                 1,
-                                &pApp->pCompMaterialSets[timelineSwitch],
+                                &pDescriptors->setGlobal,
                                 0,
                                 NULL);
-        fbrUpdateTransformMatrix(pTestNode->pTransform);
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
-                                FBR_OBJECT_SET_INDEX,
+                                pPipelines->pipeLayoutNode,
+                                FBR_NODE_SET_INDEX,
                                 1,
-                                &pApp->compObjectSet,
+                                &pApp->pCompMaterialSets[timelineSwitch],
                                 0,
                                 NULL);
         recordNodeRenderPass(pVulkan,

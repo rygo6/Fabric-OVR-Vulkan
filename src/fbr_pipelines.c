@@ -32,7 +32,7 @@ static VkResult createPipeLayoutStandard(const FbrVulkan *pVulkan,
 
 static VkResult createPipeLayoutNode(const FbrVulkan *pVulkan,
                                      const FbrDescriptors *pDescriptors,
-                                     FbrPipeLayoutNode *pipelineLayout)
+                                     FbrPipeLayoutNode *pPipeLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
             pDescriptors->setLayoutGlobal,
@@ -51,7 +51,7 @@ static VkResult createPipeLayoutNode(const FbrVulkan *pVulkan,
     VK_CHECK(vkCreatePipelineLayout(pVulkan->device,
                                     &pipelineLayoutInfo,
                                     FBR_ALLOCATOR,
-                                    pipelineLayout));
+                                    pPipeLayout));
 
     return VK_SUCCESS;
 }
@@ -123,7 +123,10 @@ static FBR_RESULT createShaderModule(const FbrVulkan *pVulkan,
 
 static VkResult createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
                                          VkPipelineLayout layout,
+                                         VkPrimitiveTopology topology,
+                                         uint32_t stageCount,
                                          const VkPipelineShaderStageCreateInfo *pStages,
+                                         const VkPipelineTessellationStateCreateInfo *pTessellationState,
                                          VkPipeline *pPipe)
 {
     // Vertex Input
@@ -163,7 +166,7 @@ static VkResult createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
     };
     const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            .topology = topology,
             .primitiveRestartEnable = VK_FALSE,
     };
 
@@ -193,7 +196,8 @@ static VkResult createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
             .depthClampEnable = VK_FALSE,
             .rasterizerDiscardEnable = VK_FALSE,
-            .polygonMode = VK_POLYGON_MODE_FILL,
+//            .polygonMode = VK_POLYGON_MODE_FILL,
+            .polygonMode = VK_POLYGON_MODE_LINE,
             .lineWidth = 1.0f,
             .cullMode = VK_CULL_MODE_NONE,
             .frontFace = VK_FRONT_FACE_CLOCKWISE,
@@ -234,19 +238,23 @@ static VkResult createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .pNext = &pipelineRobustnessCreateInfo,
-            .stageCount = 2,
+            .flags = 0,
+            .stageCount = stageCount,
             .pStages = pStages,
             .pVertexInputState = &vertexInputState,
             .pInputAssemblyState = &inputAssemblyState,
+            .pTessellationState = pTessellationState,
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizationState,
             .pMultisampleState = &multisampleState,
+            .pDepthStencilState = NULL,
             .pColorBlendState = &colorBlendState,
             .pDynamicState = &dynamicState,
             .layout = layout,
             .renderPass = pVulkan->renderPass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = 0,
     };
     FBR_ACK(vkCreateGraphicsPipelines(pVulkan->device,
                                       VK_NULL_HANDLE,
@@ -286,13 +294,13 @@ VkResult fbrCreatePipeStandard(const FbrVulkan *pVulkan,
                     .pName = "main",
             }
     };
-
     FBR_ACK(createOpaqueTrianglePipe(pVulkan,
                                      layout,
+                                     VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                                     2,
                                      pStages,
+                                     NULL,
                                      pPipe))
-
-    // Cleanup
     vkDestroyShaderModule(pVulkan->device, vertShaderModule, NULL);
     vkDestroyShaderModule(pVulkan->device, fragShaderModule, NULL);
 
@@ -323,7 +331,6 @@ VkResult fbrCreatePipeNode(const FbrVulkan *pVulkan,
     FBR_ACK(createShaderModule(pVulkan,
                                 pTessEShaderPath,
                                 &tessEShaderModule))
-
     const VkPipelineShaderStageCreateInfo pStages[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -350,17 +357,23 @@ VkResult fbrCreatePipeNode(const FbrVulkan *pVulkan,
                     .pName = "main",
             }
     };
-
+    const VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .patchControlPoints = 4,
+    };
     FBR_ACK(createOpaqueTrianglePipe(pVulkan,
                                      layout,
+                                     VK_PRIMITIVE_TOPOLOGY_PATCH_LIST,
+                                     4,
                                      pStages,
+                                     &pipelineTessellationStateCreateInfo,
                                      pPipe))
-
     vkDestroyShaderModule(pVulkan->device, vertShaderModule, NULL);
     vkDestroyShaderModule(pVulkan->device, fragShaderModule, NULL);
     vkDestroyShaderModule(pVulkan->device, tessCShaderModule, NULL);
     vkDestroyShaderModule(pVulkan->device, tessEShaderModule, NULL);
-
     FBR_SUCCESS
 }
 

@@ -78,18 +78,26 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pTestNode->pTransform->pos,
                      (vec3) {1, 0, 0},
                      pApp->pTestNode->pTransform->pos);
-        fbrCreateSetMaterial(pApp->pVulkan,
-                             pApp->pDescriptors->setLayoutMaterial,
-                             pApp->pTestNode->pFramebuffers[0]->pTexture,
-                             &pApp->pCompMaterialSets[0]);
-        fbrCreateSetMaterial(pApp->pVulkan,
-                             pApp->pDescriptors->setLayoutMaterial,
-                             pApp->pTestNode->pFramebuffers[1]->pTexture,
-                             &pApp->pCompMaterialSets[1]);
-        fbrCreateSetObject(pApp->pVulkan,
-                           pApp->pDescriptors->setLayoutObject,
-                           pApp->pTestNode->pTransform,
-                           &pApp->compObjectSet);
+//        fbrCreateSetMaterial(pApp->pVulkan,
+//                             pApp->pDescriptors->setLayoutMaterial,
+//                             pApp->pTestNode->pFramebuffers[0]->pTexture,
+//                             &pApp->pCompMaterialSets[0]);
+//        fbrCreateSetMaterial(pApp->pVulkan,
+//                             pApp->pDescriptors->setLayoutMaterial,
+//                             pApp->pTestNode->pFramebuffers[1]->pTexture,
+//                             &pApp->pCompMaterialSets[1]);
+//        fbrCreateSetObject(pApp->pVulkan,
+//                           pApp->pDescriptors->setLayoutObject,
+//                           pApp->pTestNode->pTransform,
+//                           &pApp->compObjectSet);
+        for (int i = 0; i < 2; ++i) {
+            fbrCreateSetNode(pApp->pVulkan,
+                             pApp->pDescriptors->setLayoutNode,
+                             pApp->pTestNode->pTransform,
+                             pApp->pTestNode->pFramebuffers[i]->pTexture,
+                             pApp->pTestNode->pFramebuffers[i]->pTexture,
+                             &pApp->pCompMaterialSets[i]);
+        }
 
 
         // todo below can go into create node

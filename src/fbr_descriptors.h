@@ -28,7 +28,7 @@ typedef VkDescriptorSetLayout FbrSetLayoutObject;
 typedef VkDescriptorSet FbrSetObject;
 
 // Node Compositor Pipeline
-#define FBR_NODE_SET_INDEX 1
+#define FBR_NODE_SET_INDEX 3
 typedef VkDescriptorSetLayout FbrSetLayoutNode;
 typedef VkDescriptorSet FbrSetNode;
 
@@ -55,9 +55,16 @@ VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
                               FbrSetMaterial *pSet);
 
 VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
-                              FbrSetLayoutMaterial setLayout,
-                              const FbrTransform *pTransform,
-                              FbrSetMaterial *pSet);
+                            FbrSetLayoutObject setLayout,
+                            const FbrTransform *pTransform,
+                            FbrSetObject *pSet);
+
+VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
+                          FbrSetLayoutNode setLayout,
+                          const FbrTransform *pTransform,
+                          const FbrTexture *pDepthTexture,
+                          const FbrTexture *pColorTexture,
+                          FbrSetNode *pSet);
 
 VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std);
 
