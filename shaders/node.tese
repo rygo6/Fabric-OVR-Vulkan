@@ -36,7 +36,7 @@ void main()
         mix(gl_in[3].gl_Position, gl_in[2].gl_Position, gl_TessCoord.x),
         gl_TessCoord.y);
 
-    pos.y -= textureLod(depth, outUV, 0.0).r;
+    pos.xyz += outNormal * textureLod(depth, outUV, 0.0).r;
 
     gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
 }

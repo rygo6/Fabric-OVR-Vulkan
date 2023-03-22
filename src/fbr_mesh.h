@@ -6,8 +6,8 @@
 
 typedef struct Vertex {
     vec3 pos;
-    vec3 color;
-    vec2 texCoord;
+    vec3 normal;
+    vec2 uv;
 } Vertex;
 
 typedef struct FbrMesh {
