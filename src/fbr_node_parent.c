@@ -5,6 +5,7 @@
 #include "fbr_vulkan.h"
 #include "fbr_ipc.h"
 #include "fbr_log.h"
+#include "fbr_swap.h"
 
 const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
         {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -112,6 +113,7 @@ void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) 
 void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pParam) {
     FbrNodeParent *pNodeParent = pApp->pNodeParent;
     FbrVulkan *pVulkan = pApp->pVulkan;
+    VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
 
     FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
     fbrImportCamera(pVulkan, &pNodeParent->pCamera,pParam->cameraExternalHandle);
@@ -119,12 +121,14 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
     FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->framebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
                          pParam->framebuffer0ExternalHandle,
+                         swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pNodeParent->pFramebuffers[0]);
 
     FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->framebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
                          pParam->framebuffer1ExternalHandle,
+                         swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pNodeParent->pFramebuffers[1]);
 

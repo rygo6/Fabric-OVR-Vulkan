@@ -12,6 +12,7 @@
 #include "fbr_descriptors.h"
 #include "fbr_pipelines.h"
 #include "fbr_transform.h"
+#include "fbr_swap.h"
 
 #define FBR_DEFAULT_SCREEN_WIDTH 800
 #define FBR_DEFAULT_SCREEN_HEIGHT 600
@@ -61,9 +62,9 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
         fbrCreateTextureFromFile(pVulkan,
-                                 &pApp->pTestQuadTexture,
+                                 false,
                                  "textures/test.jpg",
-                                 true);
+                                 &pApp->pTestQuadTexture);
         fbrCreateSetMaterial(pApp->pVulkan,
                            pApp->pDescriptors->setLayoutMaterial,
                            pApp->pTestQuadTexture,
@@ -203,10 +204,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pTestQuadTransform->pos,
                      (vec3) {1, 0, 0},
                      pApp->pTestQuadTransform->pos);
-        fbrCreateTextureFromFile(pApp->pVulkan,
-                                 &pApp->pTestQuadTexture,
-                                 "textures/UV_Grid_Sm.jpg",
-                                 false);
+        fbrCreateTextureFromFile(pVulkan,
+                                 false,
+                                 "textures/uvgrid.jpg",
+                                 &pApp->pTestQuadTexture);
         fbrCreateSetMaterial(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutMaterial,
                              pApp->pTestQuadTexture,
@@ -225,13 +226,20 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
     pApp->isChild = isChild;
 
     initWindow(pApp);
-    if (!pApp->isChild)
-        fbrInitInput(pApp);
+
+    VkExtent2D extent = { FBR_DEFAULT_SCREEN_WIDTH, FBR_DEFAULT_SCREEN_HEIGHT };
+
     fbrCreateVulkan(pApp,
                     &pApp->pVulkan,
                     FBR_DEFAULT_SCREEN_WIDTH,
                     FBR_DEFAULT_SCREEN_HEIGHT,
                     true);
+    if (!pApp->isChild) {
+        fbrCreateSwap(pApp->pVulkan,
+                      extent,
+                      &pApp->pSwap);
+        fbrInitInput(pApp);
+    }
 
     initEntities(pApp, externalTextureTest);
 }
@@ -240,6 +248,8 @@ void fbrCleanup(FbrApp *pApp) {
     FBR_LOG_DEBUG("cleaning up!");
 
     FbrVulkan *pVulkan = pApp->pVulkan;
+
+    fbrDestroySwap(pVulkan, pApp->pSwap);
 
     // todo this needs to be better
     if (pApp->isChild) {

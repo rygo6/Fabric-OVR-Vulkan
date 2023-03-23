@@ -21,16 +21,30 @@ typedef struct FbrTexture {
 #endif
 } FbrTexture;
 
-void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external);
+void fbrCreateTextureFromImage(const FbrVulkan *pVulkan,
+                               VkFormat format,
+                               VkExtent2D extent,
+                               VkImage image,
+                               FbrTexture **ppAllocTexture);
+
+void fbrCreateTextureFromFile(const FbrVulkan *pVulkan,
+                              bool external,
+                              char const *filename,
+                              FbrTexture **ppAllocTexture);
 
 void fbrImportTexture(const FbrVulkan *pVulkan,
-                      FbrTexture **ppAllocTexture,
-                      HANDLE externalMemory,
+                      VkFormat format,
                       VkExtent2D extent,
                       VkImageUsageFlags usage,
-                      VkFormat format);
+                      HANDLE externalMemory,
+                      FbrTexture **ppAllocTexture);
 
-void fbrCreateTexture(const FbrVulkan *pVulkan, bool external, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format, FbrTexture **ppAllocTexture);
+void fbrCreateTexture(const FbrVulkan *pVulkan,
+                      VkFormat format,
+                      VkExtent2D extent,
+                      VkImageUsageFlags usage,
+                      bool external,
+                      FbrTexture **ppAllocTexture);
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture);
 

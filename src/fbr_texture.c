@@ -347,14 +347,34 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
     vkFreeMemory(pVulkan->device, stagingBufferMemory, NULL);
 }
 
-void fbrCreateTextureFromFile(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, char const *filename, bool external) {
+void fbrCreateTextureFromImage(const FbrVulkan *pVulkan,
+                               VkFormat format,
+                               VkExtent2D extent,
+                               VkImage image,
+                               FbrTexture **ppAllocTexture) {
+    *ppAllocTexture = calloc(1, sizeof(FbrTexture));
+    FbrTexture *pTexture = *ppAllocTexture;
+    pTexture->extent = extent;
+    pTexture->image = image;
+    createTextureView(pVulkan, pTexture, format);
+}
+
+void fbrCreateTextureFromFile(const FbrVulkan *pVulkan,
+                              bool external,
+                              char const *filename,
+                              FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     createTextureFromFile(pVulkan, pTexture, filename, external);
     createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
-void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HANDLE externalMemory, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format) {
+void fbrImportTexture(const FbrVulkan *pVulkan,
+                      VkFormat format,
+                      VkExtent2D extent,
+                      VkImageUsageFlags usage,
+                      HANDLE externalMemory,
+                      FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     importTexture(pVulkan,
@@ -368,7 +388,12 @@ void fbrImportTexture(const FbrVulkan *pVulkan, FbrTexture **ppAllocTexture, HAN
     createTextureView(pVulkan, pTexture, format);
 }
 
-void fbrCreateTexture(const FbrVulkan *pVulkan, bool external, VkExtent2D extent, VkImageUsageFlags usage, VkFormat format, FbrTexture **ppAllocTexture) {
+void fbrCreateTexture(const FbrVulkan *pVulkan,
+                      VkFormat format,
+                      VkExtent2D extent,
+                      VkImageUsageFlags usage,
+                      bool external,
+                      FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     if (external) {
@@ -396,7 +421,10 @@ void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {
         CloseHandle(pTexture->externalMemory);
 
     vkDestroyImage(pVulkan->device, pTexture->image, NULL);
-    vkFreeMemory(pVulkan->device, pTexture->deviceMemory, NULL);
+
+    if (pTexture->deviceMemory != NULL)
+        vkFreeMemory(pVulkan->device, pTexture->deviceMemory, NULL);
+
     vkDestroyImageView(pVulkan->device, pTexture->imageView, NULL);
 
     free(pTexture);

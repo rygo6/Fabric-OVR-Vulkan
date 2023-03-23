@@ -9,6 +9,7 @@
 #include "fbr_node_parent.h"
 #include "fbr_pipelines.h"
 #include "fbr_descriptors.h"
+#include "fbr_swap.h"
 
 #include "cglm/cglm.h"
 
@@ -53,18 +54,18 @@ static void processInputFrame(FbrApp *pApp) {
     }
 }
 
-static void beginRenderPassImageless(const FbrVulkan *pVulkan, VkRenderPass renderPass, VkFramebuffer framebuffer, VkImageView imageView, VkClearValue clearColor) {
+static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer, VkRenderPass renderPass, VkClearValue clearColor) {
     const VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
             .attachmentCount = 1,
-            .pAttachments = &imageView
+            .pAttachments = &pFramebuffer->pTexture->imageView
     };
     const VkRenderPassBeginInfo vkRenderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = &renderPassAttachmentBeginInfo,
             .renderPass = renderPass,
-            .framebuffer = framebuffer,
-            .renderArea.extent = pVulkan->swapExtent,
+            .framebuffer = pFramebuffer->framebuffer,
+            .renderArea.extent = pFramebuffer->pTexture->extent,
             .clearValueCount = 1,
             .pClearValues = &clearColor,
     };
@@ -122,7 +123,7 @@ static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemapho
                                         VK_NULL_HANDLE));
 }
 
-static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemaphore, uint32_t swapIndex) {
+static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrTimelineSemaphore *pSemaphore, uint32_t swapIndex) {
     // https://www.khronos.org/blog/vulkan-timeline-semaphores
     const uint64_t waitValue = pSemaphore->waitValue++;
     const uint64_t signalValue = pSemaphore->waitValue;
@@ -135,7 +136,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSem
             },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pVulkan->swapAcquireComplete,
+                    .semaphore = pSwap->acquireComplete,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             }
     };
@@ -149,7 +150,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSem
             },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pVulkan->renderCompleteSemaphore,
+                    .semaphore = pSwap->renderCompleteSemaphore,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             }
     };
@@ -176,15 +177,15 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, FbrTimelineSemaphore *pSem
     const VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &pVulkan->renderCompleteSemaphore,
+            .pWaitSemaphores = &pSwap->renderCompleteSemaphore,
             .swapchainCount = 1,
-            .pSwapchains = &pVulkan->swapChain,
+            .pSwapchains = &pSwap->swapChain,
             .pImageIndices = &swapIndex,
     };
     FBR_VK_CHECK_COMMAND(vkQueuePresentKHR(pVulkan->queue, &presentInfo));
 }
 
-static void beginFrameCommandBuffer(FbrVulkan *pVulkan) {
+static void beginFrameCommandBuffer(FbrVulkan *pVulkan, VkExtent2D extent) {
     FBR_VK_CHECK_COMMAND(vkResetCommandBuffer(pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
     const VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -194,16 +195,15 @@ static void beginFrameCommandBuffer(FbrVulkan *pVulkan) {
     const VkViewport viewport = {
             .x = 0.0f,
             .y = 0.0f,
-            .width = (float) pVulkan->swapExtent.width,
-            .height = (float) pVulkan->swapExtent.height,
+            .width = (float) extent.width,
+            .height = (float) extent.height,
             .minDepth = 0.0f,
             .maxDepth = 1.0f,
     };
     vkCmdSetViewport(pVulkan->commandBuffer, 0, 1, &viewport);
     const VkRect2D scissor = {
             .offset = {0, 0},
-            .extent.width = pVulkan->swapExtent.width,
-            .extent.height = pVulkan->swapExtent.height,
+            .extent = extent,
     };
     vkCmdSetScissor(pVulkan->commandBuffer, 0, 1, &scissor);
 }
@@ -268,12 +268,11 @@ static void childMainLoop(FbrApp *pApp) {
 
             // Todo there is some trickery to de done here with multiple frames per child node framebuffer
             // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
-            beginFrameCommandBuffer(pVulkan);
+            beginFrameCommandBuffer(pVulkan, pFrameBuffers[timelineSwitch]->pTexture->extent);
 
             beginRenderPassImageless(pVulkan,
+                                     pFrameBuffers[timelineSwitch],
                                      pVulkan->renderPass,
-                                     pFrameBuffers[timelineSwitch]->framebuffer,
-                                     pFrameBuffers[timelineSwitch]->pTexture->imageView,
                                      (VkClearValue) {{{0.0f, 0.0f, 0.00f, 0.0f}}});
 
 
@@ -339,6 +338,7 @@ static void parentMainLoop(FbrApp *pApp) {
     double lastFrameTime = glfwGetTime();
 
     FbrVulkan *pVulkan = pApp->pVulkan;
+    FbrSwap *pSwap = pApp->pSwap;
     FbrTimelineSemaphore *pMainSemaphore = pVulkan->pMainSemaphore;
     FbrTime *pTime = pApp->pTime;
     FbrCamera *pCamera = pApp->pCamera;
@@ -367,19 +367,18 @@ static void parentMainLoop(FbrApp *pApp) {
         // Get open swap image
         uint32_t swapIndex;
         FBR_VK_CHECK_COMMAND(vkAcquireNextImageKHR(pVulkan->device,
-                              pVulkan->swapChain,
+                                                   pSwap->swapChain,
                               UINT64_MAX,
-                              pVulkan->swapAcquireComplete,
+                                                   pSwap->acquireComplete,
                               VK_NULL_HANDLE,
                               &swapIndex));
 
-        beginFrameCommandBuffer(pVulkan);
+        beginFrameCommandBuffer(pVulkan, pSwap->extent);
 
         //swap pass
         beginRenderPassImageless(pVulkan,
+                                 pSwap->pFramebuffers[swapIndex],
                                  pVulkan->renderPass,
-                                 pVulkan->swapFramebuffer,
-                                 pVulkan->pSwapImageViews[swapIndex],
                                  (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
 
         vkCmdBindPipeline(pVulkan->commandBuffer,
@@ -468,7 +467,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
 
-        submitQueueAndPresent(pVulkan, pMainSemaphore, swapIndex);
+        submitQueueAndPresent(pVulkan, pSwap, pMainSemaphore, swapIndex);
     }
 
 

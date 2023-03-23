@@ -4,6 +4,7 @@
 #include "fbr_process.h"
 #include "fbr_ipc.h"
 #include "fbr_camera.h"
+#include "fbr_swap.h"
 
 const Vertex nodeVertices[FBR_NODE_VERTEX_COUNT] = {
         {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -91,7 +92,11 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
     memcpy(pNode->nodeVerticesBuffer, nodeVertices, FBR_NODE_VERTEX_BUFFER_SIZE);
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
-        fbrCreateFrameBuffer(pApp->pVulkan, true, pApp->pVulkan->swapExtent, &pNode->pFramebuffers[i]);
+        fbrCreateFrameBuffer(pApp->pVulkan,
+                             true,
+                             pApp->pSwap->format,
+                             pApp->pSwap->extent,
+                             &pNode->pFramebuffers[i]);
         VK_CHECK(fbrCreateUBO(pVulkan,
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                               VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,

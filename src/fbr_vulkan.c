@@ -1,5 +1,6 @@
 #include "fbr_vulkan.h"
 #include "fbr_log.h"
+#include "fbr_swap.h"
 
 #include <string.h>
 
@@ -49,13 +50,13 @@ const char *pRequiredDeviceExtensions[] = {
 };
 
 // any other way to get this into validation layer?
-static bool isChid;
+static bool isChild;
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                     void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        FBR_LOG_DEBUG(isChid ? "Child Validation Layer" : "Parent Validation Layer", pCallbackData->pMessage);
+        FBR_LOG_DEBUG(isChild ? "Child Validation Layer" : "Parent Validation Layer", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
@@ -275,7 +276,6 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex };
 
     float queuePriority[] =  {pVulkan->isChild ? 0.0f : 1.0f, pVulkan->isChild ? 0.0f : 1.0f };
-//    float queuePriority[] =  {1.0f };
     for (int i = 0; i < queueFamilyCount; ++i) {
         FBR_LOG_DEBUG("Creating queue with family.", uniqueQueueFamilies[i]);
         VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
@@ -350,7 +350,6 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
             .robustImageAccess2 = true,
             .nullDescriptor = true,
     };
-    // TODO enable robust buffer access 2 ??
     VkPhysicalDeviceVulkan13Features enabledFeatures13 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             .synchronization2 = true,
@@ -359,7 +358,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
             .shaderDemoteToHelperInvocation = true,
             .pNext = &physicalDeviceRobustness2Features,
     };
-    // TODO enabel swapFramebuffer ?
+    // TODO enable swapFramebuffer ?
     VkPhysicalDeviceVulkan12Features enabledFeatures12 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
             .timelineSemaphore = true,
@@ -418,272 +417,97 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
 
     };
     VK_CHECK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
-//    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->queue);
 }
 
-static VkSurfaceFormatKHR chooseSwapSurfaceFormat(VkSurfaceFormatKHR *availableFormats, uint32_t formatCount) {
-    // Favor sRGB if it's available
-    for (int i = 0; i < formatCount; ++i) {
-        if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB || availableFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
-            return availableFormats[i];
-        }
-    }
-
-    // Default to the first one if no sRGB
-    return availableFormats[0];
-}
-
-static VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t presentModeCount) {
-    // https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-2.html?language=en#_Toc445674479
-
-    // This logic taken from OVR Vulkan Example
-    // VK_PRESENT_MODE_FIFO_KHR - equivalent of eglSwapInterval(1).  The presentation engine waits for the next vertical blanking period to update
-    // the current image. Tearing cannot be observed. This mode must be supported by all implementations.
-    VkPresentModeKHR swapChainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-    for (int i = 0; i < presentModeCount; ++i) {
-        // Order of preference for no vsync:
-        // 1. VK_PRESENT_MODE_IMMEDIATE_KHR - The presentation engine does not wait for a vertical blanking period to update the current image,
-        //                                    meaning this mode may result in visible tearing
-        // 2. VK_PRESENT_MODE_MAILBOX_KHR - The presentation engine waits for the next vertical blanking period to update the current image. Tearing cannot be observed.
-        //                                  An internal single-entry queue is used to hold pending presentation requests.
-        // 3. VK_PRESENT_MODE_FIFO_RELAXED_KHR - equivalent of eglSwapInterval(-1).
-        if (availablePresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-            // The presentation engine does not wait for a vertical blanking period to update the
-            // current image, meaning this mode may result in visible tearing
-            swapChainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-            break;
-        } else if (availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-            swapChainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-        } else if ((swapChainPresentMode != VK_PRESENT_MODE_MAILBOX_KHR) &&
-                   (availablePresentModes[i] == VK_PRESENT_MODE_FIFO_RELAXED_KHR)) {
-            // VK_PRESENT_MODE_FIFO_RELAXED_KHR - equivalent of eglSwapInterval(-1)
-            swapChainPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-        }
-    }
-
-    // So in VR you probably want to use VK_PRESENT_MODE_IMMEDIATE_KHR and rely on the OVR/OXR synchronization
-    // but not in VR we probably want to use FIFO to go in hz of monitor
-    swapChainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-
-    FBR_LOG_DEBUG("Selected Present Mode", swapChainPresentMode);
-
-    return swapChainPresentMode;
-}
-
-static VkExtent2D chooseSwapExtent(FbrVulkan *pVulkan, const VkSurfaceCapabilitiesKHR capabilities) {
-    // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
-    // Don't know why I can't just use screenwdith/height??
-    VkExtent2D extents;
-    if (capabilities.currentExtent.width == -1) {
-        // If the surface size is undefined, the size is set to the size of the images requested.
-        extents.width = pVulkan->screenWidth;
-        extents.height = pVulkan->screenHeight;
-    } else {
-        // If the surface size is defined, the swap chain size must match
-        extents = capabilities.currentExtent;
-    }
-
-    FBR_LOG_DEBUG("SwapChain Extents", extents.width, extents.height);
-
-    return extents;
-}
-
-static void createSwapChain(FbrVulkan *pVulkan) {
-    // Logic from OVR Vulkan example
-    VkSurfaceCapabilitiesKHR capabilities;
-    FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pVulkan->physicalDevice, pVulkan->surface, &capabilities));
-
-    uint32_t formatCount;
-    FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, NULL));
-    VkSurfaceFormatKHR formats[formatCount];
-    FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, (VkSurfaceFormatKHR *) &formats));
-
-    uint32_t presentModeCount;
-    FBR_VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, NULL));
-    VkPresentModeKHR presentModes[presentModeCount];
-    FBR_VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(pVulkan->physicalDevice, pVulkan->surface, &presentModeCount, (VkPresentModeKHR *) &presentModes));
-
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes, presentModeCount);
-
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(formats, formatCount);
-    pVulkan->swapImageFormat = surfaceFormat.format;
-    pVulkan->swapExtent = chooseSwapExtent(pVulkan, capabilities);
-
-    // I am setting this to 2 on the premise you get the least latency in VR.
-    pVulkan->swapImageCount = 2;
-    if (pVulkan->swapImageCount < capabilities.minImageCount) {
-        FBR_LOG_DEBUG("swapImageCount is less than minImageCount", pVulkan->swapImageCount, capabilities.minImageCount);
-    }
-
-    pVulkan->swapUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
-//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
-//        pVulkan->swapUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-//    } else {
-//        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
-//    }
-
-    VkSurfaceTransformFlagsKHR preTransform;
-    if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
-        preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    } else {
-        preTransform = capabilities.currentTransform;
-    }
-
-    VkSwapchainCreateInfoKHR createInfo = {
-            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            .surface = pVulkan->surface,
-            .minImageCount = pVulkan->swapImageCount,
-            .imageFormat = pVulkan->swapImageFormat,
-            .imageColorSpace = surfaceFormat.colorSpace,
-            .imageExtent = pVulkan->swapExtent,
-            .imageUsage = pVulkan->swapUsage,
-            .preTransform = preTransform,
-            .imageArrayLayers = 1,
-            .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = 0,
-            .pQueueFamilyIndices = NULL,
-            .presentMode = presentMode,
-            .clipped = VK_TRUE
-    };
-    if ((capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) != 0) {
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    } else if ((capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) != 0) {
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
-    } else {
-        printf("Unexpected value for VkSurfaceCapabilitiesKHR.compositeAlpha: %x\n", capabilities.supportedCompositeAlpha);
-    }
-
-    FBR_VK_CHECK(vkCreateSwapchainKHR(pVulkan->device, &createInfo, NULL, &pVulkan->swapChain));
-
-    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapImageCount, NULL));
-    pVulkan->pSwapImages = calloc(pVulkan->swapImageCount, sizeof(VkImage));
-    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pVulkan->swapChain, &pVulkan->swapImageCount, pVulkan->pSwapImages));
-
-    if (pVulkan->swapImageCount != 2) {
-        FBR_LOG_ERROR("Resulting swapchain count is not 2! Was planning on this always being 2. What device disallows 2!?");
-    }
-
-    FBR_LOG_DEBUG("swapchain created", pVulkan->swapImageCount, surfaceFormat.format, pVulkan->swapExtent.width, pVulkan->swapExtent.height);
-}
-
-static void createImageViews(FbrVulkan *pVulkan) {
-    pVulkan->pSwapImageViews = calloc(pVulkan->swapImageCount, sizeof(VkImageView));
-
-    for (size_t i = 0; i < pVulkan->swapImageCount; i++) {
-        VkImageViewCreateInfo createInfo = {
-                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .image = pVulkan->pSwapImages[i],
-                .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                .format = pVulkan->swapImageFormat,
-                .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .subresourceRange.baseMipLevel = 0,
-                .subresourceRange.levelCount = 1,
-                .subresourceRange.baseArrayLayer = 0,
-                .subresourceRange.layerCount = 1,
-        };
-
-        FBR_VK_CHECK(vkCreateImageView(pVulkan->device, &createInfo, NULL, &pVulkan->pSwapImageViews[i]));
-    }
-}
-
-static void createRenderPass(FbrVulkan *pVulkan) {
+static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
     // supposedly most correct https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
-    VkAttachmentReference colorAttachmentRef = {
+    const VkAttachmentReference colorAttachmentReference = {
             .attachment = 0,
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
-    VkSubpassDescription subpass = {
+//    const VkAttachmentReference depthAttachmentReference = {
+//            .attachment = 1,
+//            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+//    };
+    const VkSubpassDescription subpassDescription = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
             .colorAttachmentCount = 1,
-            .pColorAttachments = &colorAttachmentRef,
+            .pColorAttachments = &colorAttachmentReference,
+//            .pDepthStencilAttachment = &depthAttachmentReference,
     };
-    VkSubpassDependency dependencies[2] = {
+    const VkSubpassDependency dependencies[] = {
             {
                     // https://gist.github.com/chrisvarns/b4a5dbd1a09545948261d8c650070383
-                    // In subpass zero...
+                    // In subpassDescription zero...
                     .dstSubpass = 0,
                     // ... at this pipeline stage ...
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                     // ... wait before performing these operations ...
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                     // ... until all operations of that type stop ...
                     .srcAccessMask = VK_ACCESS_NONE_KHR,
                     // ... at that same stages ...
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                     // ... occuring in submission order prior to vkCmdBeginRenderPass ...
                     .srcSubpass = VK_SUBPASS_EXTERNAL,
                     // ... have completed execution.
                     .dependencyFlags = 0,
             },
             {
-                    // ... In the external scope after the subpass ...
+                    // ... In the external scope after the subpassDescription ...
                     .dstSubpass = VK_SUBPASS_EXTERNAL,
                     // ... before anything can occur with this pipeline stage ...
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                     // ... wait for all operations to stop ...
                     .dstAccessMask = VK_ACCESS_NONE_KHR,
                     // ... of this type ...
-                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                     // ... at this stage ...
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    // ... in subpass 0 ...
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                    // ... in subpassDescription 0 ...
                     .srcSubpass = 0,
                     // ... before it can execute and signal the semaphore rendering complete semaphore
                     // set to VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR on vkQueueSubmit2KHR  .
                     .dependencyFlags = 0,
             },
     };
-    VkAttachmentDescription attachmentDescription = {
-            .format = pVulkan->swapImageFormat,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    const VkAttachmentDescription attachmentDescriptions[] = {
+            {
+                    .format = format,
+                    .samples = VK_SAMPLE_COUNT_1_BIT,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    .flags = 0
+            },
+//            {
+//                    .format = VK_FORMAT_D32_SFLOAT,
+//                    .samples = VK_SAMPLE_COUNT_1_BIT,
+//                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+//                    // vulkan tutorial is little diff from here https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
+//                    // sort that out
+//                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+//                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+//                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+//                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+//                    .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+//                    .flags = 0
+//            }
     };
     VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .attachmentCount = 1,
-            .pAttachments = &attachmentDescription,
+            .pAttachments = attachmentDescriptions,
             .subpassCount = 1,
-            .pSubpasses = &subpass,
+            .pSubpasses = &subpassDescription,
             .dependencyCount = 2,
             .pDependencies = dependencies,
     };
 
     FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));
-}
-
-static VkResult createFramebuffer(FbrVulkan *pVulkan) {
-    const VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            .width = pVulkan->swapExtent.width,
-            .height = pVulkan->swapExtent.height,
-            .layerCount = 1,
-            .usage = pVulkan->swapUsage,
-            .pViewFormats = &pVulkan->swapImageFormat,
-            .viewFormatCount = 1,
-    };
-    const VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
-            .attachmentImageInfoCount = 1,
-            .pAttachmentImageInfos = &framebufferAttachmentImageInfo,
-    };
-    const VkFramebufferCreateInfo framebufferCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .pNext = &framebufferAttachmentsCreateInfo,
-            .renderPass = pVulkan->renderPass,
-            .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
-            .width = pVulkan->swapExtent.width,
-            .height = pVulkan->swapExtent.height,
-            .layers = 1,
-            .attachmentCount = 1,
-    };
-    VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pVulkan->swapFramebuffer));
 }
 
 static void createCommandPool(FbrVulkan *pVulkan) {
@@ -736,14 +560,6 @@ static FBR_RESULT createCommandBuffer(FbrVulkan *pVulkan) {
     FBR_SUCCESS
 }
 
-static VkResult createSyncObjects(FbrVulkan *pVulkan) { // todo move to swap sync objects?
-    const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-    };
-    VK_CHECK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->swapAcquireComplete));
-    VK_CHECK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pVulkan->renderCompleteSemaphore));
-}
-
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
     if (glfwCreateWindowSurface(pVulkan->instance, pApp->pWindow, NULL, &pVulkan->surface) != VK_SUCCESS) {
         FBR_LOG_DEBUG("failed to create window surface!");
@@ -791,13 +607,10 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->queue);
 
     // render
-    createSwapChain(pVulkan);
-    createImageViews(pVulkan);
-    createRenderPass(pVulkan);
-    createFramebuffer(pVulkan);
+    VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
+    createRenderPass(pVulkan, swapFormat); // todo shouldn't be here?
     createCommandPool(pVulkan);
     createCommandBuffer(pVulkan);
-    createSyncObjects(pVulkan);
     createDescriptorPool(pVulkan);
 
     createTextureSampler(pVulkan);
@@ -813,7 +626,7 @@ void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWi
 
     // tf need better place for child flag
     pVulkan->isChild = pApp->isChild;
-    isChid = pApp->isChild;
+    isChild = pApp->isChild;
 
     pVulkan->enableValidationLayers = enableValidationLayers;
     pVulkan->screenWidth = screenWidth;
@@ -834,23 +647,9 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     if (pVulkan->pMainSemaphore != NULL)
         fbrDestroyTimelineSemaphore(pVulkan, pVulkan->pMainSemaphore);
 
-    vkDestroyFramebuffer(pVulkan->device, pVulkan->swapFramebuffer, NULL);
-
-    for (int i = 0; i < pVulkan->swapImageCount; ++i) {
-        vkDestroyImageView(pVulkan->device, pVulkan->pSwapImageViews[i], NULL);
-    }
-
-    vkDestroySwapchainKHR(pVulkan->device, pVulkan->swapChain, NULL);
-
     vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, NULL);
 
     vkDestroyRenderPass(pVulkan->device, pVulkan->renderPass, NULL);
-
-    free(pVulkan->pSwapImages);
-    free(pVulkan->pSwapImageViews);
-
-    vkDestroySemaphore(pVulkan->device, pVulkan->renderCompleteSemaphore, NULL);
-    vkDestroySemaphore(pVulkan->device, pVulkan->swapAcquireComplete, NULL);
 
     vkDestroyCommandPool(pVulkan->device, pVulkan->commandPool, NULL);
 

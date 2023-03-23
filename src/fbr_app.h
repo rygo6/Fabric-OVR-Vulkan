@@ -19,6 +19,7 @@ typedef struct FbrNodeParent FbrNodeParent;
 typedef struct FbrDescriptors FbrDescriptors;
 typedef struct FbrPipelines FbrPipelines;
 typedef struct FbrTransform FbrTransform;
+typedef struct FbrSwap FbrSwap;
 
 typedef enum FbrIPCTargetType FbrIPCTargetType;
 
@@ -34,6 +35,7 @@ typedef struct FbrApp {
 
     GLFWwindow *pWindow;
     FbrVulkan *pVulkan;
+    FbrSwap *pSwap;
     FbrCamera *pCamera;
     FbrTime *pTime;
 

@@ -5,13 +5,13 @@
 
 static VkResult createFramebuffer(const FbrVulkan *pVulkan,
                                   FbrFramebuffer *pFrameBuffer,
-                                  VkImageUsageFlags usage,
                                   VkFormat format,
-                                  VkExtent2D extent) {
+                                  VkExtent2D extent,
+                                  VkImageUsageFlags usage) {
     const VkFramebufferAttachmentImageInfo framebufferAttachmentImageInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-            .width = pVulkan->swapExtent.width,
-            .height = pVulkan->swapExtent.height,
+            .width = extent.width,
+            .height = extent.height,
             .layerCount = 1,
             .usage = usage,
             .pViewFormats = &format,
@@ -32,7 +32,10 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
             .height = extent.height,
             .layers = 1,
     };
-    VK_CHECK(vkCreateFramebuffer(pVulkan->device, &framebufferCreateInfo, NULL, &pFrameBuffer->framebuffer));
+    VK_CHECK(vkCreateFramebuffer(pVulkan->device,
+                                 &framebufferCreateInfo,
+                                 NULL,
+                                 &pFrameBuffer->framebuffer));
 }
 
 void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
@@ -89,16 +92,39 @@ void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFra
     );
 }
 
-void fbrCreateFrameBuffer(const FbrVulkan *pVulkan, bool external, VkExtent2D extent, FbrFramebuffer **ppAllocFramebuffer) {
+void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
+                                   VkFormat format,
+                                   VkExtent2D extent,
+                                   VkImage image,
+                                   FbrFramebuffer **ppAllocFramebuffer) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
+    fbrCreateTextureFromImage(pVulkan,
+                              format,
+                              extent,
+                              image,
+                              &pFramebuffer->pTexture);
+    createFramebuffer(pVulkan,
+                      pFramebuffer,
+                      format,
+                      extent,
+                      FBR_FRAMEBUFFER_USAGE);
+}
 
+void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
+                          bool external,
+                          VkFormat format,
+                          VkExtent2D extent,
+                          FbrFramebuffer **ppAllocFramebuffer) {
+    *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
+    FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
+    pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
     fbrCreateTexture(pVulkan,
-                     external,
+                     format,
                      extent,
-                     FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                     pVulkan->swapImageFormat,
+                     external ? FBR_EXTERNAL_FRAMEBUFFER_USAGE : FBR_FRAMEBUFFER_USAGE,
+                     external,
                      &pFramebuffer->pTexture);
     // You don't need to do this on nvidia ??
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pTexture->image,
@@ -107,22 +133,25 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan, bool external, VkExtent2D ex
                                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     createFramebuffer(pVulkan,
                       pFramebuffer,
-                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                      pVulkan->swapImageFormat,
-                      extent);
+                      format,
+                      extent,
+                      external ? FBR_EXTERNAL_FRAMEBUFFER_USAGE : FBR_FRAMEBUFFER_USAGE);
 }
 
-void fbrImportFrameBuffer(const FbrVulkan *pVulkan, HANDLE externalMemory, VkExtent2D extent, FbrFramebuffer **ppAllocFramebuffer) {
+void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
+                          HANDLE externalMemory,
+                          VkFormat format,
+                          VkExtent2D extent,
+                          FbrFramebuffer **ppAllocFramebuffer) {
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
-
     fbrImportTexture(pVulkan,
-                     &pFramebuffer->pTexture,
-                     externalMemory,
+                     format,
                      extent,
                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                     pVulkan->swapImageFormat);
+                     externalMemory,
+                     &pFramebuffer->pTexture);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -130,9 +159,9 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan, HANDLE externalMemory, VkExt
                                       VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     createFramebuffer(pVulkan,
                       pFramebuffer,
-                      FBR_EXTERNAL_FRAMEBUFFER_USAGE,
-                      pVulkan->swapImageFormat,
-                      extent);
+                      format,
+                      extent,
+                      FBR_EXTERNAL_FRAMEBUFFER_USAGE);
 }
 
 void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer) {

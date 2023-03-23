@@ -23,9 +23,9 @@ do {                                                                            
     }                                                                                               \
 } while(0)
 
-#define FBR_ACK(command)                                                                                              \
+#define FBR_ACK(command)                                                                                                \
 {                                                                                                                       \
-    VkResult result = (command);                                                                                        \
+    VkResult result = command;                                                                                        \
     if (result != VK_SUCCESS) {                                                                                         \
         printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);                                       \
         return result;                                                                                                  \
@@ -77,16 +77,16 @@ typedef struct FbrVulkan {
     VkRenderPass renderPass;
 
     // go in swap object
-    VkSwapchainKHR swapChain;
-    uint32_t swapImageCount;
-    VkImage *pSwapImages;
-    VkImageView *pSwapImageViews;
-    VkFormat swapImageFormat;
-    VkImageUsageFlags swapUsage;
-    VkExtent2D swapExtent;
-    VkFramebuffer swapFramebuffer;
-    VkSemaphore swapAcquireComplete;
-    VkSemaphore renderCompleteSemaphore;
+//    VkSwapchainKHR swapChain;
+//    uint32_t swapImageCount;
+//    VkImage *pSwapImages;
+//    VkImageView *pSwapImageViews;
+//    VkFormat swapImageFormat;
+//    VkImageUsageFlags swapUsage;
+//    VkExtent2D swapExtent;
+//    VkFramebuffer swapFramebuffer;
+//    VkSemaphore swapAcquireComplete;
+//    VkSemaphore renderCompleteSemaphore;
 
 
     //todo should go elsewhere?
