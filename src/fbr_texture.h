@@ -43,6 +43,7 @@ void fbrCreateTexture(const FbrVulkan *pVulkan,
                       VkFormat format,
                       VkExtent2D extent,
                       VkImageUsageFlags usage,
+                      VkImageAspectFlags aspectMask,
                       bool external,
                       FbrTexture **ppAllocTexture);
 

@@ -81,11 +81,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                      pApp->pTestNode->pTransform->pos);
 //        fbrCreateSetMaterial(pApp->pVulkan,
 //                             pApp->pDescriptors->setLayoutMaterial,
-//                             pApp->pTestNode->pFramebuffers[0]->pTexture,
+//                             pApp->pTestNode->pFramebuffers[0]->pColorTexture,
 //                             &pApp->pCompMaterialSets[0]);
 //        fbrCreateSetMaterial(pApp->pVulkan,
 //                             pApp->pDescriptors->setLayoutMaterial,
-//                             pApp->pTestNode->pFramebuffers[1]->pTexture,
+//                             pApp->pTestNode->pFramebuffers[1]->pColorTexture,
 //                             &pApp->pCompMaterialSets[1]);
 //        fbrCreateSetObject(pApp->pVulkan,
 //                           pApp->pDescriptors->setLayoutObject,
@@ -95,8 +95,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutNode,
                              pApp->pTestNode->pTransform,
-                             pApp->pTestNode->pFramebuffers[i]->pTexture,
-                             pApp->pTestNode->pFramebuffers[i]->pTexture,
+                             pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
+                             pApp->pTestNode->pFramebuffers[i]->pColorTexture,
                              &pApp->pCompMaterialSets[i]);
         }
 
@@ -114,7 +114,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         HANDLE tex0DupHandle;
         DuplicateHandle(GetCurrentProcess(),
-                        pApp->pTestNode->pFramebuffers[0]->pTexture->externalMemory,
+                        pApp->pTestNode->pFramebuffers[0]->pColorTexture->externalMemory,
                         pApp->pTestNode->pProcess->pi.hProcess,
                         &tex0DupHandle,
                         0,
@@ -123,7 +123,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         FBR_LOG_DEBUG("export", tex0DupHandle);
         HANDLE tex1DupHandle;
         DuplicateHandle(GetCurrentProcess(),
-                        pApp->pTestNode->pFramebuffers[1]->pTexture->externalMemory,
+                        pApp->pTestNode->pFramebuffers[1]->pColorTexture->externalMemory,
                         pApp->pTestNode->pProcess->pi.hProcess,
                         &tex1DupHandle,
                         0,
@@ -172,8 +172,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         FbrIPCParamImportNodeParent importNodeParentParam =  {
                 .cameraExternalHandle = camDupHandle,
-                .framebufferWidth = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.width,
-                .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pTexture->extent.height,
+                .framebufferWidth = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.width,
+                .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.height,
                 .framebuffer0ExternalHandle = tex0DupHandle,
                 .framebuffer1ExternalHandle = tex1DupHandle,
                 .vertexUBO0ExternalHandle = vert0DupHandle,

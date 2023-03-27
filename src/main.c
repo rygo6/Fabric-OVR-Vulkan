@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-#include <processthreadsapi.h>
-#include <winbase.h>
-
+//#include <processthreadsapi.h>
 
 // https://forums.developer.nvidia.com/t/windows-vk-ext-global-priority/196010/2
 BOOL SetPrivilege(
@@ -72,6 +70,7 @@ bool setupRTPrivileges(){
 }
 
 int main(int argc, char *argv[]) {
+
     FBR_LOG_DEBUG("starting!");
 
 //    setupRTPrivileges();

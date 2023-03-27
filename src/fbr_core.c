@@ -54,20 +54,29 @@ static void processInputFrame(FbrApp *pApp) {
     }
 }
 
-static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer, VkRenderPass renderPass, VkClearValue clearColor) {
+static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer, VkRenderPass renderPass, VkClearColorValue clearColorValue)
+{
+    VkClearValue pClearValues[2] = { };
+    pClearValues[0].color = clearColorValue;
+    pClearValues[1].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
+
+    const VkImageView pAttachments[] = {
+            pFramebuffer->pColorTexture->imageView,
+            pFramebuffer->pDepthTexture->imageView
+    };
     const VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-            .attachmentCount = 1,
-            .pAttachments = &pFramebuffer->pTexture->imageView
+            .attachmentCount = 2,
+            .pAttachments = pAttachments
     };
     const VkRenderPassBeginInfo vkRenderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = &renderPassAttachmentBeginInfo,
             .renderPass = renderPass,
             .framebuffer = pFramebuffer->framebuffer,
-            .renderArea.extent = pFramebuffer->pTexture->extent,
-            .clearValueCount = 1,
-            .pClearValues = &clearColor,
+            .renderArea.extent = pFramebuffer->pColorTexture->extent,
+            .clearValueCount = 2,
+            .pClearValues = pClearValues,
     };
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -268,12 +277,12 @@ static void childMainLoop(FbrApp *pApp) {
 
             // Todo there is some trickery to de done here with multiple frames per child node framebuffer
             // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
-            beginFrameCommandBuffer(pVulkan, pFrameBuffers[timelineSwitch]->pTexture->extent);
+            beginFrameCommandBuffer(pVulkan, pFrameBuffers[timelineSwitch]->pColorTexture->extent);
 
             beginRenderPassImageless(pVulkan,
                                      pFrameBuffers[timelineSwitch],
                                      pVulkan->renderPass,
-                                     (VkClearValue) {{{0.0f, 0.0f, 0.00f, 0.0f}}});
+                                     (VkClearColorValue) {{0.0f, 0.0f, 0.0f, 1.0f}});
 
 
             vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
@@ -379,7 +388,7 @@ static void parentMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pVulkan,
                                  pSwap->pFramebuffers[swapIndex],
                                  pVulkan->renderPass,
-                                 (VkClearValue){{{0.1f, 0.2f, 0.3f, 1.0f}}});
+                                 (VkClearColorValue ){{{0.1f, 0.2f, 0.3f, 1.0f}}});
 
         vkCmdBindPipeline(pVulkan->commandBuffer,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -418,49 +427,36 @@ static void parentMainLoop(FbrApp *pApp) {
                          pApp->pTestQuadMesh);
 
 
-        //test node
-        vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore, &pTestNode->pChildSemaphore->waitValue);
-        int timelineSwitch = (int)(pTestNode->pChildSemaphore->waitValue % 2);
-        // Material
-//        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutNode,
-//                                FBR_MATERIAL_SET_INDEX,
-//                                1,
-//                                &pApp->pCompMaterialSets[timelineSwitch],
-//                                0,
-//                                NULL);
-        fbrUpdateTransformMatrix(pTestNode->pTransform);
-//        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutStandard,
-//                                FBR_OBJECT_SET_INDEX,
-//                                1,
-//                                &pApp->compObjectSet,
-//                                0,
-//                                NULL);
-        vkCmdBindPipeline(pVulkan->commandBuffer,
-                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          pPipelines->pipeNode);
-        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutNode,
-                                FBR_GLOBAL_SET_INDEX,
-                                1,
-                                &pDescriptors->setGlobal,
-                                0,
-                                NULL);
-        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutNode,
-                                FBR_NODE_SET_INDEX,
-                                1,
-                                &pApp->pCompMaterialSets[timelineSwitch],
-                                0,
-                                NULL);
-        recordNodeRenderPass(pVulkan,
-                             pTestNode,
-                             timelineSwitch);
+        if (pTestNode != NULL) {
+            //test node
+            vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore,
+                                       &pTestNode->pChildSemaphore->waitValue);
+            int timelineSwitch = (int) (pTestNode->pChildSemaphore->waitValue % 2);
+            // Material
+            fbrUpdateTransformMatrix(pTestNode->pTransform);
+            vkCmdBindPipeline(pVulkan->commandBuffer,
+                              VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              pPipelines->pipeNode);
+            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pPipelines->pipeLayoutNode,
+                                    FBR_GLOBAL_SET_INDEX,
+                                    1,
+                                    &pDescriptors->setGlobal,
+                                    0,
+                                    NULL);
+            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pPipelines->pipeLayoutNode,
+                                    FBR_NODE_SET_INDEX,
+                                    1,
+                                    &pApp->pCompMaterialSets[timelineSwitch],
+                                    0,
+                                    NULL);
+            recordNodeRenderPass(pVulkan,
+                                 pTestNode,
+                                 timelineSwitch);
+        }
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);

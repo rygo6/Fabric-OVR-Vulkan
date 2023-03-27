@@ -4,11 +4,14 @@
 #include "fbr_app.h"
 #include "fbr_texture.h"
 
-#define FBR_EXTERNAL_FRAMEBUFFER_USAGE (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
-#define FBR_FRAMEBUFFER_USAGE (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+#define FBR_EXTERNAL_COLOR_BUFFER_USAGE (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
+#define FBR_EXTERNAL_DEPTH_BUFFER_USAGE (VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
+#define FBR_COLOR_BUFFER_USAGE (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+#define FBR_DEPTH_BUFFER_USAGE (VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
 
 typedef struct FbrFramebuffer {
-    FbrTexture *pTexture;
+    FbrTexture *pColorTexture;
+    FbrTexture *pDepthTexture;
     VkFramebuffer framebuffer;
     VkSampleCountFlagBits samples;
 } FbrFramebuffer;
@@ -18,20 +21,20 @@ void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFram
 void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer);
 
 void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
-                                   VkFormat format,
+                                   VkFormat colorFormat,
                                    VkExtent2D extent,
                                    VkImage image,
                                    FbrFramebuffer **ppAllocFramebuffer);
 
 void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                           bool external,
-                          VkFormat format,
+                          VkFormat colorFormat,
                           VkExtent2D extent,
                           FbrFramebuffer **ppAllocFramebuffer);
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                           HANDLE externalMemory,
-                          VkFormat format,
+                          VkFormat colorFormat,
                           VkExtent2D extent,
                           FbrFramebuffer **ppAllocFramebuffer);
 

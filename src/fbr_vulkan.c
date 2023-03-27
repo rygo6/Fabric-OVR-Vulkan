@@ -425,15 +425,15 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
             .attachment = 0,
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
-//    const VkAttachmentReference depthAttachmentReference = {
-//            .attachment = 1,
-//            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-//    };
+    const VkAttachmentReference depthAttachmentReference = {
+            .attachment = 1,
+            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+    };
     const VkSubpassDescription subpassDescription = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
             .colorAttachmentCount = 1,
             .pColorAttachments = &colorAttachmentReference,
-//            .pDepthStencilAttachment = &depthAttachmentReference,
+            .pDepthStencilAttachment = &depthAttachmentReference,
     };
     const VkSubpassDependency dependencies[] = {
             {
@@ -483,23 +483,23 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
                     .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     .flags = 0
             },
-//            {
-//                    .format = VK_FORMAT_D32_SFLOAT,
-//                    .samples = VK_SAMPLE_COUNT_1_BIT,
-//                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-//                    // vulkan tutorial is little diff from here https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
-//                    // sort that out
-//                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-//                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-//                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-//                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-//                    .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-//                    .flags = 0
-//            }
+            {
+                    .format = VK_FORMAT_D32_SFLOAT,
+                    .samples = VK_SAMPLE_COUNT_1_BIT,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    // vulkan tutorial is little diff from here https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
+                    // sort that out
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    .flags = 0
+            }
     };
     VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = 1,
+            .attachmentCount = 2,
             .pAttachments = attachmentDescriptions,
             .subpassCount = 1,
             .pSubpasses = &subpassDescription,

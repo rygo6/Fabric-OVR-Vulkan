@@ -266,7 +266,7 @@ static void createTexture(const FbrVulkan *pVulkan,
     pTexture->extent = extent;
 }
 
-static void createTextureView(const FbrVulkan *pVulkan, FbrTexture *pTexture, VkFormat format) {
+static void createTextureView(const FbrVulkan *pVulkan, VkFormat format, VkImageAspectFlags aspectMask, FbrTexture *pTexture) {
     VkImageViewCreateInfo viewInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image = pTexture->image,
@@ -277,6 +277,7 @@ static void createTextureView(const FbrVulkan *pVulkan, FbrTexture *pTexture, Vk
             .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
             .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
             .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.aspectMask = aspectMask,
             .subresourceRange.baseMipLevel = 0,
             .subresourceRange.levelCount = 1,
             .subresourceRange.baseArrayLayer = 0,
@@ -335,13 +336,15 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
                                       pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                       VK_ACCESS_2_NONE, VK_ACCESS_2_MEMORY_WRITE_BIT,
-                                      VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+                                      VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                      VK_IMAGE_ASPECT_COLOR_BIT);
     copyBufferToImage(pVulkan, stagingBuffer, pTexture->image, extent);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pTexture->image,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                       VK_ACCESS_2_MEMORY_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT_KHR,
-                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR);
+                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR,
+                                      VK_IMAGE_ASPECT_COLOR_BIT);
 
     vkDestroyBuffer(pVulkan->device, stagingBuffer, NULL);
     vkFreeMemory(pVulkan->device, stagingBufferMemory, NULL);
@@ -356,7 +359,7 @@ void fbrCreateTextureFromImage(const FbrVulkan *pVulkan,
     FbrTexture *pTexture = *ppAllocTexture;
     pTexture->extent = extent;
     pTexture->image = image;
-    createTextureView(pVulkan, pTexture, format);
+    createTextureView(pVulkan, format, VK_IMAGE_ASPECT_COLOR_BIT, pTexture);
 }
 
 void fbrCreateTextureFromFile(const FbrVulkan *pVulkan,
@@ -366,7 +369,7 @@ void fbrCreateTextureFromFile(const FbrVulkan *pVulkan,
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
     FbrTexture *pTexture = *ppAllocTexture;
     createTextureFromFile(pVulkan, pTexture, filename, external);
-    createTextureView(pVulkan, pTexture, VK_FORMAT_R8G8B8A8_SRGB);
+    createTextureView(pVulkan, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, pTexture);
 }
 
 void fbrImportTexture(const FbrVulkan *pVulkan,
@@ -385,13 +388,14 @@ void fbrImportTexture(const FbrVulkan *pVulkan,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                   externalMemory,
                   pTexture);
-    createTextureView(pVulkan, pTexture, format);
+    createTextureView(pVulkan,format, VK_IMAGE_ASPECT_COLOR_BIT, pTexture);
 }
 
 void fbrCreateTexture(const FbrVulkan *pVulkan,
                       VkFormat format,
                       VkExtent2D extent,
                       VkImageUsageFlags usage,
+                      VkImageAspectFlags aspectMask,
                       bool external,
                       FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
@@ -413,7 +417,7 @@ void fbrCreateTexture(const FbrVulkan *pVulkan,
                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                       pTexture);
     }
-    createTextureView(pVulkan, pTexture, format);
+    createTextureView(pVulkan, format, aspectMask, pTexture);
 }
 
 void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {

@@ -225,21 +225,25 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
                                        VkAccessFlags srcAccessMask,
                                        VkAccessFlags dstAccessMask,
                                        VkPipelineStageFlags srcStageMask,
-                                       VkPipelineStageFlags dstStageMask) {
+                                       VkPipelineStageFlags dstStageMask,
+                                       VkImageAspectFlags aspectMask) {
 
     VkCommandBuffer commandBuffer;
     fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
+    // why is src accesss/stage not being applied!?
     VkImageMemoryBarrier2 barrier = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .srcStageMask = srcStageMask,
             .dstStageMask = dstStageMask,
+            .srcAccessMask = srcAccessMask,
             .dstAccessMask = dstAccessMask,
             .oldLayout = oldLayout,
             .newLayout = newLayout,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .image = image,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.aspectMask = aspectMask,
             .subresourceRange.baseMipLevel = 0,
             .subresourceRange.levelCount = 1,
             .subresourceRange.baseArrayLayer = 0,

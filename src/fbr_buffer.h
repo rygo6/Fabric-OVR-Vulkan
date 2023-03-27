@@ -39,7 +39,8 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
                                        VkAccessFlags srcAccessMask,
                                        VkAccessFlags dstAccessMask,
                                        VkPipelineStageFlags srcStageMask,
-                                       VkPipelineStageFlags dstStageMask);
+                                       VkPipelineStageFlags dstStageMask,
+                                       VkImageAspectFlags aspectMask);
 
 void fbrCopyBuffer(const FbrVulkan *pVulkan, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 

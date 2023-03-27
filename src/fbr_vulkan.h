@@ -4,6 +4,17 @@
 #include "fbr_app.h"
 #include "windows.h"
 #include "fbr_timeline_semaphore.h"
+//#include "vulkan/vk_enum_string_helper.h"
+
+//typedef enum FbrResult {
+//    FBR_SUCCESS = 0,
+//    FBR_FAIL = 1,
+//} FbrResult;
+//
+//typedef struct FbrResult {
+//    FbrResultFlags fbrResult;
+//    VkResult vkResult;
+//} FbrResult;
 
 #define FBR_VK_CHECK(command)\
     do { \
@@ -31,6 +42,10 @@ do {                                                                            
         return result;                                                                                                  \
     }                                                                                                                   \
 }
+
+//1000001003
+//2147483647
+// string_VkResult(result)
 
 #define FBR_RESULT VkResult
 #define FBR_SUCCESS return VK_SUCCESS;
