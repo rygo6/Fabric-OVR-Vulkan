@@ -33,7 +33,8 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                           FbrFramebuffer **ppAllocFramebuffer);
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
-                          HANDLE externalMemory,
+                          HANDLE colorExternalMemory,
+                          HANDLE depthExternalMemory,
                           VkFormat colorFormat,
                           VkExtent2D extent,
                           FbrFramebuffer **ppAllocFramebuffer);

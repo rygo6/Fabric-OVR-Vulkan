@@ -79,18 +79,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pTestNode->pTransform->pos,
                      (vec3) {1, 0, 0},
                      pApp->pTestNode->pTransform->pos);
-//        fbrCreateSetMaterial(pApp->pVulkan,
-//                             pApp->pDescriptors->setLayoutMaterial,
-//                             pApp->pTestNode->pFramebuffers[0]->pColorTexture,
-//                             &pApp->pCompMaterialSets[0]);
-//        fbrCreateSetMaterial(pApp->pVulkan,
-//                             pApp->pDescriptors->setLayoutMaterial,
-//                             pApp->pTestNode->pFramebuffers[1]->pColorTexture,
-//                             &pApp->pCompMaterialSets[1]);
-//        fbrCreateSetObject(pApp->pVulkan,
-//                           pApp->pDescriptors->setLayoutObject,
-//                           pApp->pTestNode->pTransform,
-//                           &pApp->compObjectSet);
         for (int i = 0; i < 2; ++i) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutNode,
@@ -130,6 +118,25 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         false,
                         DUPLICATE_SAME_ACCESS);
         FBR_LOG_DEBUG("export", tex1DupHandle);
+
+        HANDLE depthTex0DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pFramebuffers[0]->pDepthTexture->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &depthTex0DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", depthTex0DupHandle);
+        HANDLE depthTex1DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pFramebuffers[1]->pDepthTexture->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &depthTex1DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", depthTex1DupHandle);
 
         HANDLE vert0DupHandle;
         DuplicateHandle(GetCurrentProcess(),
@@ -174,8 +181,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                 .cameraExternalHandle = camDupHandle,
                 .framebufferWidth = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.width,
                 .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.height,
-                .framebuffer0ExternalHandle = tex0DupHandle,
-                .framebuffer1ExternalHandle = tex1DupHandle,
+                .colorFramebuffer0ExternalHandle = tex0DupHandle,
+                .colorFramebuffer1ExternalHandle = tex1DupHandle,
+                .depthFramebuffer0ExternalHandle = depthTex0DupHandle,
+                .depthFramebuffer1ExternalHandle = depthTex1DupHandle,
                 .vertexUBO0ExternalHandle = vert0DupHandle,
                 .vertexUBO1ExternalHandle = vert1DupHandle,
                 .parentSemaphoreExternalHandle = parentSemDupHandle,

@@ -230,7 +230,8 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
 }
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
-                          HANDLE externalMemory,
+                          HANDLE colorExternalMemory,
+                          HANDLE depthExternalMemory,
                           VkFormat colorFormat,
                           VkExtent2D extent,
                           FbrFramebuffer **ppAllocFramebuffer) {
@@ -241,7 +242,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                      colorFormat,
                      extent,
                      FBR_EXTERNAL_COLOR_BUFFER_USAGE,
-                     externalMemory,
+                     colorExternalMemory,
                      &pFramebuffer->pColorTexture);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pColorTexture->image,
@@ -254,14 +255,12 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
     if (depthFormat != VK_FORMAT_D32_SFLOAT)
         FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
     VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    fbrCreateTexture(pVulkan,
+    fbrImportTexture(pVulkan,
                      depthFormat,
                      extent,
                      FBR_EXTERNAL_DEPTH_BUFFER_USAGE,
-                     depthAspectMask,
-                     false,
+                     depthExternalMemory,
                      &pFramebuffer->pDepthTexture);
-
     bool stencilComponent = hasStencilComponent(depthFormat);
     if (stencilComponent) {
         FBR_LOG_DEBUG("Depth has stencil component don't know what it is, from vulkan tutorial crossref with ovrexample", stencilComponent);

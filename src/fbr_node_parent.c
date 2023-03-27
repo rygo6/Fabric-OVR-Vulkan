@@ -118,16 +118,19 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
     FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
     fbrImportCamera(pVulkan, &pNodeParent->pCamera,pParam->cameraExternalHandle);
 
-    FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->framebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->colorFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->depthFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
-                         pParam->framebuffer0ExternalHandle,
+                         pParam->colorFramebuffer0ExternalHandle,
+                         pParam->depthFramebuffer0ExternalHandle,
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pNodeParent->pFramebuffers[0]);
-
-    FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->framebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->colorFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->depthFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
-                         pParam->framebuffer1ExternalHandle,
+                         pParam->colorFramebuffer1ExternalHandle,
+                         pParam->depthFramebuffer1ExternalHandle,
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pNodeParent->pFramebuffers[1]);

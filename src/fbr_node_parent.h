@@ -32,8 +32,10 @@ void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent);
 typedef struct FbrIPCParamImportNodeParent {
     uint16_t framebufferWidth;
     uint16_t framebufferHeight;
-    HANDLE framebuffer0ExternalHandle;
-    HANDLE framebuffer1ExternalHandle;
+    HANDLE colorFramebuffer0ExternalHandle;
+    HANDLE colorFramebuffer1ExternalHandle;
+    HANDLE depthFramebuffer0ExternalHandle;
+    HANDLE depthFramebuffer1ExternalHandle;
     HANDLE vertexUBO0ExternalHandle;
     HANDLE vertexUBO1ExternalHandle;
     HANDLE cameraExternalHandle;
