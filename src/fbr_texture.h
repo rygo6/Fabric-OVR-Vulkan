@@ -36,6 +36,7 @@ void fbrImportTexture(const FbrVulkan *pVulkan,
                       VkFormat format,
                       VkExtent2D extent,
                       VkImageUsageFlags usage,
+                      VkImageAspectFlags aspectMask,
                       HANDLE externalMemory,
                       FbrTexture **ppAllocTexture);
 

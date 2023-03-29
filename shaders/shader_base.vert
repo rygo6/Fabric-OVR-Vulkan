@@ -18,6 +18,7 @@ layout(location = 1) out vec2 fragTexCoord;
 
 void main() {
     gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * vec4(inPosition, 1.0);
+    gl_Position.z = .5;
 
     fragColor = inColor;
 

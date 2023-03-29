@@ -74,59 +74,59 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
                                  &pFrameBuffer->framebuffer));
 }
 
-void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
-    VkImageMemoryBarrier barrier = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .srcQueueFamilyIndex = 0,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-            .image = pFramebuffer->pColorTexture->image,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .subresourceRange.baseMipLevel = 0,
-            .subresourceRange.levelCount = 1,
-            .subresourceRange.baseArrayLayer = 0,
-            .subresourceRange.layerCount = 1,
-            .srcAccessMask = 0,
-            .dstAccessMask = 0,
-    };
-    vkCmdPipelineBarrier(
-            commandBuffer,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            0,
-            0, NULL,
-            0, NULL,
-            1, &barrier
-    );
-}
-
-void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
-    VkImageMemoryBarrier barrier = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .srcQueueFamilyIndex = 0,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-            .image = pFramebuffer->pColorTexture->image,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .subresourceRange.baseMipLevel = 0,
-            .subresourceRange.levelCount = 1,
-            .subresourceRange.baseArrayLayer = 0,
-            .subresourceRange.layerCount = 1,
-            .srcAccessMask = 0,
-            .dstAccessMask = 0,
-    };
-    vkCmdPipelineBarrier(
-            commandBuffer,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            0,
-            0, NULL,
-            0, NULL,
-            1, &barrier
-    );
-}
+//void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
+//    VkImageMemoryBarrier barrier = {
+//            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+//            .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+//            .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+//            .srcQueueFamilyIndex = 0,
+//            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+//            .image = pFramebuffer->pColorTexture->image,
+//            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+//            .subresourceRange.baseMipLevel = 0,
+//            .subresourceRange.levelCount = 1,
+//            .subresourceRange.baseArrayLayer = 0,
+//            .subresourceRange.layerCount = 1,
+//            .srcAccessMask = 0,
+//            .dstAccessMask = 0,
+//    };
+//    vkCmdPipelineBarrier(
+//            commandBuffer,
+//            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+//            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+//            0,
+//            0, NULL,
+//            0, NULL,
+//            1, &barrier
+//    );
+//}
+//
+//void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
+//    VkImageMemoryBarrier barrier = {
+//            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+//            .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+//            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+//            .srcQueueFamilyIndex = 0,
+//            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+//            .image = pFramebuffer->pColorTexture->image,
+//            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+//            .subresourceRange.baseMipLevel = 0,
+//            .subresourceRange.levelCount = 1,
+//            .subresourceRange.baseArrayLayer = 0,
+//            .subresourceRange.layerCount = 1,
+//            .srcAccessMask = 0,
+//            .dstAccessMask = 0,
+//    };
+//    vkCmdPipelineBarrier(
+//            commandBuffer,
+//            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+//            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+//            0,
+//            0, NULL,
+//            0, NULL,
+//            1, &barrier
+//    );
+//}
 
 void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
                                    VkFormat colorFormat,
@@ -159,8 +159,8 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
     }
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pDepthTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                      VK_ACCESS_2_NONE_KHR, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
+                                      VK_PIPELINE_STAGE_2_NONE_KHR , VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
                                       depthAspectMask);
     createFramebuffer(pVulkan,
                       pFramebuffer,
@@ -190,8 +190,8 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
     // You don't need to do this on nvidia ??
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                      VK_ACCESS_2_NONE_KHR, VK_ACCESS_2_SHADER_READ_BIT,
+                                      VK_PIPELINE_STAGE_2_NONE_KHR , VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
     VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
     if (depthFormat != VK_FORMAT_D32_SFLOAT)
@@ -217,8 +217,8 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pDepthTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                      VK_ACCESS_2_NONE_KHR, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
+                                      VK_PIPELINE_STAGE_2_NONE_KHR , VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
                                       depthAspectMask);
     createFramebuffer(pVulkan,
                       pFramebuffer,
@@ -242,34 +242,36 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                      colorFormat,
                      extent,
                      FBR_EXTERNAL_COLOR_BUFFER_USAGE,
+                     VK_IMAGE_ASPECT_COLOR_BIT,
                      colorExternalMemory,
                      &pFramebuffer->pColorTexture);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pColorTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                      VK_ACCESS_2_NONE_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_2_NONE_KHR, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
 
     VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
     if (depthFormat != VK_FORMAT_D32_SFLOAT)
         FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
     VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    fbrImportTexture(pVulkan,
-                     depthFormat,
-                     extent,
-                     FBR_EXTERNAL_DEPTH_BUFFER_USAGE,
-                     depthExternalMemory,
-                     &pFramebuffer->pDepthTexture);
     bool stencilComponent = hasStencilComponent(depthFormat);
     if (stencilComponent) {
         FBR_LOG_DEBUG("Depth has stencil component don't know what it is, from vulkan tutorial crossref with ovrexample", stencilComponent);
         depthAspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
     }
+    fbrImportTexture(pVulkan,
+                     depthFormat,
+                     extent,
+                     FBR_EXTERNAL_DEPTH_BUFFER_USAGE,
+                     depthAspectMask,
+                     depthExternalMemory,
+                     &pFramebuffer->pDepthTexture);
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pDepthTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE_KHR, VK_ACCESS_SHADER_READ_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                      VK_ACCESS_2_NONE_KHR, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
+                                      VK_PIPELINE_STAGE_2_NONE_KHR , VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
                                       depthAspectMask);
 
     createFramebuffer(pVulkan,

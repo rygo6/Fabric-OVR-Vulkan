@@ -19,6 +19,23 @@ layout (location = 1) in vec2 inUV[];
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outUV;
 
+vec4 WorldPosFromDepth(float depth, vec2 uv) {
+    float z = depth * 2.0 - 1.0;
+
+    vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, z, 1.0);
+
+    mat4 projMatrixInv = inverse(globalUBO.proj);
+    vec4 viewSpacePosition = projMatrixInv * clipSpacePosition;
+
+    // Perspective division
+    viewSpacePosition /= viewSpacePosition.w;
+
+    mat4 viewMatrixInv = inverse(globalUBO.view);
+    vec4 worldSpacePosition = viewMatrixInv * viewSpacePosition;
+
+    return worldSpacePosition;
+}
+
 void main()
 {
     outUV = mix(
@@ -36,7 +53,17 @@ void main()
         mix(gl_in[3].gl_Position, gl_in[2].gl_Position, gl_TessCoord.x),
         gl_TessCoord.y);
 
-    pos.xyz += outNormal * textureLod(depth, outUV, 0.0).r;
 
-    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+//    vec4 originCameraSpacePosition = globalUBO.view * objectUBO.model * vec4(0,0,0,0);
+
+    float depth = textureLod(depth, outUV, 0.0).r;
+//    vec4 cameraSpacePosition = globalUBO.view * objectUBO.model * pos;
+//    cameraSpacePosition.z = depthToLinear(depth, 0, 1);
+//    gl_Position = globalUBO.proj * cameraSpacePosition;
+//    gl_Position.z = clipSpaceDepth(depth, 0, 1);
+//    gl_Position.z = .5;
+
+    vec4 worldPosDepth = WorldPosFromDepth(depth, outUV);
+    gl_Position = globalUBO.proj * globalUBO.view * worldPosDepth;
+
 }

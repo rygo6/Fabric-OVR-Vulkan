@@ -1,4 +1,5 @@
 #version 450
+layout (set = 3, binding = 1) uniform sampler2D depth;
 layout (set = 3, binding = 2) uniform sampler2D color;
 
 layout (location = 0) in vec3 inNormal;

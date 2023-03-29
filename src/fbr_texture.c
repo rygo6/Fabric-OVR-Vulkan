@@ -376,6 +376,7 @@ void fbrImportTexture(const FbrVulkan *pVulkan,
                       VkFormat format,
                       VkExtent2D extent,
                       VkImageUsageFlags usage,
+                      VkImageAspectFlags aspectMask,
                       HANDLE externalMemory,
                       FbrTexture **ppAllocTexture) {
     *ppAllocTexture = calloc(1, sizeof(FbrTexture));
@@ -388,7 +389,7 @@ void fbrImportTexture(const FbrVulkan *pVulkan,
                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                   externalMemory,
                   pTexture);
-    createTextureView(pVulkan,format, VK_IMAGE_ASPECT_COLOR_BIT, pTexture);
+    createTextureView(pVulkan,format, aspectMask, pTexture);
 }
 
 void fbrCreateTexture(const FbrVulkan *pVulkan,
