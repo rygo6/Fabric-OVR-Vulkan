@@ -19,7 +19,7 @@ static VkResult copyBufferToImage(const FbrVulkan *pVulkan,
                        VkImage image,
                        VkExtent2D extent) {
     VkCommandBuffer commandBuffer;
-    VK_CHECK(fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer));
+    FBR_ACK(fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer));
 
     VkBufferImageCopy region = {
             .bufferOffset = 0,
@@ -42,7 +42,7 @@ static VkResult copyBufferToImage(const FbrVulkan *pVulkan,
             &region
     );
 
-    VK_CHECK(fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer));
+    FBR_ACK(fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer));
 }
 
 static void importTexture(const FbrVulkan *pVulkan,

@@ -10,6 +10,7 @@
 #define FBR_DEPTH_BUFFER_USAGE (VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
 
 typedef struct FbrFramebuffer {
+    uint32_t count;
     FbrTexture *pColorTexture;
     FbrTexture *pDepthTexture;
     VkFramebuffer framebuffer;

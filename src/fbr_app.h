@@ -39,6 +39,10 @@ typedef struct FbrApp {
     FbrCamera *pCamera;
     FbrTime *pTime;
 
+    int cameraCount;
+    FbrCamera *pCameras;
+
+
     // go in a fbr_scene?
     FbrMesh *pTestQuadMesh;
     FbrTexture *pTestQuadTexture;

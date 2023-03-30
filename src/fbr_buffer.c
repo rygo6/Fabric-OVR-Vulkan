@@ -91,9 +91,10 @@ void importBuffer(const FbrVulkan *pVulkan,
 //    };
     VkImportMemoryWin32HandleInfoKHR importMemoryInfo = {
             .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR,
-//            .pNext = &dedicatedAllocInfo,
+            .pNext = NULL,
             .handleType = FBR_EXTERNAL_MEMORY_HANDLE_TYPE,
             .handle = externalMemory,
+            .name = NULL
     };
     VkMemoryAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -112,7 +113,8 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
                                VkDeviceSize size,
                                bool external,
                                VkBuffer *pBuffer,
-                               VkDeviceMemory *pBufferMemory) {
+                               VkDeviceMemory *pBufferMemory)
+                               {
     VkExternalMemoryBufferCreateInfoKHR externalMemoryBufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR,
             .pNext = NULL,
@@ -126,15 +128,15 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    VK_CHECK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
+    FBR_ACK(vkCreateBuffer(pVulkan->device, &bufferCreateInfo, NULL, pBuffer));
 
     VkMemoryRequirements memRequirements = {};
     uint32_t memTypeIndex;
-    VK_CHECK(fbrBufferMemoryTypeFromProperties(pVulkan,
-                                               *pBuffer,
-                                               properties,
-                                               &memRequirements,
-                                               &memTypeIndex));
+    FBR_ACK(fbrBufferMemoryTypeFromProperties(pVulkan,
+                                              *pBuffer,
+                                              properties,
+                                              &memRequirements,
+                                              &memTypeIndex));
 
     // dedicated needed??
 //    VkMemoryDedicatedAllocateInfoKHR dedicatedAllocInfo = {
@@ -142,9 +144,17 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
 //            .image = VK_NULL_HANDLE,
 //            .buffer = *pRingBuffer,
 //    };
+    VkExportMemoryWin32HandleInfoKHR exportMemoryWin32HandleInfo = {
+            .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR,
+            .pNext = NULL,
+            .name = NULL,
+            .pAttributes = NULL,
+            // This seems to not make the actual UBO read only, only the NT handle I presume
+            .dwAccess = GENERIC_READ
+    };
     VkExportMemoryAllocateInfo exportAllocInfo = {
             .sType =VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-//            .pNext = &dedicatedAllocInfo,
+            .pNext = &exportMemoryWin32HandleInfo,
             .handleTypes = FBR_EXTERNAL_MEMORY_HANDLE_TYPE
     };
     VkMemoryAllocateInfo allocInfo = {
@@ -153,12 +163,14 @@ VkResult createAllocBindBuffer(const FbrVulkan *pVulkan,
             .allocationSize = memRequirements.size,
             .memoryTypeIndex = memTypeIndex
     };
-    VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, pBufferMemory));
+    FBR_ACK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, pBufferMemory));
 
-    VK_CHECK(vkBindBufferMemory(pVulkan->device, *pBuffer, *pBufferMemory, 0));
+    FBR_ACK(vkBindBufferMemory(pVulkan->device, *pBuffer, *pBufferMemory, 0));
+
+    return FBR_SUCCESS;
 }
 
-VkResult getExternalHandle(const FbrVulkan *pVulkan,
+FBR_RESULT getExternalHandle(const FbrVulkan *pVulkan,
                            VkDeviceMemory *pBufferMemory,
                            HANDLE *pExternalHandle) {
     VkMemoryGetWin32HandleInfoKHR memoryInfo = {
@@ -171,11 +183,13 @@ VkResult getExternalHandle(const FbrVulkan *pVulkan,
     if (getMemoryWin32HandleFunc == NULL) {
         FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
     }
-    VK_CHECK(getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, pExternalHandle));
+    FBR_ACK(getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, pExternalHandle));
+
+    return FBR_SUCCESS;
 }
 
 // TODO this immediate command buffer creating destroy a whole command buffer and waiting each frame is horribly inefficient
-VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
+FBR_RESULT fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
     VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
@@ -183,19 +197,19 @@ VkResult fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffe
             .commandBufferCount = 1,
     };
 
-    VK_CHECK(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
+    FBR_ACK(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
 
     VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    VK_CHECK(vkBeginCommandBuffer(*pCommandBuffer, &beginInfo));
+    FBR_ACK(vkBeginCommandBuffer(*pCommandBuffer, &beginInfo));
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
-VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
+FBR_RESULT fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
     vkEndCommandBuffer(*pCommandBuffer);
 
     VkCommandBufferSubmitInfo commandBufferInfo = {
@@ -208,12 +222,12 @@ VkResult fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer 
             .pCommandBufferInfos = &commandBufferInfo,
     };
 
-    VK_CHECK(vkQueueSubmit2(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
-    VK_CHECK(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    FBR_ACK(vkQueueSubmit2(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
+    FBR_ACK(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
 // TODO implemented for unified graphics + transfer only right now
@@ -359,7 +373,7 @@ void fbrCreatePopulateBufferViaStaging(const FbrVulkan *pVulkan,
     vkFreeMemory(pVulkan->device, stagingBufferMemory, NULL);
 }
 
-VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
+FBR_RESULT fbrCreateUBO(const FbrVulkan *pVulkan,
                       VkMemoryPropertyFlags properties,
                       VkBufferUsageFlags usage,
                       VkDeviceSize bufferSize,
@@ -367,24 +381,26 @@ VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
                       FbrUniformBufferObject **ppAllocUBO) {
     *ppAllocUBO = calloc(1, sizeof(FbrUniformBufferObject));
     FbrUniformBufferObject *pUBO = *ppAllocUBO;
-    VK_CHECK(createAllocBindBuffer(pVulkan,
-                                   properties,
-                                   usage,
-                                   bufferSize,
-                                   external,
-                                   &pUBO->uniformBuffer,
-                                   &pUBO->uniformBufferMemory));
-    VK_CHECK(vkMapMemory(pVulkan->device,
-                         pUBO->uniformBufferMemory,
-                         0,
-                         bufferSize,
-                         0,
-                         &pUBO->pUniformBufferMapped));
+    FBR_ACK(createAllocBindBuffer(pVulkan,
+                                  properties,
+                                  usage,
+                                  bufferSize,
+                                  external,
+                                  &pUBO->uniformBuffer,
+                                  &pUBO->uniformBufferMemory));
+    FBR_ACK(vkMapMemory(pVulkan->device,
+                        pUBO->uniformBufferMemory,
+                        0,
+                        bufferSize,
+                        0,
+                        &pUBO->pUniformBufferMapped));
     if (external) {
-        VK_CHECK(getExternalHandle(pVulkan,
-                                   &pUBO->uniformBufferMemory,
-                                   &pUBO->externalMemory));
+        FBR_ACK(getExternalHandle(pVulkan,
+                                  &pUBO->uniformBufferMemory,
+                                  &pUBO->externalMemory));
     }
+
+    return FBR_SUCCESS;
 }
 
 void fbrImportUBO(const FbrVulkan *pVulkan,

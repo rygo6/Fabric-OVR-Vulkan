@@ -64,7 +64,7 @@ static VkResult createExternalTimelineSemaphore(const FbrVulkan *pVulkan, bool e
             .pNext = &timelineSemaphoreTypeCreateInfo,
             .flags = 0,
     };
-    VK_CHECK(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pTimelineSemaphore->semaphore));
+    FBR_ACK(vkCreateSemaphore(pVulkan->device, &timelineSemaphoreCreateInfo, NULL, &pTimelineSemaphore->semaphore));
 
     return VK_SUCCESS;
 }
@@ -83,7 +83,7 @@ static VkResult getWin32Handle(const FbrVulkan *pVulkan, FbrTimelineSemaphore *p
     if (getSemaphoreWin32HandleFunc == NULL) {
         FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
     }
-    VK_CHECK(getSemaphoreWin32HandleFunc(pVulkan->device, &semaphoreGetWin32HandleInfo, &pTimelineSemaphore->externalHandle));
+    FBR_ACK(getSemaphoreWin32HandleFunc(pVulkan->device, &semaphoreGetWin32HandleInfo, &pTimelineSemaphore->externalHandle));
 #endif
 
     return VK_SUCCESS;
@@ -103,7 +103,7 @@ static VkResult importTimelineSemaphore(const FbrVulkan *pVulkan, HANDLE externa
     if (importSemaphoreWin32HandleFunc == NULL) {
         FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
     }
-    VK_CHECK(importSemaphoreWin32HandleFunc(pVulkan->device, &importSemaphoreWin32HandleInfoKhr));
+    FBR_ACK(importSemaphoreWin32HandleFunc(pVulkan->device, &importSemaphoreWin32HandleInfoKhr));
 #endif
 
     pTimelineSemaphore->externalHandle = externalTimelineSemaphore;
@@ -115,9 +115,9 @@ VkResult fbrCreateTimelineSemaphore(const FbrVulkan *pVulkan, bool external, boo
     *ppAllocTimelineSemaphore = calloc(1, sizeof(FbrTimelineSemaphore));
     FbrTimelineSemaphore *pTimelineSemaphore = *ppAllocTimelineSemaphore;
 
-    VK_CHECK(createExternalTimelineSemaphore(pVulkan, external, readOnly, pTimelineSemaphore));
+    FBR_ACK(createExternalTimelineSemaphore(pVulkan, external, readOnly, pTimelineSemaphore));
     if (external) {
-        VK_CHECK(getWin32Handle(pVulkan, pTimelineSemaphore));
+        FBR_ACK(getWin32Handle(pVulkan, pTimelineSemaphore));
     }
 }
 
@@ -125,8 +125,8 @@ VkResult fbrImportTimelineSemaphore(const FbrVulkan *pVulkan, bool readOnly, HAN
     *ppAllocTimelineSemaphore = calloc(1, sizeof(FbrTimelineSemaphore));
     FbrTimelineSemaphore *pTimelineSemaphore = *ppAllocTimelineSemaphore;
 
-    VK_CHECK(createExternalTimelineSemaphore(pVulkan, true, readOnly, pTimelineSemaphore));
-    VK_CHECK(importTimelineSemaphore(pVulkan, externalTimelineSemaphore, pTimelineSemaphore));
+    FBR_ACK(createExternalTimelineSemaphore(pVulkan, true, readOnly, pTimelineSemaphore));
+    FBR_ACK(importTimelineSemaphore(pVulkan, externalTimelineSemaphore, pTimelineSemaphore));
 }
 
 void fbrDestroyTimelineSemaphore(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineSemaphore) {

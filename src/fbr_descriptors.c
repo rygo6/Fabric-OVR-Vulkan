@@ -3,7 +3,7 @@
 #include "fbr_camera.h"
 #include "fbr_texture.h"
 
-static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
+static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                           uint32_t bindingCount,
                                           const VkDescriptorSetLayoutBinding *pBindings,
                                           VkDescriptorSetLayout *pSetLayout)
@@ -15,14 +15,15 @@ static VkResult createDescriptorSetLayout(const FbrVulkan *pVulkan,
             .bindingCount = bindingCount,
             .pBindings = pBindings,
     };
-    VK_CHECK(vkCreateDescriptorSetLayout(pVulkan->device,
-                                         &layoutInfo,
-                                         NULL,
-                                         pSetLayout));
-    return VK_SUCCESS;
+    FBR_ACK(vkCreateDescriptorSetLayout(pVulkan->device,
+                                        &layoutInfo,
+                                        NULL,
+                                        pSetLayout));
+
+    return FBR_SUCCESS;
 }
 
-static VkResult createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout)
+static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
@@ -34,12 +35,12 @@ static VkResult createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlob
                     .pImmutableSamplers = NULL,
             }
     };
-    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    FBR_ACK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
-static VkResult createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout)
+static FBR_RESULT createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
@@ -51,12 +52,12 @@ static VkResult createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *
                     .pImmutableSamplers = NULL,
             }
     };
-    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    FBR_ACK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
-static VkResult createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout)
+static FBR_RESULT createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
@@ -67,12 +68,12 @@ static VkResult createSetLayoutMaterial(const FbrVulkan *pVulkan, FbrSetLayoutMa
                     .pImmutableSamplers = NULL,
             }
     };
-    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+    FBR_ACK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
-static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout)
+static FBR_RESULT createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMaterial *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
             {
@@ -84,8 +85,9 @@ static VkResult createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMate
                     .pImmutableSamplers = NULL,
             }
     };
-    VK_CHECK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
-    return VK_SUCCESS;
+    FBR_ACK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
+
+    return FBR_SUCCESS;
 }
 
 static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *pSetLayout)
@@ -114,8 +116,9 @@ static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode
                     .pImmutableSamplers = NULL,
             }
     };
-    FBR_ACK(createDescriptorSetLayout(pVulkan, 3, bindings, pSetLayout))
-    FBR_SUCCESS
+    FBR_ACK(createDescriptorSetLayout(pVulkan, 3, bindings, pSetLayout));
+
+    FBR_SUCCESS;
 }
 
 static VkResult createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std)
@@ -130,7 +133,7 @@ static VkResult createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDesc
     return VK_SUCCESS;
 }
 
-static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
+static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
                                       uint32_t descriptorSetCount,
                                       const VkDescriptorSetLayout *pSetLayouts,
                                       VkDescriptorSet *pDescriptorSet)
@@ -142,11 +145,11 @@ static VkResult allocateDescriptorSet(const FbrVulkan *pVulkan,
             .descriptorSetCount = descriptorSetCount,
             .pSetLayouts = pSetLayouts,
     };
-    VK_CHECK(vkAllocateDescriptorSets(pVulkan->device,
-                                      &allocInfo,
-                                      pDescriptorSet));
+    FBR_ACK(vkAllocateDescriptorSets(pVulkan->device,
+                                     &allocInfo,
+                                     pDescriptorSet));
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
 VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
@@ -154,10 +157,10 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             const FbrCamera *pCamera,
                             FbrSetGlobal *pSet)
 {
-    VK_CHECK(allocateDescriptorSet(pVulkan,
-                                   1,
-                                   &setLayout,
-                                   pSet));
+    FBR_ACK(allocateDescriptorSet(pVulkan,
+                                  1,
+                                  &setLayout,
+                                  pSet));
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pCamera->pUBO->uniformBuffer,
             .offset = 0,
@@ -190,10 +193,10 @@ VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
                               const FbrTexture *pTexture,
                               FbrSetMaterial *pSet)
 {
-    VK_CHECK(allocateDescriptorSet(pVulkan,
-                                   1,
-                                   &setLayout,
-                                   pSet));
+    FBR_ACK(allocateDescriptorSet(pVulkan,
+                                  1,
+                                  &setLayout,
+                                  pSet));
     const VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pTexture->imageView,
@@ -227,10 +230,10 @@ VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
                             const FbrTransform *pTransform,
                             FbrSetObject *pSet)
 {
-    VK_CHECK(allocateDescriptorSet(pVulkan,
-                                   1,
-                                   &setLayout,
-                                   pSet));
+    FBR_ACK(allocateDescriptorSet(pVulkan,
+                                  1,
+                                  &setLayout,
+                                  pSet));
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pTransform->pUBO->uniformBuffer,
             .offset = 0,
@@ -265,10 +268,10 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                           const FbrTexture *pColorTexture,
                           FbrSetNode *pSet)
 {
-    VK_CHECK(allocateDescriptorSet(pVulkan,
-                                   1,
-                                   &setLayout,
-                                   pSet));
+    FBR_ACK(allocateDescriptorSet(pVulkan,
+                                  1,
+                                  &setLayout,
+                                  pSet));
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pTransform->pUBO->uniformBuffer,
             .offset = 0,

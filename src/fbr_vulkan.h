@@ -10,11 +10,13 @@
 //    FBR_SUCCESS = 0,
 //    FBR_FAIL = 1,
 //} FbrResult;
-//
-//typedef struct FbrResult {
-//    FbrResultFlags fbrResult;
-//    VkResult vkResult;
-//} FbrResult;
+
+typedef enum FbrResultFlags {
+    FBR_FAIL = 1111000001,
+} FbrResult;
+
+#define FBR_SUCCESS VK_SUCCESS
+#define FBR_RESULT VkResult
 
 #define FBR_VK_CHECK(command)\
     do { \
@@ -24,31 +26,18 @@
             } \
     } while (0)
 
-// todo there needs to be some mechanic of dealloc if this fails
-#define VK_CHECK(command)                                                                           \
-do {                                                                                                \
-    VkResult result = (command);                                                                    \
-    if (result != VK_SUCCESS) {                                                                     \
-        printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);                   \
-        return result;                                                                              \
-    }                                                                                               \
-} while(0)
-
 #define FBR_ACK(command)                                                                                                \
-{                                                                                                                       \
+({                                                                                                                       \
     VkResult result = command;                                                                                        \
-    if (result != VK_SUCCESS) {                                                                                         \
+    if (result != FBR_SUCCESS) {                                                                                         \
         printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result);                                       \
         return result;                                                                                                  \
     }                                                                                                                   \
-}
+})
 
 //1000001003
 //2147483647
 // string_VkResult(result)
-
-#define FBR_RESULT VkResult
-#define FBR_SUCCESS return VK_SUCCESS;
 
 #define FBR_VK_CHECK_COMMAND(command)\
     do { \

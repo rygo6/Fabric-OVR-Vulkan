@@ -158,8 +158,8 @@ static VkResult createSyncObjects(const FbrVulkan *pVulkan, FbrSwap *pSwap) { //
     const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
-    VK_CHECK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->acquireComplete));
-    VK_CHECK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->renderCompleteSemaphore));
+    FBR_ACK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->acquireComplete));
+    FBR_ACK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->renderCompleteSemaphore));
 }
 
 void fbrCreateSwap(const FbrVulkan *pVulkan,

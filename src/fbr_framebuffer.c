@@ -68,10 +68,10 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
             .height = extent.height,
             .layers = 1,
     };
-    VK_CHECK(vkCreateFramebuffer(pVulkan->device,
-                                 &framebufferCreateInfo,
-                                 NULL,
-                                 &pFrameBuffer->framebuffer));
+    FBR_ACK(vkCreateFramebuffer(pVulkan->device,
+                                &framebufferCreateInfo,
+                                NULL,
+                                &pFrameBuffer->framebuffer));
 }
 
 //void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {

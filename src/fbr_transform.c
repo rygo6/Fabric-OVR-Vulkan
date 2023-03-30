@@ -31,12 +31,12 @@ VkResult fbrCreateTransform(const FbrVulkan *pVulkan, FbrTransform **ppAllocTran
     *ppAllocTransform = calloc(1, sizeof(FbrTransform));
     FbrTransform *pTransform = *ppAllocTransform;
 
-    VK_CHECK(fbrCreateUBO(pVulkan,
+    FBR_ACK(fbrCreateUBO(pVulkan,
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                          sizeof(FbrTransform),
-                          false,
-                          &pTransform->pUBO));
+                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                         sizeof(FbrTransform),
+                         false,
+                         &pTransform->pUBO));
 
     fbrInitTransform(pTransform);
 }

@@ -116,9 +116,9 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
 static VkResult createInstance(FbrVulkan *pVulkan) {
     if (pVulkan->enableValidationLayers) {
         uint32_t availableLayerCount = 0;
-        VK_CHECK(vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL));
+        FBR_ACK(vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL));
         VkLayerProperties availableLayers[availableLayerCount];
-        VK_CHECK(vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers));
+        FBR_ACK(vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers));
 
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
         FBR_LOG_DEBUG("Available Layer Count: ", availableLayerCount);
@@ -151,9 +151,9 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
 
 #ifdef FBR_LOG_VULKAN_CAPABILITIES
     uint32_t availableExtensionCount = 0;
-    VK_CHECK(vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL));
+    FBR_ACK(vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL));
     VkExtensionProperties availableExtensions[availableExtensionCount];
-    VK_CHECK(vkEnumerateInstanceExtensionProperties( NULL, &availableExtensionCount, availableExtensions));
+    FBR_ACK(vkEnumerateInstanceExtensionProperties( NULL, &availableExtensionCount, availableExtensions));
     FBR_LOG_DEBUG("Available Instance Extension Count: ", availableExtensionCount);
     for (int i = 0; i < availableExtensionCount; ++i){
         char* extensionName = availableExtensions[i].extensionName;
@@ -187,7 +187,7 @@ static VkResult createInstance(FbrVulkan *pVulkan) {
         createInfo.pNext = NULL;
     }
 
-    VK_CHECK(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
+    FBR_ACK(vkCreateInstance(&createInfo, NULL, &pVulkan->instance));
 
     return VK_SUCCESS;
 }
@@ -416,7 +416,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
             .enabledLayerCount = pVulkan->enableValidationLayers ? requiredInstanceLayerCount : 0,
 
     };
-    VK_CHECK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
+    FBR_ACK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
 }
 
 static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
@@ -542,8 +542,7 @@ static FBR_RESULT createDescriptorPool(FbrVulkan *pVulkan) {
     FBR_ACK(vkCreateDescriptorPool(pVulkan->device,
                                    &poolInfo,
                                    NULL,
-                                   &pVulkan->descriptorPool))
-    FBR_SUCCESS
+                                   &pVulkan->descriptorPool));
 }
 
 static FBR_RESULT createCommandBuffer(FbrVulkan *pVulkan) {
@@ -556,8 +555,7 @@ static FBR_RESULT createCommandBuffer(FbrVulkan *pVulkan) {
 
     FBR_ACK(vkAllocateCommandBuffers(pVulkan->device,
                                      &allocInfo,
-                                     &pVulkan->commandBuffer))
-    FBR_SUCCESS
+                                     &pVulkan->commandBuffer));
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {

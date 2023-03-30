@@ -79,7 +79,7 @@ void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, H
                  &pCamera->pUBO);
 }
 
-VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
+FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
 
@@ -89,14 +89,15 @@ VkResult fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraStat
     glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
-    VK_CHECK(fbrCreateUBO(pVulkan,
+    FBR_ACK(fbrCreateUBO(pVulkan,
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                          sizeof(FbrCameraUBO),
-                          true,
-                          &pCamera->pUBO));
-
+                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                         sizeof(FbrCameraUBO),
+                         true,
+                         &pCamera->pUBO));
     fbrUpdateCameraUBO(pCamera);
+
+    return FBR_SUCCESS;
 }
 
 void fbrDestroyCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState) {
