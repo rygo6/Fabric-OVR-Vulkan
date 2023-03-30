@@ -54,5 +54,4 @@ void main()
     gl_Position = globalUBO.proj * globalUBO.view * worldPos;
 
 //    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
-
 }
