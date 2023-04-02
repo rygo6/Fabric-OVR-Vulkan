@@ -226,7 +226,7 @@ static void pickPhysicalDevice(FbrVulkan *pVulkan) {
     // If no OVR fallback to first one. OVR Vulkan used this logic, its much simpler than vulkan example, is it correct? Seemed to be on my 6950xt and 4090
     pVulkan->physicalDevice = devices[0];
 
-    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &pVulkan->memProperties);
+    vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceMemoryProperties);
 }
 
 static void findQueueFamilies(FbrVulkan *pVulkan) {
@@ -523,21 +523,25 @@ static void createCommandPool(FbrVulkan *pVulkan) {
 }
 
 static FBR_RESULT createDescriptorPool(FbrVulkan *pVulkan) {
-    const VkDescriptorPoolSize poolSizes[2] = {
+    const VkDescriptorPoolSize poolSizes[] = {
             {
                     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 10,
+                    .descriptorCount = 4,
+            },
+            {
+                    .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    .descriptorCount = 4,
             },
             {
                     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 10,
+                    .descriptorCount = 4,
             }
     };
     const VkDescriptorPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .poolSizeCount = 2,
+            .poolSizeCount = 3,
             .pPoolSizes = poolSizes,
-            .maxSets = 10,
+            .maxSets = 12,
     };
     FBR_ACK(vkCreateDescriptorPool(pVulkan->device,
                                    &poolInfo,
@@ -565,9 +569,7 @@ static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
 }
 
 static void createTextureSampler(FbrVulkan *pVulkan){
-    VkPhysicalDeviceProperties properties;
-    vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &properties);
-    FBR_LOG_DEBUG("Max Anisotropy!", properties.limits.maxSamplerAnisotropy);
+    FBR_LOG_DEBUG("Max Anisotropy!", pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy);
 
     VkSamplerCreateInfo samplerInfo = {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -577,7 +579,7 @@ static void createTextureSampler(FbrVulkan *pVulkan){
             .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+            .maxAnisotropy = pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = VK_FALSE,
             .compareEnable = VK_FALSE,
@@ -602,7 +604,9 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     setupDebugMessenger(pVulkan);
     pickPhysicalDevice(pVulkan);
     createLogicalDevice(pVulkan);
+
     vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->queue);
+    vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
     // render
     VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;

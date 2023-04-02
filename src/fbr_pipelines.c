@@ -270,7 +270,7 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
                                       VK_NULL_HANDLE,
                                       1,
                                       &pipelineInfo,
-                                      NULL,
+                                      FBR_ALLOCATOR,
                                       pPipe));
 
     return FBR_SUCCESS;

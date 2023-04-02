@@ -28,7 +28,7 @@ static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGl
     VkDescriptorSetLayoutBinding bindings[] = {
             {
                     .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                                   VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
@@ -174,7 +174,7 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
                     .pImageInfo = NULL,
                     .pBufferInfo = &bufferInfo,
                     .pTexelBufferView = NULL,

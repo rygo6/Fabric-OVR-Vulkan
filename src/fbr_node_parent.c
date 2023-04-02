@@ -116,7 +116,10 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
     VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
 
     FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
-    fbrImportCamera(pVulkan, &pNodeParent->pCamera,pParam->cameraExternalHandle);
+    fbrImportCamera(pVulkan,
+                    FBR_DYNAMIC_MAIN_CAMERA_COUNT,
+                    pParam->cameraExternalHandle,
+                    &pNodeParent->pCamera);
 
     FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->colorFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->depthFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
@@ -140,6 +143,7 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  FBR_NODE_VERTEX_BUFFER_SIZE,
+                 FBR_NO_DYNAMIC_BUFFER,
                  pParam->vertexUBO0ExternalHandle,
                  &pNodeParent->pVertexUBOs[0]);
     fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[0], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
@@ -149,13 +153,20 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  FBR_NODE_VERTEX_BUFFER_SIZE,
+                 FBR_NO_DYNAMIC_BUFFER,
                  pParam->vertexUBO1ExternalHandle,
                  &pNodeParent->pVertexUBOs[1]);
     fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[1], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->parentSemaphoreExternalHandle);
-    fbrImportTimelineSemaphore(pVulkan, true, pParam->parentSemaphoreExternalHandle, &pNodeParent->pParentSemaphore);
+    fbrImportTimelineSemaphore(pVulkan,
+                               true,
+                               pParam->parentSemaphoreExternalHandle,
+                               &pNodeParent->pParentSemaphore);
 
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->childSemaphoreExternalHandle);
-    fbrImportTimelineSemaphore(pVulkan, false, pParam->childSemaphoreExternalHandle, &pNodeParent->pChildSemaphore);
+    fbrImportTimelineSemaphore(pVulkan,
+                               false,
+                               pParam->childSemaphoreExternalHandle,
+                               &pNodeParent->pChildSemaphore);
 }

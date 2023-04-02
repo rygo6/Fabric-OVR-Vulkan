@@ -101,6 +101,7 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                              FBR_NODE_VERTEX_BUFFER_SIZE,
+                             FBR_NO_DYNAMIC_BUFFER,
                              true,
                              &pNode->pVertexUBOs[i]));
 //        fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
@@ -110,6 +111,7 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
                           VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                          FBR_NODE_INDEX_BUFFER_SIZE,
+                         FBR_NO_DYNAMIC_BUFFER,
                          false,
                          &pNode->pIndexUBO));
     fbrMemCopyMappedUBO(pNode->pIndexUBO, nodeIndices, FBR_NODE_INDEX_BUFFER_SIZE);

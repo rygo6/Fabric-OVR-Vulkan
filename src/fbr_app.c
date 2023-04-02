@@ -50,6 +50,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     if (!pApp->isChild) {
 
         fbrCreateCamera(pVulkan,
+                        FBR_DYNAMIC_MAIN_CAMERA_COUNT,
                         &pApp->pCamera);
         fbrCreateSetGlobal(pApp->pVulkan,
                            pApp->pDescriptors->setLayoutGlobal,

@@ -61,11 +61,10 @@ typedef enum FbrResultFlags {
 #define FBR_ALLOCATOR NULL
 
 typedef struct FbrVulkan {
+    // todo none of these should be here?
     int screenWidth;
     int screenHeight;
-
     bool isChild;
-
     bool enableValidationLayers;
 
     VkInstance instance;
@@ -80,19 +79,6 @@ typedef struct FbrVulkan {
 
     VkRenderPass renderPass;
 
-    // go in swap object
-//    VkSwapchainKHR swapChain;
-//    uint32_t swapImageCount;
-//    VkImage *pSwapImages;
-//    VkImageView *pSwapImageViews;
-//    VkFormat swapImageFormat;
-//    VkImageUsageFlags swapUsage;
-//    VkExtent2D swapExtent;
-//    VkFramebuffer swapFramebuffer;
-//    VkSemaphore swapAcquireComplete;
-//    VkSemaphore renderCompleteSemaphore;
-
-
     //todo should go elsewhere?
     FbrTimelineSemaphore *pMainSemaphore;
 
@@ -103,7 +89,8 @@ typedef struct FbrVulkan {
 
     VkSampler sampler;
 
-    VkPhysicalDeviceMemoryProperties memProperties;
+    VkPhysicalDeviceProperties  physicalDeviceProperties;
+    VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
 } FbrVulkan;
 

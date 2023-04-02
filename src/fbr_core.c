@@ -287,14 +287,15 @@ static void childMainLoop(FbrApp *pApp) {
 
             vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
             // Global
+            uint32_t dynamicGlobalOffset = 0 * pCamera->pUBO->dynamicAlignment;
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutStandard,
                                     FBR_GLOBAL_SET_INDEX,
                                     1,
                                     &pDescriptors->setGlobal,
-                                    0,
-                                    NULL);
+                                    1,
+                                    &dynamicGlobalOffset);
 
             // Material
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
@@ -371,7 +372,6 @@ static void parentMainLoop(FbrApp *pApp) {
             FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
 
         processInputFrame(pApp);
-        fbrUpdateCameraUBO(pCamera);
 
         // Get open swap image
         uint32_t swapIndex;
@@ -388,20 +388,22 @@ static void parentMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pVulkan,
                                  pSwap->pFramebuffers[swapIndex],
                                  pVulkan->renderPass,
-                                 (VkClearColorValue ){{{0.1f, 0.2f, 0.3f, 1.0f}}});
+                                 (VkClearColorValue ){{0.1f, 0.2f, 0.3f, 1.0f}});
 
         vkCmdBindPipeline(pVulkan->commandBuffer,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pPipelines->pipeStandard);
         // Global
+        fbrUpdateCameraUBO(pCamera);
+        uint32_t dynamicGlobalOffset = 0 * pCamera->pUBO->dynamicAlignment;
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pPipelines->pipeLayoutStandard,
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
-                                0,
-                                NULL);
+                                1,
+                                &dynamicGlobalOffset);
 
         // Material
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
@@ -429,7 +431,8 @@ static void parentMainLoop(FbrApp *pApp) {
 
         if (pTestNode != NULL) {
             //test node
-            vkGetSemaphoreCounterValue(pVulkan->device, pTestNode->pChildSemaphore->semaphore,
+            vkGetSemaphoreCounterValue(pVulkan->device,
+                                       pTestNode->pChildSemaphore->semaphore,
                                        &pTestNode->pChildSemaphore->waitValue);
             int timelineSwitch = (int) (pTestNode->pChildSemaphore->waitValue % 2);
             // Material
@@ -443,8 +446,8 @@ static void parentMainLoop(FbrApp *pApp) {
                                     FBR_GLOBAL_SET_INDEX,
                                     1,
                                     &pDescriptors->setGlobal,
-                                    0,
-                                    NULL);
+                                    1,
+                                    &dynamicGlobalOffset);
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutNode,

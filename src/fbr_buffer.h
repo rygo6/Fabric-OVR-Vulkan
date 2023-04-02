@@ -7,10 +7,15 @@
 #include <windows.h>
 #endif
 
+#define FBR_NO_DYNAMIC_BUFFER 0
+
 typedef struct FbrUniformBufferObject {
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
     void *pUniformBufferMapped;
+    uint32_t bufferSize;
+    uint32_t dynamicAlignment;
+    uint32_t dynamicCount;
 #ifdef WIN32
     HANDLE externalMemory;
 #endif
@@ -63,6 +68,7 @@ VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
                       VkMemoryPropertyFlags properties,
                       VkBufferUsageFlags usage,
                       VkDeviceSize bufferSize,
+                      uint32_t dynamicCount,
                       bool external,
                       FbrUniformBufferObject **ppAllocUBO);
 
@@ -70,6 +76,7 @@ void fbrImportUBO(const FbrVulkan *pVulkan,
                   VkMemoryPropertyFlags properties,
                   VkBufferUsageFlags usage,
                   VkDeviceSize bufferSize,
+                  uint32_t dynamicCount,
                   HANDLE externalMemory,
                   FbrUniformBufferObject **ppAllocUBO);
 

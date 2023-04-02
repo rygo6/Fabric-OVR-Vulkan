@@ -5,7 +5,8 @@
 
 #include <windows.h>
 
-void fbrUpdateCameraUBO(FbrCamera *pCamera) {
+void fbrUpdateCameraUBO(FbrCamera *pCamera)
+{
     memcpy(pCamera->pUBO->pUniformBufferMapped, &pCamera->uboData, sizeof(FbrCameraUBO));
 }
 
@@ -59,12 +60,16 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
 void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
     FBR_LOG_DEBUG("Importing Camera.", pParam->handle);
-    fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
+    fbrImportCamera(pApp->pVulkan, 0, &pApp->pCamera,pParam->handle);
 }
 
-void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, HANDLE externalMemory) {
+FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
+                     uint32_t dynamicCount,
+                     HANDLE externalMemory,
+                     FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
+
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
@@ -74,12 +79,17 @@ void fbrImportCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState, H
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                 sizeof(FbrCameraUBO),
+                 sizeof(FbrCamera),
+                 dynamicCount,
                  externalMemory,
                  &pCamera->pUBO);
+
+    return FBR_SUCCESS;
 }
 
-FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraState) {
+FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
+                           uint32_t dynamicCount,
+                           FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
 
@@ -92,9 +102,11 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan, FbrCamera **ppAllocCameraSt
     FBR_ACK(fbrCreateUBO(pVulkan,
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                         sizeof(FbrCameraUBO),
+                         sizeof(FbrCamera),
+                         dynamicCount,
                          true,
                          &pCamera->pUBO));
+
     fbrUpdateCameraUBO(pCamera);
 
     return FBR_SUCCESS;
