@@ -20,7 +20,7 @@ typedef struct FbrCamera {
     FbrUniformBufferObject *pUBO;
 } FbrCamera;
 
-void fbrUpdateCameraUBO(FbrCamera *pCamera);
+void fbrUpdateCameraUBO(FbrCamera *pCamera, uint32_t dynamicOffset);
 
 void fbrUpdateCamera(FbrCamera *pCamera,
                      const FbrInputEvent *pInputEvent,

@@ -92,36 +92,47 @@ static FBR_RESULT createSetLayoutObject(const FbrVulkan *pVulkan, FbrSetLayoutMa
 
 static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *pSetLayout)
 {
-    VkDescriptorSetLayoutBinding bindings[] = {
-            {
+    VkDescriptorSetLayoutBinding pBindings[] = {
+            {// transform ubo
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
                     .pImmutableSamplers = NULL,
             },
-            {
+            {// camera rendered from ubo
                     .binding = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// depth
+                    .binding = 2,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                                   VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             },
-            {
-                    .binding = 2,
+            {// color
+                    .binding = 3,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             }
     };
-    FBR_ACK(createDescriptorSetLayout(pVulkan, 3, bindings, pSetLayout));
+    FBR_ACK(createDescriptorSetLayout(pVulkan,
+                                      sizeof(pBindings) / sizeof(VkDescriptorSetLayoutBinding),
+                                      pBindings,
+                                      pSetLayout));
 
-    FBR_SUCCESS;
+    return FBR_SUCCESS;
 }
 
-static VkResult createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std)
+static FBR_RESULT createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors_Std)
 {
     createSetLayoutGlobal(pVulkan, &pDescriptors_Std->setLayoutGlobal);
     createSetLayoutPass(pVulkan, &pDescriptors_Std->setLayoutPass);
@@ -130,7 +141,7 @@ static VkResult createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDesc
 
     createSetLayoutNode(pVulkan, &pDescriptors_Std->setLayoutNode);
 
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
 static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
@@ -264,6 +275,7 @@ VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
 VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                           FbrSetLayoutNode setLayout,
                           const FbrTransform *pTransform,
+                          const FbrCamera *pCamera,
                           const FbrTexture *pDepthTexture,
                           const FbrTexture *pColorTexture,
                           FbrSetNode *pSet)
@@ -272,10 +284,15 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                                   1,
                                   &setLayout,
                                   pSet));
-    const VkDescriptorBufferInfo bufferInfo = {
+    const VkDescriptorBufferInfo transformBufferInfo = {
             .buffer = pTransform->pUBO->uniformBuffer,
             .offset = 0,
             .range = sizeof(FbrTransform),
+    };
+    const VkDescriptorBufferInfo cameraBufferInfo = {
+            .buffer = pCamera->pUBO->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrCamera),
     };
     const VkDescriptorImageInfo depthImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -288,7 +305,7 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
             .sampler = pVulkan->sampler,
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
-            {
+            {// transform UBO
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
                     .dstSet = *pSet,
@@ -297,14 +314,26 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .pImageInfo = NULL,
-                    .pBufferInfo = &bufferInfo,
+                    .pBufferInfo = &transformBufferInfo,
                     .pTexelBufferView = NULL,
             },
-            {
+            {// camera UBO from which it was rendered
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
                     .dstSet = *pSet,
                     .dstBinding = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    .pImageInfo = NULL,
+                    .pBufferInfo = &cameraBufferInfo,
+                    .pTexelBufferView = NULL,
+            },
+            {// depth map
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 2,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -312,11 +341,11 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },
-            {
+            {// rgb map
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
                     .dstSet = *pSet,
-                    .dstBinding = 2,
+                    .dstBinding = 3,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

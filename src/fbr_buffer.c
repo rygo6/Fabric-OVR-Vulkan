@@ -437,7 +437,6 @@ void fbrImportUBO(const FbrVulkan *pVulkan,
                         bufferSize,
                         dynamicCount,
                         pUBO);
-    FBR_LOG_DEBUG("A");
     importBuffer(pVulkan,
                  properties,
                  usage,
@@ -445,7 +444,6 @@ void fbrImportUBO(const FbrVulkan *pVulkan,
                  externalMemory,
                  &pUBO->uniformBuffer,
                  &pUBO->uniformBufferMemory);
-    FBR_LOG_DEBUG("B");
     vkMapMemory(pVulkan->device,
                 pUBO->uniformBufferMemory,
                 0,

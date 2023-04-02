@@ -62,6 +62,7 @@ VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
 VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                           FbrSetLayoutNode setLayout,
                           const FbrTransform *pTransform,
+                          const FbrCamera *pCamera,
                           const FbrTexture *pDepthTexture,
                           const FbrTexture *pColorTexture,
                           FbrSetNode *pSet);

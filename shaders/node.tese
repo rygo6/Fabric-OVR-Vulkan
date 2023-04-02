@@ -8,8 +8,14 @@ layout (set = 0, binding = 0) uniform GlobalUBO {
 layout(set = 3, binding = 0) uniform ObjectUBO {
     mat4 model;
 } objectUBO;
-layout (set = 3, binding = 1) uniform sampler2D depth;
-//layout (set = 3, binding = 2) uniform sampler2D color;
+
+layout (set = 3, binding = 1) uniform NodeUBO {
+    mat4 view;
+    mat4 proj;
+} nodeUBO;
+
+layout (set = 3, binding = 2) uniform sampler2D depth;
+//layout (set = 3, binding = 3) uniform sampler2D color;
 
 layout(quads, equal_spacing, cw) in;
 
@@ -43,13 +49,13 @@ void main()
     vec4 clipPos = vec4(outUV * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
 
     // Convert clip space coordinates to eye space coordinates
-    vec4 eyePos = inverse(globalUBO.proj) * clipPos;
+    vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
 
     // Divide by w component to obtain normalized device coordinates
     vec3 ndcPos = eyePos.xyz / eyePos.w;
 
     // Convert NDC coordinates to world space coordinates
-    vec4 worldPos = inverse(globalUBO.view) * vec4(ndcPos, 1.0);
+    vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
     gl_Position = globalUBO.proj * globalUBO.view * worldPos;
 

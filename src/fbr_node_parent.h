@@ -21,7 +21,7 @@ typedef struct FbrNodeParent {
 
 } FbrNodeParent;
 
-void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera,int timelineSwitch, FbrNodeParent *pNode);
+void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int dynamicCameraIndex, int timelineSwitch, FbrNodeParent *pNode);
 
 void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent);
 

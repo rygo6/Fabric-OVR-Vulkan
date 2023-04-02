@@ -5,9 +5,10 @@
 
 #include <windows.h>
 
-void fbrUpdateCameraUBO(FbrCamera *pCamera)
+void fbrUpdateCameraUBO(FbrCamera *pCamera, uint32_t dynamicIndex)
 {
-    memcpy(pCamera->pUBO->pUniformBufferMapped, &pCamera->uboData, sizeof(FbrCameraUBO));
+    uint32_t dynamicOffset = dynamicIndex * pCamera->pUBO->dynamicAlignment;
+    memcpy(pCamera->pUBO->pUniformBufferMapped + dynamicOffset, &pCamera->uboData, sizeof(FbrCameraUBO));
 }
 
 void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState) {
@@ -107,7 +108,7 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
                          true,
                          &pCamera->pUBO));
 
-    fbrUpdateCameraUBO(pCamera);
+    fbrUpdateCameraUBO(pCamera, 0);
 
     return FBR_SUCCESS;
 }

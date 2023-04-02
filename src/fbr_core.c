@@ -233,7 +233,7 @@ static void childMainLoop(FbrApp *pApp) {
 
 //    bool firstRun = true;
 
-    const uint64_t parentTimelineStep = 16;
+    const uint64_t parentTimelineStep = 8;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
     pParentSemaphore->waitValue += parentTimelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
@@ -258,9 +258,10 @@ static void childMainLoop(FbrApp *pApp) {
         };
         FBR_VK_CHECK_COMMAND(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
-        // Update to current parent time, don't let it go faster that parent allows.
+        // Update to current parent time, don't let it go faster than parent allows.
         // TODO can be be predictive to start just in time for parent frame flip?
         vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
+        int dynamicCameraIndex = (int) pParentSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT;
         pParentSemaphore->waitValue += parentTimelineStep;
         int timelineSwitch = (int) (pChildSemaphore->waitValue % 2);
 
@@ -269,7 +270,7 @@ static void childMainLoop(FbrApp *pApp) {
             FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
 
         // not exactly order for this, but we need cam UBO data for each frame step
-        fbrUpdateNodeParentMesh(pVulkan, pCamera, timelineSwitch, pApp->pNodeParent);
+        fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
 
 //        if (firstRun)
         {
@@ -287,7 +288,8 @@ static void childMainLoop(FbrApp *pApp) {
 
             vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
             // Global
-            uint32_t dynamicGlobalOffset = 0 * pCamera->pUBO->dynamicAlignment;
+            uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
+            FBR_LOG_DEBUG("offset", dynamicGlobalOffset, dynamicCameraIndex);
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutStandard,
@@ -356,6 +358,9 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrDescriptors *pDescriptors = pApp->pDescriptors;
     FbrNode *pTestNode = pApp->pTestNode;
 
+    int priorTimelineSwitch = 0;
+    int childDynamicCameraIndex = 0;
+
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
         // todo switch to vulkan timing primitives
         pTime->currentTime = glfwGetTime();
@@ -377,10 +382,10 @@ static void parentMainLoop(FbrApp *pApp) {
         uint32_t swapIndex;
         FBR_VK_CHECK_COMMAND(vkAcquireNextImageKHR(pVulkan->device,
                                                    pSwap->swapChain,
-                              UINT64_MAX,
+                                                   UINT64_MAX,
                                                    pSwap->acquireComplete,
-                              VK_NULL_HANDLE,
-                              &swapIndex));
+                                                   VK_NULL_HANDLE,
+                                                   &swapIndex));
 
         beginFrameCommandBuffer(pVulkan, pSwap->extent);
 
@@ -394,8 +399,9 @@ static void parentMainLoop(FbrApp *pApp) {
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pPipelines->pipeStandard);
         // Global
-        fbrUpdateCameraUBO(pCamera);
-        uint32_t dynamicGlobalOffset = 0 * pCamera->pUBO->dynamicAlignment;
+        int dynamicCameraIndex = (int) (pMainSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT);
+        fbrUpdateCameraUBO(pCamera, dynamicCameraIndex);
+        uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pPipelines->pipeLayoutStandard,
@@ -428,13 +434,17 @@ static void parentMainLoop(FbrApp *pApp) {
         recordRenderMesh(pVulkan,
                          pApp->pTestQuadMesh);
 
-
         if (pTestNode != NULL) {
-            //test node
+            //test node is reading the semaphore slower than just sharing CPU memory?
             vkGetSemaphoreCounterValue(pVulkan->device,
                                        pTestNode->pChildSemaphore->semaphore,
                                        &pTestNode->pChildSemaphore->waitValue);
             int timelineSwitch = (int) (pTestNode->pChildSemaphore->waitValue % 2);
+            if (priorTimelineSwitch != timelineSwitch) {
+                priorTimelineSwitch = timelineSwitch;
+                childDynamicCameraIndex = dynamicCameraIndex;
+            }
+
             // Material
             fbrUpdateTransformMatrix(pTestNode->pTransform);
             vkCmdBindPipeline(pVulkan->commandBuffer,
@@ -448,14 +458,17 @@ static void parentMainLoop(FbrApp *pApp) {
                                     &pDescriptors->setGlobal,
                                     1,
                                     &dynamicGlobalOffset);
+
+            uint32_t childDynamicGlobalOffset = childDynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
+            FBR_LOG_DEBUG("parent offset", childDynamicGlobalOffset, childDynamicCameraIndex);
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutNode,
                                     FBR_NODE_SET_INDEX,
                                     1,
                                     &pApp->pCompMaterialSets[timelineSwitch],
-                                    0,
-                                    NULL);
+                                    1,
+                                    &childDynamicGlobalOffset);
             recordNodeRenderPass(pVulkan,
                                  pTestNode,
                                  timelineSwitch);

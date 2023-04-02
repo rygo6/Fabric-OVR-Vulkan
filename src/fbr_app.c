@@ -84,6 +84,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutNode,
                              pApp->pTestNode->pTransform,
+                             pApp->pCamera,
                              pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
                              pApp->pTestNode->pFramebuffers[i]->pColorTexture,
                              &pApp->pCompMaterialSets[i]);
