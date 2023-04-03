@@ -199,6 +199,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pNodeParent->pTransform->pos,
                      (vec3) {1, 0, 0},
                      pApp->pNodeParent->pTransform->pos);
+        fbrUpdateTransformMatrix(pApp->pNodeParent->pTransform);
 
         // for debugging ipc now, wait for camera
         while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
@@ -213,7 +214,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
         glm_vec3_add(pApp->pTestQuadTransform->pos,
-                     (vec3) {1, 0, 0},
+                     (vec3) {1, 0, 0.0f},
                      pApp->pTestQuadTransform->pos);
         fbrCreateTextureFromFile(pVulkan,
                                  false,
@@ -272,7 +273,6 @@ void fbrCleanup(FbrApp *pApp) {
         fbrDestroyPipelines(pVulkan, pApp->pPipelines);
         vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompMaterialSets[0]);
         vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->pCompMaterialSets[1]);
-        vkFreeDescriptorSets(pVulkan->device, pApp->pVulkan->descriptorPool, 1, &pApp->compObjectSet);
     }
 
     fbrDestroyTexture(pVulkan, pApp->pTestQuadTexture);

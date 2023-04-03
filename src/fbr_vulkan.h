@@ -6,18 +6,15 @@
 #include "fbr_timeline_semaphore.h"
 //#include "vulkan/vk_enum_string_helper.h"
 
-//typedef enum FbrResult {
-//    FBR_SUCCESS = 0,
-//    FBR_FAIL = 1,
-//} FbrResult;
-
 typedef enum FbrResultFlags {
     FBR_FAIL = 1111000001,
 } FbrResult;
 
 #define FBR_SUCCESS VK_SUCCESS
 #define FBR_RESULT VkResult
+#define FBR_ALLOCATOR NULL
 
+// TODO switch all these to FBR_ACK
 #define FBR_VK_CHECK(command)\
     do { \
         VkResult result = command; \
@@ -35,30 +32,21 @@ typedef enum FbrResultFlags {
     }                                                                                                                   \
 })
 
-//1000001003
-//2147483647
-// string_VkResult(result)
-
-#define FBR_VK_CHECK_COMMAND(command)\
+// If a VK command fails with device loss force a soft exit. Technically these should be able to
+// try and recreate themselves if this happens.
+#define FBR_ACK_EXIT(command)\
     do { \
         VkResult result = command;   \
         if (result == VK_ERROR_DEVICE_LOST) { \
-            printf("VKCheck Command Fail! DEVICE LOST! - %s - %s - %d\n", __FUNCTION__, #command, result); \
+            printf("VKCheck Command Fail! DEVICE LOST! Exiting! - %s - %s - %d\n", __FUNCTION__, #command, result); \
             if (pVulkan->isChild) {  \
-                exit(0); \
-            } \
-            printf("Attempting logical device recreation!\n"); \
-            VkResult createLogicalDeviceResult = createLogicalDevice(pVulkan); \
-            if (result == VK_ERROR_DEVICE_LOST) { \
-                printf("Create new logical device fail! DEVICE LOST! - %s - %s - %d\n", __FUNCTION__, #command, result); \
+                _exit(0); \
             } \
         } \
         if (result != VK_SUCCESS) { \
             printf("VKCheck Fail! - %s - %s - %d\n", __FUNCTION__, #command, result); \
         } \
     } while (0)
-
-#define FBR_ALLOCATOR NULL
 
 typedef struct FbrVulkan {
     // todo none of these should be here?

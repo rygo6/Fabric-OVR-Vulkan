@@ -6,6 +6,7 @@
 #include "fbr_mesh.h"
 #include "fbr_framebuffer.h"
 #include "fbr_buffer.h"
+#include "fbr_camera.h"
 
 #define FBR_NODE_VERTEX_COUNT 4
 #define FBR_NODE_VERTEX_BUFFER_SIZE (sizeof(Vertex) * FBR_NODE_VERTEX_COUNT)
@@ -41,7 +42,7 @@ typedef struct FbrNode {
 
 } FbrNode;
 
-void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNode *pNode);
+void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraUBO camUboData, versor camRot, int timelineSwitch, FbrNode *pNode);
 
 VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
 

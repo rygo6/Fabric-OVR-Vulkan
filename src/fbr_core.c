@@ -25,7 +25,7 @@ static void waitForTimeLine(FbrVulkan *pVulkan, FbrTimelineSemaphore *pTimelineS
             .pSemaphores = &pTimelineSemaphore->semaphore,
             .pValues = &pTimelineSemaphore->waitValue,
     };
-    FBR_VK_CHECK_COMMAND(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
+    FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 }
 
 static void processInputFrame(FbrApp *pApp) {
@@ -98,7 +98,8 @@ static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrNode *pNode,
 }
 
 static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemaphore) {
-    const uint64_t waitValue = pSemaphore->waitValue++;
+    const uint64_t waitValue = pSemaphore->waitValue;
+    pSemaphore->waitValue++;
     const uint64_t signalValue = pSemaphore->waitValue;
     const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfo = {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
@@ -119,37 +120,38 @@ static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemapho
     const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
             .pNext = NULL,
-            .waitSemaphoreInfoCount = 1,
-            .pWaitSemaphoreInfos = &waitSemaphoreSubmitInfo,
+//            .waitSemaphoreInfoCount = 1,
+//            .pWaitSemaphoreInfos = &waitSemaphoreSubmitInfo,
             .signalSemaphoreInfoCount = 1,
             .pSignalSemaphoreInfos = &signalSemaphoreSubmitInfo,
             .commandBufferInfoCount = 1,
             .pCommandBufferInfos = &commandBufferInfo,
     };
-    FBR_VK_CHECK_COMMAND(vkQueueSubmit2(pVulkan->queue,
-                                        1,
-                                        &submitInfo,
-                                        VK_NULL_HANDLE));
+    FBR_ACK_EXIT(vkQueueSubmit2(pVulkan->queue,
+                                1,
+                                &submitInfo,
+                                VK_NULL_HANDLE));
 }
 
 static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrTimelineSemaphore *pSemaphore, uint32_t swapIndex) {
     // https://www.khronos.org/blog/vulkan-timeline-semaphores
-    const uint64_t waitValue = pSemaphore->waitValue++;
+    const uint64_t waitValue = pSemaphore->waitValue;
+    pSemaphore->waitValue++;
     const uint64_t signalValue = pSemaphore->waitValue;
-    const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfos[2] = {
-            {
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pSemaphore->semaphore,
-                    .value = waitValue,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-            },
+    const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfos[] = {
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
+//                    .semaphore = pSemaphore->semaphore,
+//                    .value = waitValue,
+//                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+//            },
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
                     .semaphore = pSwap->acquireComplete,
                     .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
             }
     };
-    const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfos[2] = {
+    const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfos[] = {
             {
                     .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
                     .semaphore = pSemaphore->semaphore,
@@ -170,17 +172,17 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrT
     const VkSubmitInfo2 submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
             .pNext = NULL,
-            .waitSemaphoreInfoCount = 2,
+            .waitSemaphoreInfoCount = 1,
             .pWaitSemaphoreInfos = waitSemaphoreSubmitInfos,
             .signalSemaphoreInfoCount = 2,
             .pSignalSemaphoreInfos = signalSemaphoreSubmitInfos,
             .commandBufferInfoCount = 1,
             .pCommandBufferInfos = &commandBufferInfo,
     };
-    FBR_VK_CHECK_COMMAND(vkQueueSubmit2(pVulkan->queue,
-                   1,
-                   &submitInfo,
-                   VK_NULL_HANDLE));
+    FBR_ACK_EXIT(vkQueueSubmit2(pVulkan->queue,
+                                1,
+                                &submitInfo,
+                                VK_NULL_HANDLE));
 
     // TODO want to use this?? https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_present_id.html
     const VkPresentInfoKHR presentInfo = {
@@ -191,15 +193,15 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrT
             .pSwapchains = &pSwap->swapChain,
             .pImageIndices = &swapIndex,
     };
-    FBR_VK_CHECK_COMMAND(vkQueuePresentKHR(pVulkan->queue, &presentInfo));
+    FBR_ACK_EXIT(vkQueuePresentKHR(pVulkan->queue, &presentInfo));
 }
 
 static void beginFrameCommandBuffer(FbrVulkan *pVulkan, VkExtent2D extent) {
-    FBR_VK_CHECK_COMMAND(vkResetCommandBuffer(pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
+    FBR_ACK_EXIT(vkResetCommandBuffer(pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
     const VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
     };
-    FBR_VK_CHECK_COMMAND(vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo));
+    FBR_ACK_EXIT(vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo));
 
     const VkViewport viewport = {
             .x = 0.0f,
@@ -231,21 +233,80 @@ static void childMainLoop(FbrApp *pApp) {
     FbrPipelines *pPipelines = pApp->pPipelines;
     FbrDescriptors *pDescriptors = pApp->pDescriptors;
 
-//    bool firstRun = true;
-
-    const uint64_t parentTimelineStep = 8;
+    const uint64_t parentTimelineStep = 20;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
     pParentSemaphore->waitValue += parentTimelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
 
+    int count = 0;
+
+
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
+//        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
+
         pTime->currentTime = glfwGetTime();
         pTime->deltaTime = pTime->currentTime - lastFrameTime;
         lastFrameTime = pTime->currentTime;
 
-//        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
+        // Update to current parent time, don't let it go faster than parent allows.
+        vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
+        int dynamicCameraIndex = (int) pParentSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT;
+        int timelineSwitch = (int) (pChildSemaphore->waitValue % 2);
 
-        // wait on both parent and child
+        beginFrameCommandBuffer(pVulkan,
+                                pFrameBuffers[timelineSwitch]->pColorTexture->extent);
+        beginRenderPassImageless(pVulkan,
+                                 pFrameBuffers[timelineSwitch],
+                                 pVulkan->renderPass,
+                                 (VkClearColorValue) {{0.0f, 0.0f, 0.0f, 1.0f}});
+        vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
+        // Global
+        uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                1,
+                                &dynamicGlobalOffset);
+        // Material
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_MATERIAL_SET_INDEX,
+                                1,
+                                &pApp->testQuadMaterialSet,
+                                0,
+                                NULL);
+        //cube 1
+        fbrUpdateTransformMatrix(pApp->pTestQuadTransform);
+        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->pipeLayoutStandard,
+                                FBR_OBJECT_SET_INDEX,
+                                1,
+                                &pApp->testQuadObjectSet,
+                                0,
+                                NULL);
+        recordRenderMesh(pVulkan,
+                         pApp->pTestQuadMesh);
+        // end framebuffer pass
+        vkCmdEndRenderPass(pVulkan->commandBuffer);
+
+        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
+
+        FBR_LOG_DEBUG("Rendering... ", dynamicCameraIndex, timelineSwitch);
+
+//        if (count < 10){
+//            count++;
+            fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
+//        }
+
+        submitQueue(pVulkan, pChildSemaphore);
+
+        // Add step to parent and wait on both child and parent
+        pParentSemaphore->waitValue += parentTimelineStep;
         const VkSemaphoreWaitInfo semaphoreWaitInfo = {
                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
                 .pNext = NULL,
@@ -256,81 +317,14 @@ static void childMainLoop(FbrApp *pApp) {
                 .pValues = (const uint64_t[]) {pParentSemaphore->waitValue,
                                                pChildSemaphore->waitValue}
         };
-        FBR_VK_CHECK_COMMAND(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
-
-        // Update to current parent time, don't let it go faster than parent allows.
-        // TODO can be be predictive to start just in time for parent frame flip?
-        vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
-        int dynamicCameraIndex = (int) pParentSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT;
-        pParentSemaphore->waitValue += parentTimelineStep;
-        int timelineSwitch = (int) (pChildSemaphore->waitValue % 2);
+        FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished wait on timeline should be enough!!!
-        if (pVulkan->enableValidationLayers)
-            FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
-
-        // not exactly order for this, but we need cam UBO data for each frame step
-        fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
-
-//        if (firstRun)
-        {
-//            firstRun = false;
-
-            // Todo there is some trickery to de done here with multiple frames per child node framebuffer
-            // and it swapping them, but this seems to be no issue on nvidia due to how nvidia implements this stuff...
-            beginFrameCommandBuffer(pVulkan, pFrameBuffers[timelineSwitch]->pColorTexture->extent);
-
-            beginRenderPassImageless(pVulkan,
-                                     pFrameBuffers[timelineSwitch],
-                                     pVulkan->renderPass,
-                                     (VkClearColorValue) {{0.0f, 0.0f, 0.0f, 1.0f}});
-
-
-            vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
-            // Global
-            uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
-            FBR_LOG_DEBUG("offset", dynamicGlobalOffset, dynamicCameraIndex);
-            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->pipeLayoutStandard,
-                                    FBR_GLOBAL_SET_INDEX,
-                                    1,
-                                    &pDescriptors->setGlobal,
-                                    1,
-                                    &dynamicGlobalOffset);
-
-            // Material
-            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->pipeLayoutStandard,
-                                    FBR_MATERIAL_SET_INDEX,
-                                    1,
-                                    &pApp->testQuadMaterialSet,
-                                    0,
-                                    NULL);
-
-            //cube 1
-            fbrUpdateTransformMatrix(pApp->pTestQuadTransform);
-            vkCmdBindDescriptorSets(pVulkan->commandBuffer,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->pipeLayoutStandard,
-                                    FBR_OBJECT_SET_INDEX,
-                                    1,
-                                    &pApp->testQuadObjectSet,
-                                    0,
-                                    NULL);
-            recordRenderMesh(pVulkan,
-                             pApp->pTestQuadMesh);
-
-
-            // end framebuffer pass
-            vkCmdEndRenderPass(pVulkan->commandBuffer);
-
-            FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
-
+        if (pVulkan->enableValidationLayers) {
+            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->queue));
         }
 
-        submitQueue(pVulkan, pChildSemaphore);
+        FBR_LOG_DEBUG("Render Complete. Updating mesh for... ", dynamicCameraIndex, timelineSwitch);
 
         // todo for light cleanup exit if time exceeds
 //        _exit(0);
@@ -359,33 +353,46 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrNode *pTestNode = pApp->pTestNode;
 
     int priorTimelineSwitch = 0;
-    int childDynamicCameraIndex = 0;
+    int currentChildDynamicCameraIndex = 0;
+    int priorChildDynamicCameraIndex = 0;
+
+//    FbrCameraUBO priorCamUboData = pCamera->uboData;
+//    versor priorCamRot;
+//    glm_quat_copy(pCamera->pTransform->rot, priorCamRot);
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
+//        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
+
         // todo switch to vulkan timing primitives
         pTime->currentTime = glfwGetTime();
         pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
         lastFrameTime = pTime->currentTime;
 
-//        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
-
-        waitForTimeLine(pVulkan, pMainSemaphore);
+        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .pNext = NULL,
+                .flags = 0,
+                .semaphoreCount = 1,
+                .pSemaphores = &pMainSemaphore->semaphore,
+                .pValues = &pMainSemaphore->waitValue,
+        };
+        FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
         // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
         // wait on timeline should be enough!!
         if (pVulkan->enableValidationLayers)
-            FBR_VK_CHECK_COMMAND(vkQueueWaitIdle(pVulkan->queue));
+            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->queue));
 
         processInputFrame(pApp);
 
         // Get open swap image
         uint32_t swapIndex;
-        FBR_VK_CHECK_COMMAND(vkAcquireNextImageKHR(pVulkan->device,
-                                                   pSwap->swapChain,
-                                                   UINT64_MAX,
-                                                   pSwap->acquireComplete,
-                                                   VK_NULL_HANDLE,
-                                                   &swapIndex));
+        FBR_ACK_EXIT(vkAcquireNextImageKHR(pVulkan->device,
+                                           pSwap->swapChain,
+                                           UINT64_MAX,
+                                           pSwap->acquireComplete,
+                                           VK_NULL_HANDLE,
+                                           &swapIndex));
 
         beginFrameCommandBuffer(pVulkan, pSwap->extent);
 
@@ -435,18 +442,30 @@ static void parentMainLoop(FbrApp *pApp) {
                          pApp->pTestQuadMesh);
 
         if (pTestNode != NULL) {
-            //test node is reading the semaphore slower than just sharing CPU memory?
+            //TODO is reading the semaphore slower than just sharing CPU memory?
+
             vkGetSemaphoreCounterValue(pVulkan->device,
                                        pTestNode->pChildSemaphore->semaphore,
                                        &pTestNode->pChildSemaphore->waitValue);
-            int timelineSwitch = (int) (pTestNode->pChildSemaphore->waitValue % 2);
+
+            fbrUpdateTransformMatrix(pTestNode->pTransform);
+
+            int timelineSwitch = (int) ((pTestNode->pChildSemaphore->waitValue) % 2);
             if (priorTimelineSwitch != timelineSwitch) {
                 priorTimelineSwitch = timelineSwitch;
-                childDynamicCameraIndex = dynamicCameraIndex;
+                priorChildDynamicCameraIndex = currentChildDynamicCameraIndex;
+                currentChildDynamicCameraIndex = dynamicCameraIndex;
+
+//                fbrUpdateNodeMesh(pVulkan, priorCamUboData, priorCamRot, timelineSwitch, pTestNode);
+//
+//                priorCamUboData = pCamera->uboData;
+//                glm_quat_copy(pCamera->pTransform->rot, priorCamRot);
+
+                FBR_LOG_DEBUG("parent switch");
             }
 
             // Material
-            fbrUpdateTransformMatrix(pTestNode->pTransform);
+//            fbrUpdateTransformMatrix(pTestNode->pTransform);
             vkCmdBindPipeline(pVulkan->commandBuffer,
                               VK_PIPELINE_BIND_POINT_GRAPHICS,
                               pPipelines->pipeNode);
@@ -459,8 +478,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                     1,
                                     &dynamicGlobalOffset);
 
-            uint32_t childDynamicGlobalOffset = childDynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
-            FBR_LOG_DEBUG("parent offset", childDynamicGlobalOffset, childDynamicCameraIndex);
+            uint32_t childDynamicGlobalOffset = priorChildDynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutNode,
@@ -472,12 +490,15 @@ static void parentMainLoop(FbrApp *pApp) {
             recordNodeRenderPass(pVulkan,
                                  pTestNode,
                                  timelineSwitch);
+
+
+            FBR_LOG_DEBUG("Displaying: ", priorChildDynamicCameraIndex, timelineSwitch);
         }
 
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
-        FBR_VK_CHECK_COMMAND(vkEndCommandBuffer(pVulkan->commandBuffer));
+        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
 
         submitQueueAndPresent(pVulkan, pSwap, pMainSemaphore, swapIndex);
     }

@@ -394,6 +394,8 @@ static FBR_RESULT createPipes(const FbrVulkan *pVulkan,
     FBR_ACK(fbrCreatePipeStandard(pVulkan,
                                   pPipes->pipeLayoutStandard,
                                   "./shaders/vert.spv",
+//                                  pVulkan->isChild ?
+//                                  "./shaders/frag_crasher.spv":
                                   "./shaders/frag.spv",
                                   &pPipes->pipeStandard));
 

@@ -50,9 +50,7 @@ typedef struct FbrApp {
     VkDescriptorSet testQuadMaterialSet;
     VkDescriptorSet testQuadObjectSet;
 
-//    FbrTransform *pCompTransform;
     VkDescriptorSet pCompMaterialSets[2];
-    VkDescriptorSet compObjectSet;
 
     // go in fbrvulkan?
     FbrDescriptors *pDescriptors;

@@ -14,9 +14,8 @@ const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
         {{-0.5f, 0.5f, 0.0f},  {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 };
 
-void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int dynamicCameraIndex, int timelineSwitch, FbrNodeParent *pNode) {
-    fbrUpdateTransformMatrix(pNode->pTransform);
-
+void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int dynamicCameraIndex, int timelineSwitch, FbrNodeParent *pNode)
+{
     uint32_t dynamicOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
     memcpy(&pCamera->uboData, pCamera->pUBO->pUniformBufferMapped + dynamicOffset, sizeof(FbrCameraUBO));
     glm_mat4_copy(pCamera->uboData.trs, pCamera->pTransform->uboData.model);

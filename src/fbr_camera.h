@@ -6,7 +6,7 @@
 #include "fbr_transform.h"
 #include "fbr_buffer.h"
 
-#define FBR_DYNAMIC_MAIN_CAMERA_COUNT 16
+#define FBR_DYNAMIC_MAIN_CAMERA_COUNT 32
 
 typedef struct FbrCameraUBO {
     mat4 view;

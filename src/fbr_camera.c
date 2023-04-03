@@ -78,7 +78,7 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
     fbrImportUBO(pVulkan,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                  sizeof(FbrCamera),
                  dynamicCount,
@@ -101,7 +101,7 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
     FBR_ACK(fbrCreateUBO(pVulkan,
-                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                          sizeof(FbrCamera),
                          dynamicCount,
