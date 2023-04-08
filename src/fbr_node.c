@@ -105,7 +105,7 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
     }
 
     FBR_ACK(fbrCreateUBO(pVulkan,
-                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // host cached too?
+                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // host cached too?
                           VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                          FBR_NODE_INDEX_BUFFER_SIZE,
                          FBR_NO_DYNAMIC_BUFFER,

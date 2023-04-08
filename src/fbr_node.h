@@ -19,6 +19,10 @@ typedef struct FbrNodeVertex {
     vec2 texCoord;
 } FbrNodeVertex;
 
+typedef struct FbrNodeState {
+    uint8_t timelineSwitch;
+} FbrNodeState;
+
 typedef struct FbrNode {
     FbrTransform *pTransform;
 
@@ -30,6 +34,11 @@ typedef struct FbrNode {
 
     FbrIPC *pProducerIPC;
     FbrIPC *pReceiverIPC;
+
+#ifdef WIN32
+    HANDLE nodeStateExternalHandle;
+#endif
+    FbrNodeState *pNodeState;
 
     FbrTimelineSemaphore *pChildSemaphore;
 

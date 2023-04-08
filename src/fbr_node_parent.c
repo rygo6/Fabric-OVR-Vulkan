@@ -88,6 +88,15 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int d
     glm_vec3_copy(forward, pNode->nodeVerticesBuffer[3].normal);
 
     memcpy(pNode->pVertexUBOs[timelineSwitch]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
+
+//    VkMappedMemoryRange memoryRange = {
+//            .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+//            .pNext = NULL,
+//            .offset = 0,
+//            .size = FBR_NODE_VERTEX_BUFFER_SIZE,
+//            .memory = pNode->pVertexUBOs[timelineSwitch]->uniformBufferMemory
+//    };
+//    vkFlushMappedMemoryRanges(pVulkan->device, 1, &memoryRange);
 }
 
 void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent) {

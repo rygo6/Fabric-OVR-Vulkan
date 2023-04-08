@@ -238,10 +238,16 @@ static void childMainLoop(FbrApp *pApp) {
     pParentSemaphore->waitValue += parentTimelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
 
-    int count = 0;
+    uint8_t timelineSwitch = 0;
 
+    int debugStop = 0;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
+//        if (debugStop > 10){
+//            continue;
+//        }
+//        debugStop++;
+
 //        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
         pTime->currentTime = glfwGetTime();
@@ -250,8 +256,8 @@ static void childMainLoop(FbrApp *pApp) {
 
         // Update to current parent time, don't let it go faster than parent allows.
         vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
-        int dynamicCameraIndex = (int) pParentSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT;
-        int timelineSwitch = (int) (pChildSemaphore->waitValue % 2);
+//        uint8_t dynamicCameraIndex = (uint8_t) pParentSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT;
+        uint8_t dynamicCameraIndex = 0;
 
         beginFrameCommandBuffer(pVulkan,
                                 pFrameBuffers[timelineSwitch]->pColorTexture->extent);
@@ -298,11 +304,6 @@ static void childMainLoop(FbrApp *pApp) {
 
         FBR_LOG_DEBUG("Rendering... ", dynamicCameraIndex, timelineSwitch);
 
-//        if (count < 10){
-//            count++;
-            fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
-//        }
-
         submitQueue(pVulkan, pChildSemaphore);
 
         // Add step to parent and wait on both child and parent
@@ -319,12 +320,25 @@ static void childMainLoop(FbrApp *pApp) {
         };
         FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
-        // for some reason this fixes a bug with validation layers thinking the queue hasnt finished wait on timeline should be enough!!!
+        // for some reason this fixes a bug with validation layers thinking the queue hasn't finished wait on timeline should be enough!!!
         if (pVulkan->enableValidationLayers) {
             FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->queue));
         }
 
         FBR_LOG_DEBUG("Render Complete. Updating mesh for... ", dynamicCameraIndex, timelineSwitch);
+        fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
+
+        pChildSemaphore->waitValue++;
+        VkSemaphoreSignalInfo semaphoreSignalInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+                .pNext = NULL,
+                .semaphore = pChildSemaphore->semaphore,
+                .value = pChildSemaphore->waitValue
+        };
+        vkSignalSemaphore(pVulkan->device, &semaphoreSignalInfo);
+        FBR_LOG_DEBUG("Mesh update Complete. Signalling semaphore for... ", pChildSemaphore->waitValue);
+
+        timelineSwitch = (timelineSwitch + 1) % 2;
 
         // todo for light cleanup exit if time exceeds
 //        _exit(0);
@@ -352,9 +366,10 @@ static void parentMainLoop(FbrApp *pApp) {
     FbrDescriptors *pDescriptors = pApp->pDescriptors;
     FbrNode *pTestNode = pApp->pTestNode;
 
-    int priorTimelineSwitch = 0;
     int currentChildDynamicCameraIndex = 0;
     int priorChildDynamicCameraIndex = 0;
+    uint64_t priorChildTimeline = 0;
+    uint8_t timelineSwitch = 1;
 
 //    FbrCameraUBO priorCamUboData = pCamera->uboData;
 //    versor priorCamRot;
@@ -406,7 +421,8 @@ static void parentMainLoop(FbrApp *pApp) {
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pPipelines->pipeStandard);
         // Global
-        int dynamicCameraIndex = (int) (pMainSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT);
+//        uint8_t dynamicCameraIndex = (int) (pMainSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT);
+        uint8_t dynamicCameraIndex = 0;
         fbrUpdateCameraUBO(pCamera, dynamicCameraIndex);
         uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
@@ -443,25 +459,26 @@ static void parentMainLoop(FbrApp *pApp) {
 
         if (pTestNode != NULL) {
             //TODO is reading the semaphore slower than just sharing CPU memory?
-
             vkGetSemaphoreCounterValue(pVulkan->device,
                                        pTestNode->pChildSemaphore->semaphore,
                                        &pTestNode->pChildSemaphore->waitValue);
+            if (priorChildTimeline + 2 <= pTestNode->pChildSemaphore->waitValue) {
 
-            fbrUpdateTransformMatrix(pTestNode->pTransform);
+                priorChildTimeline = pTestNode->pChildSemaphore->waitValue;
 
-            int timelineSwitch = (int) ((pTestNode->pChildSemaphore->waitValue) % 2);
-            if (priorTimelineSwitch != timelineSwitch) {
-                priorTimelineSwitch = timelineSwitch;
+                timelineSwitch = (timelineSwitch + 1) % 2;
+
                 priorChildDynamicCameraIndex = currentChildDynamicCameraIndex;
                 currentChildDynamicCameraIndex = dynamicCameraIndex;
 
+                uint32_t childDynamicOffset = 1 * pCamera->pUBO->dynamicAlignment;
+                memcpy(pCamera->pUBO->pUniformBufferMapped + childDynamicOffset, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraUBO));
+
 //                fbrUpdateNodeMesh(pVulkan, priorCamUboData, priorCamRot, timelineSwitch, pTestNode);
-//
 //                priorCamUboData = pCamera->uboData;
 //                glm_quat_copy(pCamera->pTransform->rot, priorCamRot);
 
-                FBR_LOG_DEBUG("parent switch");
+                FBR_LOG_DEBUG("parent switch", timelineSwitch, pTestNode->pChildSemaphore->waitValue);
             }
 
             // Material
@@ -478,7 +495,8 @@ static void parentMainLoop(FbrApp *pApp) {
                                     1,
                                     &dynamicGlobalOffset);
 
-            uint32_t childDynamicGlobalOffset = priorChildDynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
+//            uint32_t childDynamicGlobalOffset = priorChildDynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
+            uint32_t childDynamicGlobalOffset = 1 * pCamera->pUBO->dynamicAlignment;
             vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutNode,
@@ -492,7 +510,8 @@ static void parentMainLoop(FbrApp *pApp) {
                                  timelineSwitch);
 
 
-            FBR_LOG_DEBUG("Displaying: ", priorChildDynamicCameraIndex, timelineSwitch);
+            uint64_t childWaitValue = pTestNode->pChildSemaphore->waitValue;
+            FBR_LOG_DEBUG("Displaying: ", priorChildDynamicCameraIndex, timelineSwitch, childWaitValue);
         }
 
         // end swap pass

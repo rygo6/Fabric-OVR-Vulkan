@@ -197,10 +197,6 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
     if (depthFormat != VK_FORMAT_D32_SFLOAT)
         FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
     VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    VkImageUsageFlags a = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    VkImageUsageFlags b = VK_IMAGE_USAGE_SAMPLED_BIT;
-    VkImageUsageFlags c = (VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-
     VkImageUsageFlags depthUsage = external ? FBR_EXTERNAL_DEPTH_BUFFER_USAGE : FBR_DEPTH_BUFFER_USAGE;
     fbrCreateTexture(pVulkan,
                      depthFormat,

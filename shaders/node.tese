@@ -25,6 +25,17 @@ layout (location = 1) in vec2 inUV[];
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outUV;
 
+//vec3 calculate_world_position(vec2 texture_coordinate, float depth_from_depth_buffer)
+//{
+//    vec4 clip_space_position = vec4(texture_coordinate * 2.0 - vec2(1.0), 2.0 * depth_from_depth_buffer - 1.0, 1.0);
+//
+//    mat4 inverse_view_projection_matrix = inverse(nodeUBO.view * nodeUBO.proj);
+//    //vec4 position = inverse_projection_matrix * clip_space_position; // Use this for view space
+//    vec4 position = inverse_view_projection_matrix * clip_space_position; // Use this for world space
+//
+//    return (position.xyz / position.w);
+//}
+
 void main()
 {
     outUV = mix(
@@ -46,7 +57,7 @@ void main()
     float depth = texture(depth, outUV).r;
 
     // Calculate clip space coordinates
-    vec4 clipPos = vec4(outUV * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+    vec4 clipPos = vec4(outUV * 2.0 - 1.0, depth, 1.0);
 
     // Convert clip space coordinates to eye space coordinates
     vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
@@ -56,6 +67,8 @@ void main()
 
     // Convert NDC coordinates to world space coordinates
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
+
+//    vec3 worldPos = calculate_world_position(outUV, depth);
 
     gl_Position = globalUBO.proj * globalUBO.view * worldPos;
 
