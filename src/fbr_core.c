@@ -362,14 +362,15 @@ static void childMainLoop(FbrApp *pApp) {
         }
 
 
-        // Release framebuffer
+        // Release framebuffer but use a different command buffer so you dont have to wait on prior submit!
         FBR_LOG_DEBUG("Releasing... ", timelineSwitch, pChildSemaphore->waitValue);
         FBR_ACK_EXIT(vkResetCommandBuffer(pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
         const VkCommandBufferBeginInfo beginInfo = {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         };
         FBR_ACK_EXIT(vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo));
-        // release framebuffer ownership
+        // release framebuffer ownership investigate not filling in the src/dst info if you don't need
+        // to retain it, supposedly faster? https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#multiple-queues
         VkImageMemoryBarrier2 pReleaseImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
