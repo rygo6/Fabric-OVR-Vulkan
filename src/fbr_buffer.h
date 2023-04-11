@@ -9,6 +9,21 @@
 
 #define FBR_NO_DYNAMIC_BUFFER 0
 
+#define FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE\
+.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,\
+.subresourceRange.baseMipLevel = 0,\
+.subresourceRange.levelCount = 1,\
+.subresourceRange.baseArrayLayer = 0,\
+.subresourceRange.layerCount = 1,\
+
+#define FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE\
+.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,\
+.subresourceRange.baseMipLevel = 0,\
+.subresourceRange.levelCount = 1,\
+.subresourceRange.baseArrayLayer = 0,\
+.subresourceRange.layerCount = 1,\
+
+
 typedef struct FbrUniformBufferObject {
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;

@@ -69,15 +69,8 @@ bool setupRTPrivileges(){
     return ret;
 }
 
-int testreturn() {
-    10;
-}
 
 int main(int argc, char *argv[]) {
-
-    int val = testreturn();
-    FBR_LOG_DEBUG("starting!", val);
-
 
 //    setupRTPrivileges();
 

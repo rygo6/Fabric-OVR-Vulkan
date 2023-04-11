@@ -260,37 +260,27 @@ static void childMainLoop(FbrApp *pApp) {
         VkImageMemoryBarrier2 pAcquireImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                        .srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                        .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        .srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
                         .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .image = pFrameBuffers[timelineSwitch]->pColorTexture->image,
-                        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                        .subresourceRange.baseMipLevel = 0,
-                        .subresourceRange.levelCount = 1,
-                        .subresourceRange.baseArrayLayer = 0,
-                        .subresourceRange.layerCount = 1,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                        .srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                        .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
                         .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
-                        .srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
                         .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .image = pFrameBuffers[timelineSwitch]->pDepthTexture->image,
-                        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-                        .subresourceRange.baseMipLevel = 0,
-                        .subresourceRange.levelCount = 1,
-                        .subresourceRange.baseArrayLayer = 0,
-                        .subresourceRange.layerCount = 1,
+                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 }
         };
         VkDependencyInfo acquireDependencyInfo = {
@@ -340,71 +330,33 @@ static void childMainLoop(FbrApp *pApp) {
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
-        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
-
         fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
 
-        FBR_LOG_DEBUG("Rendering... ", timelineSwitch, pChildSemaphore->waitValue);
-        submitQueue(pVulkan, pChildSemaphore);
-
-
-        // wait for render to finish
-        const VkSemaphoreWaitInfo renderSemaphoreWaitInfo = {
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                .semaphoreCount = 1,
-                .pSemaphores = &pChildSemaphore->semaphore,
-                .pValues = &pChildSemaphore->waitValue
-        };
-        FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &renderSemaphoreWaitInfo, UINT64_MAX));
-        // for some reason this fixes a bug with validation layers thinking the queue hasn't finished wait on timeline should be enough!!!
-        if (pVulkan->enableValidationLayers) {
-            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->queue));
-        }
-
-
-        // Release framebuffer but use a different command buffer so you dont have to wait on prior submit!
-        FBR_LOG_DEBUG("Releasing... ", timelineSwitch, pChildSemaphore->waitValue);
-        FBR_ACK_EXIT(vkResetCommandBuffer(pVulkan->commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
-        const VkCommandBufferBeginInfo beginInfo = {
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        };
-        FBR_ACK_EXIT(vkBeginCommandBuffer(pVulkan->commandBuffer, &beginInfo));
-        // release framebuffer ownership investigate not filling in the src/dst info if you don't need
-        // to retain it, supposedly faster? https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#multiple-queues
+        // release framebuffer
         VkImageMemoryBarrier2 pReleaseImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                         .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                         .srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .image = pFrameBuffers[timelineSwitch]->pColorTexture->image,
-                        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                        .subresourceRange.baseMipLevel = 0,
-                        .subresourceRange.levelCount = 1,
-                        .subresourceRange.baseArrayLayer = 0,
-                        .subresourceRange.layerCount = 1,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                         .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
                         .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                         .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
-                        .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
                         .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .image = pFrameBuffers[timelineSwitch]->pDepthTexture->image,
-                        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-                        .subresourceRange.baseMipLevel = 0,
-                        .subresourceRange.levelCount = 1,
-                        .subresourceRange.baseArrayLayer = 0,
-                        .subresourceRange.layerCount = 1,
+                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 }
         };
         VkDependencyInfo releaseDependencyInfo = {
@@ -413,16 +365,16 @@ static void childMainLoop(FbrApp *pApp) {
                 .pImageMemoryBarriers = pReleaseImageMemoryBarriers,
         };
         vkCmdPipelineBarrier2(pVulkan->commandBuffer, &releaseDependencyInfo);
-        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
-        submitQueue(pVulkan, pChildSemaphore);
 
+        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
+
+//        FBR_LOG_DEBUG("Rendering... ", timelineSwitch, pChildSemaphore->waitValue);
+        submitQueue(pVulkan, pChildSemaphore);
 
         // Add step to parent and wait on both child and parent
         pParentSemaphore->waitValue += parentTimelineStep;
         const VkSemaphoreWaitInfo releaseSemaphoreWaitInfo = {
                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                .pNext = NULL,
-                .flags = 0,
                 .semaphoreCount = 2,
                 .pSemaphores = (const VkSemaphore[]) {pParentSemaphore->semaphore,
                                                       pChildSemaphore->semaphore},
@@ -511,15 +463,12 @@ static void parentMainLoop(FbrApp *pApp) {
                                    &pTestNode->pChildSemaphore->waitValue);
         // Claim child framebuffers! Do this outside of renderpass
         // wait two sempahore value because it submits again to release framebuffer
-        if (priorChildTimeline + 2 <= pTestNode->pChildSemaphore->waitValue) {
+        if (priorChildTimeline != pTestNode->pChildSemaphore->waitValue) {
             priorChildTimeline = pTestNode->pChildSemaphore->waitValue;
             timelineSwitch = (timelineSwitch + 1) % 2;
             // transform child framebuffer from external to here
             // this technically isn't needed on nv hardware? but can maybe help sync anyways?
             // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#multiple-queues
-            // A layout transition which happens as part of an ownership transfer needs to be specified twice; one for the release, and one for the acquire.
-            // No srcStage/AccessMask is needed, waiting for a semaphore does that automatically.
-            // No dstStage/AccessMask is needed, signalling a semaphore does that automatically.
             VkImageMemoryBarrier2 imageMemoryBarrier[] = {
                     {
                             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -528,11 +477,7 @@ static void parentMainLoop(FbrApp *pApp) {
                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                             .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                             .image = pTestNode->pFramebuffers[timelineSwitch]->pColorTexture->image,
-                            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                            .subresourceRange.baseMipLevel = 0,
-                            .subresourceRange.levelCount = 1,
-                            .subresourceRange.baseArrayLayer = 0,
-                            .subresourceRange.layerCount = 1,
+                            FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                     },
                     {
                             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -541,11 +486,7 @@ static void parentMainLoop(FbrApp *pApp) {
                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                             .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                             .image = pTestNode->pFramebuffers[timelineSwitch]->pDepthTexture->image,
-                            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-                            .subresourceRange.baseMipLevel = 0,
-                            .subresourceRange.levelCount = 1,
-                            .subresourceRange.baseArrayLayer = 0,
-                            .subresourceRange.layerCount = 1,
+                            FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                     }
             };
             VkDependencyInfo dependencyInfo = {
@@ -554,10 +495,7 @@ static void parentMainLoop(FbrApp *pApp) {
                     .pImageMemoryBarriers = imageMemoryBarrier,    // pImageMemoryBarriers
             };
             vkCmdPipelineBarrier2(pVulkan->commandBuffer, &dependencyInfo);
-            // vulkan spec says if transferring from one queue to another does not need to maintain the
-            // validity of content, the transfer can be skipped, thats why the parent has no release
-            // https://registry.khronos.org/vulkan/specs/1.1/html/vkspec.html#synchronization-queue-transfers
-            FBR_LOG_DEBUG("parent switch", timelineSwitch, pTestNode->pChildSemaphore->waitValue);
+//            FBR_LOG_DEBUG("parent switch", timelineSwitch, pTestNode->pChildSemaphore->waitValue);
         }
 
 
@@ -635,7 +573,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                  pTestNode,
                                  timelineSwitch);
             uint64_t childWaitValue = pTestNode->pChildSemaphore->waitValue;
-            FBR_LOG_DEBUG("Displaying: ", timelineSwitch, childWaitValue);
+//            FBR_LOG_DEBUG("Displaying: ", timelineSwitch, childWaitValue);
         }
 
         // end swap pass
