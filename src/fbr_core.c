@@ -293,7 +293,7 @@ static void childMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pVulkan,
                                  pFrameBuffers[timelineSwitch],
                                  pVulkan->renderPass,
-                                 (VkClearColorValue) {{0.0f, 0.0f, 0.0f, 1.0f}});
+                                 (VkClearColorValue) {{0.3f, 0.1f, 0.5f, 0.0f}});
         vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
 
         // Global
@@ -503,7 +503,7 @@ static void parentMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pVulkan,
                                  pSwap->pFramebuffers[swapIndex],
                                  pVulkan->renderPass,
-                                 (VkClearColorValue ){{0.1f, 0.2f, 0.3f, 1.0f}});
+                                 (VkClearColorValue ){{0.1f, 0.2f, 0.3f, 0.0f}});
 
         vkCmdBindPipeline(pVulkan->commandBuffer,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -548,7 +548,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         if (pTestNode != NULL) {
             // Material
-//            fbrUpdateTransformMatrix(pTestNode->pTransform);
+            fbrUpdateTransformMatrix(pTestNode->pTransform);
             vkCmdBindPipeline(pVulkan->commandBuffer,
                               VK_PIPELINE_BIND_POINT_GRAPHICS,
                               pPipelines->pipeNode);
@@ -572,7 +572,7 @@ static void parentMainLoop(FbrApp *pApp) {
             recordNodeRenderPass(pVulkan,
                                  pTestNode,
                                  timelineSwitch);
-            uint64_t childWaitValue = pTestNode->pChildSemaphore->waitValue;
+//            uint64_t childWaitValue = pTestNode->pChildSemaphore->waitValue;
 //            FBR_LOG_DEBUG("Displaying: ", timelineSwitch, childWaitValue);
         }
 

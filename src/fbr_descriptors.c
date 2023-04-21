@@ -120,7 +120,8 @@ static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode
                     .binding = 3,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             }
     };

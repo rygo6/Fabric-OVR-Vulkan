@@ -7,6 +7,8 @@
 #include "fbr_buffer.h"
 
 #define FBR_DYNAMIC_MAIN_CAMERA_COUNT 64
+#define FBR_CAMERA_NEAR_DEPTH 0.01f
+#define FBR_CAMERA_FAR_DEPTH 10000.0f
 
 typedef struct FbrCameraUBO {
     mat4 view;

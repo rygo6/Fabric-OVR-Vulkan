@@ -74,7 +74,7 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
+    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->uboData.proj);
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
     fbrImportUBO(pVulkan,
@@ -97,7 +97,7 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, .01f, 10, pCamera->uboData.proj);
+    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->uboData.proj);
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
     FBR_ACK(fbrCreateUBO(pVulkan,
