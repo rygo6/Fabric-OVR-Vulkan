@@ -206,20 +206,17 @@ FBR_RESULT getExternalHandle(const FbrVulkan *pVulkan,
 
 // TODO this immediate command buffer creating destroy a whole command buffer and waiting each frame is horribly inefficient
 FBR_RESULT fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
-    VkCommandBufferAllocateInfo allocInfo = {
+    const VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandPool =  pVulkan->commandPool,
             .commandBufferCount = 1,
     };
-
     FBR_ACK(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
-
-    VkCommandBufferBeginInfo beginInfo = {
+    const VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
-
     FBR_ACK(vkBeginCommandBuffer(*pCommandBuffer, &beginInfo));
 
     return FBR_SUCCESS;
@@ -228,17 +225,21 @@ FBR_RESULT fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuf
 FBR_RESULT fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffer *pCommandBuffer) {
     vkEndCommandBuffer(*pCommandBuffer);
 
-    VkCommandBufferSubmitInfo commandBufferInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
-            .commandBuffer = *pCommandBuffer,
+    const VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = NULL,
+            .waitSemaphoreCount = 0,
+            .pWaitSemaphores = NULL,
+            .pWaitDstStageMask = 0,
+            .commandBufferCount = 1,
+            .pCommandBuffers = pCommandBuffer,
+            .signalSemaphoreCount = 0,
+            .pSignalSemaphores = NULL
     };
-    VkSubmitInfo2 submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            .commandBufferInfoCount = 1,
-            .pCommandBufferInfos = &commandBufferInfo,
-    };
-
-    FBR_ACK(vkQueueSubmit2(pVulkan->queue, 1, &submitInfo, VK_NULL_HANDLE));
+    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->queue,
+                               1,
+                               &submitInfo,
+                               VK_NULL_HANDLE));
     FBR_ACK(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
@@ -261,11 +262,8 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
     VkCommandBuffer commandBuffer;
     fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
-    // why is src accesss/stage not being applied!?
-    VkImageMemoryBarrier2 barrier = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            .srcStageMask = srcStageMask,
-            .dstStageMask = dstStageMask,
+    const VkImageMemoryBarrier imageMemoryBarrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask = srcAccessMask,
             .dstAccessMask = dstAccessMask,
             .oldLayout = oldLayout,
@@ -279,12 +277,13 @@ void fbrTransitionImageLayoutImmediate(const FbrVulkan *pVulkan,
             .subresourceRange.baseArrayLayer = 0,
             .subresourceRange.layerCount = 1,
     };
-    VkDependencyInfo dependencyInfo = {
-            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .imageMemoryBarrierCount = 1,
-            .pImageMemoryBarriers = &barrier,
-    };
-    vkCmdPipelineBarrier2(commandBuffer,&dependencyInfo);
+    vkCmdPipelineBarrier(commandBuffer,
+                         srcStageMask,
+                         dstStageMask,
+                         0,
+                         0, NULL,
+                         0, NULL,
+                         1, &imageMemoryBarrier);
 
     fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }
@@ -299,9 +298,8 @@ void fbrTransitionBufferLayoutImmediate(const FbrVulkan *pVulkan,
     VkCommandBuffer commandBuffer;
     fbrBeginImmediateCommandBuffer(pVulkan, &commandBuffer);
 
-    VkBufferMemoryBarrier2 barrier = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-            .pNext = NULL,
+    const VkBufferMemoryBarrier bufferMemoryBarrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask = srcAccessMask,
             .dstAccessMask = dstAccessMask,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -310,12 +308,13 @@ void fbrTransitionBufferLayoutImmediate(const FbrVulkan *pVulkan,
             .offset = 0,
             .size = 0
     };
-    VkDependencyInfo dependencyInfo = {
-            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            .bufferMemoryBarrierCount = 1,
-            .pBufferMemoryBarriers = &barrier,
-    };
-    vkCmdPipelineBarrier2(commandBuffer,&dependencyInfo);
+    vkCmdPipelineBarrier(commandBuffer,
+                         srcStageMask,
+                         dstStageMask,
+                         0,
+                         0, NULL,
+                         1, &bufferMemoryBarrier,
+                         0, NULL);
 
     fbrEndImmediateCommandBuffer(pVulkan, &commandBuffer);
 }

@@ -352,7 +352,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     };
     VkPhysicalDeviceVulkan13Features enabledFeatures13 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-            .synchronization2 = true,
+//            .synchronization2 = true,
             .robustImageAccess = true,
             .shaderTerminateInvocation = true,
             .shaderDemoteToHelperInvocation = true,
@@ -453,23 +453,23 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
                     // ... have completed execution.
                     .dependencyFlags = 0,
             },
-            {
-                    // ... In the external scope after the subpassDescription ...
-                    .dstSubpass = VK_SUBPASS_EXTERNAL,
-                    // ... before anything can occur with this pipeline stage ...
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                    // ... wait for all operations to stop ...
-                    .dstAccessMask = VK_ACCESS_NONE_KHR,
-                    // ... of this type ...
-                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                    // ... at this stage ...
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                    // ... in subpassDescription 0 ...
-                    .srcSubpass = 0,
-                    // ... before it can execute and signal the semaphore rendering complete semaphore
-                    // set to VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR on vkQueueSubmit2KHR  .
-                    .dependencyFlags = 0,
-            },
+//            {
+//                    // ... In the external scope after the subpassDescription ...
+//                    .dstSubpass = VK_SUBPASS_EXTERNAL,
+//                    // ... before anything can occur with this pipeline stage ...
+//                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+//                    // ... wait for all operations to stop ...
+//                    .dstAccessMask = VK_ACCESS_NONE_KHR,
+//                    // ... of this type ...
+//                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+//                    // ... at this stage ...
+//                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+//                    // ... in subpassDescription 0 ...
+//                    .srcSubpass = 0,
+//                    // ... before it can execute and signal the semaphore rendering complete semaphore
+//                    // set to VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR on vkQueueSubmit2KHR  .
+//                    .dependencyFlags = 0,
+//            },
     };
     const VkAttachmentDescription attachmentDescriptions[] = {
             {
@@ -480,7 +480,7 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                    .finalLayout = pVulkan->isChild ? VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    .finalLayout = pVulkan->isChild ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     .flags = 0
             },
             {
@@ -503,7 +503,7 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
             .pAttachments = attachmentDescriptions,
             .subpassCount = 1,
             .pSubpasses = &subpassDescription,
-            .dependencyCount = 2,
+            .dependencyCount = 1,
             .pDependencies = dependencies,
     };
 

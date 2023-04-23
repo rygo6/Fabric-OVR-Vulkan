@@ -14,41 +14,41 @@ float linearize_depth(float d,float zNear,float zFar)
 
 void main()
 {
-    float alphaValue = texture(color, inUV).a;
-    float depthValue = texture(depth, inUV).r;
+//    float alphaValue = texture(color, inUV).a;
+//    float depthValue = texture(depth, inUV).r;
 
-    if (alphaValue == 0) {
-        float span = 1.0 / 10.0;
+//    if (alphaValue == 0) {
+//        float span = 1.0 / 10.0;
 
-        vec2 uvStep[8] = vec2[](
-        vec2(inUV.x, inUV.y + span), //N
-        vec2(inUV.x + span, inUV.y + span), //NE
-        vec2(inUV.x + span, inUV.y), //E
-        vec2(inUV.x + span, inUV.y - span), //SE
-        vec2(inUV.x, inUV.y - span), //S
-        vec2(inUV.x - span, inUV.y - span), //SW
-        vec2(inUV.x - span, inUV.y), //W
-        vec2(inUV.x - span, inUV.y + span)//NW
-        );
+//        vec2 uvStep[8] = vec2[](
+//        vec2(inUV.x, inUV.y + span), //N
+//        vec2(inUV.x + span, inUV.y + span), //NE
+//        vec2(inUV.x + span, inUV.y), //E
+//        vec2(inUV.x + span, inUV.y - span), //SE
+//        vec2(inUV.x, inUV.y - span), //S
+//        vec2(inUV.x - span, inUV.y - span), //SW
+//        vec2(inUV.x - span, inUV.y), //W
+//        vec2(inUV.x - span, inUV.y + span)//NW
+//        );
 
-        int addedCount = 0;
-        for (int i = 0; i < 8; ++i) {
-            float subAlpha = texture(color, uvStep[i]).a;
-            float subDepth = texture(depth, uvStep[i]).r;
-            if (subAlpha != 0) {
-                if (addedCount == 0) {
-                    depthValue = subDepth;
-                }
-                else{
-                    depthValue += subDepth;
-                }
-                addedCount++;
-            }
-        }
-        depthValue /= addedCount;
-    }
+//        int addedCount = 0;
+//        for (int i = 0; i < 8; ++i) {
+//            float subAlpha = texture(color, uvStep[i]).a;
+//            float subDepth = texture(depth, uvStep[i]).r;
+//            if (subAlpha != 0) {
+//                if (addedCount == 0) {
+//                    depthValue = subDepth;
+//                }
+//                else{
+//                    depthValue += subDepth;
+//                }
+//                addedCount++;
+//            }
+//        }
+//        depthValue /= addedCount;
+//    }
 
-    depthValue = linearize_depth(depthValue, 0.01, 10000.0f);
-    outFragColor = vec4(depthValue, depthValue, depthValue, 1.0);
-//    outFragColor = vec4(alphaValue, alphaValue, alphaValue, 1.0);
+//    depthValue = linearize_depth(depthValue, 0.01, 10000.0f);
+//    outFragColor = vec4(depthValue, depthValue, depthValue, 1.0);
+    outFragColor = texture(color, inUV);
 }

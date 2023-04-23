@@ -45,6 +45,7 @@ void main()
     float alphaValue = texture(color, outUV).a;
     float depthValue = texture(depth, outUV).r;
 
+    /// this doesn't really work
     if (alphaValue == 0) {
         float span = 1.0 / 10.0;
 

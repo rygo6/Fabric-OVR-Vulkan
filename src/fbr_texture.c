@@ -276,7 +276,6 @@ static void createTextureView(const FbrVulkan *pVulkan, VkFormat format, VkImage
             .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
             .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
             .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .subresourceRange.aspectMask = aspectMask,
             .subresourceRange.baseMipLevel = 0,
             .subresourceRange.levelCount = 1,
@@ -335,15 +334,15 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                      VK_ACCESS_2_NONE, VK_ACCESS_2_MEMORY_WRITE_BIT,
-                                      VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                      VK_ACCESS_NONE, VK_ACCESS_MEMORY_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
     copyBufferToImage(pVulkan, stagingBuffer, pTexture->image, extent);
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pTexture->image,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                      VK_ACCESS_2_MEMORY_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT_KHR,
-                                      VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR,
+                                      VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
 
     vkDestroyBuffer(pVulkan->device, stagingBuffer, NULL);

@@ -101,33 +101,29 @@ static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemapho
     const uint64_t waitValue = pSemaphore->waitValue;
     pSemaphore->waitValue++;
     const uint64_t signalValue = pSemaphore->waitValue;
-    const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfo = {
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pSemaphore->semaphore,
-                    .value = waitValue,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+    const VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo = {
+        .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+        .pNext = NULL,
+        .waitSemaphoreValueCount = 1,
+        .pWaitSemaphoreValues = &waitValue,
+        .signalSemaphoreValueCount = 1,
+        .pSignalSemaphoreValues = &signalValue,
     };
-    const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfo = {
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pSemaphore->semaphore,
-                    .value = signalValue,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+    const VkPipelineStageFlags pWaitDstStageMask[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
-    const VkCommandBufferSubmitInfo commandBufferInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
-            .commandBuffer = pVulkan->commandBuffer,
+    const VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = &timelineSemaphoreSubmitInfo,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &pSemaphore->semaphore,
+            .pWaitDstStageMask = pWaitDstStageMask,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &pVulkan->commandBuffer,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &pSemaphore->semaphore
     };
-    const VkSubmitInfo2 submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
-            .pNext = NULL,
-//            .waitSemaphoreInfoCount = 1,
-//            .pWaitSemaphoreInfos = &waitSemaphoreSubmitInfo,
-            .signalSemaphoreInfoCount = 1,
-            .pSignalSemaphoreInfos = &signalSemaphoreSubmitInfo,
-            .commandBufferInfoCount = 1,
-            .pCommandBufferInfos = &commandBufferInfo,
-    };
-    FBR_ACK_EXIT(vkQueueSubmit2(pVulkan->queue,
+    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->queue,
                                 1,
                                 &submitInfo,
                                 VK_NULL_HANDLE));
@@ -138,51 +134,49 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrT
     const uint64_t waitValue = pSemaphore->waitValue;
     pSemaphore->waitValue++;
     const uint64_t signalValue = pSemaphore->waitValue;
-    const VkSemaphoreSubmitInfo waitSemaphoreSubmitInfos[] = {
-//            {
-//                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-//                    .semaphore = pSemaphore->semaphore,
-//                    .value = waitValue,
-//                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-//            },
-            {
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pSwap->acquireComplete,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-            }
+    const uint64_t pWaitSemaphoreValues[] = {
+            waitValue,
+            0
     };
-    const VkSemaphoreSubmitInfo signalSemaphoreSubmitInfos[] = {
-            {
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pSemaphore->semaphore,
-                    .value = signalValue,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .deviceIndex = 0 //todo use this?
-            },
-            {
-                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO_KHR,
-                    .semaphore = pSwap->renderCompleteSemaphore,
-                    .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
-            }
+    const uint64_t pSignalSemaphoreValues[] = {
+            signalValue,
+            0
     };
-    const VkCommandBufferSubmitInfo commandBufferInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
-            .commandBuffer = pVulkan->commandBuffer,
-    };
-    const VkSubmitInfo2 submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
+    const VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo = {
+            .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
             .pNext = NULL,
-            .waitSemaphoreInfoCount = 1,
-            .pWaitSemaphoreInfos = waitSemaphoreSubmitInfos,
-            .signalSemaphoreInfoCount = 2,
-            .pSignalSemaphoreInfos = signalSemaphoreSubmitInfos,
-            .commandBufferInfoCount = 1,
-            .pCommandBufferInfos = &commandBufferInfo,
+            .waitSemaphoreValueCount = 2,
+            .pWaitSemaphoreValues =  pWaitSemaphoreValues,
+            .signalSemaphoreValueCount = 2,
+            .pSignalSemaphoreValues = pSignalSemaphoreValues,
     };
-    FBR_ACK_EXIT(vkQueueSubmit2(pVulkan->queue,
-                                1,
-                                &submitInfo,
-                                VK_NULL_HANDLE));
+    const VkSemaphore pWaitSemaphores[] = {
+            pSemaphore->semaphore,
+            pSwap->acquireComplete
+    };
+    const VkPipelineStageFlags pWaitDstStageMask[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
+    const VkSemaphore pSignalSemaphores[] = {
+            pSemaphore->semaphore,
+            pSwap->renderCompleteSemaphore
+    };
+    const VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = &timelineSemaphoreSubmitInfo,
+            .waitSemaphoreCount = 2,
+            .pWaitSemaphores = pWaitSemaphores,
+            .pWaitDstStageMask = pWaitDstStageMask,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &pVulkan->commandBuffer,
+            .signalSemaphoreCount = 2,
+            .pSignalSemaphores = pSignalSemaphores
+    };
+    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->queue,
+                               1,
+                               &submitInfo,
+                               VK_NULL_HANDLE));
 
     // TODO want to use this?? https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_present_id.html
     const VkPresentInfoKHR presentInfo = {
@@ -257,12 +251,11 @@ static void childMainLoop(FbrApp *pApp) {
         beginFrameCommandBuffer(pVulkan, pFrameBuffers[timelineSwitch]->pColorTexture->extent);
 
         // Transfer framebuffer ownership
-        VkImageMemoryBarrier2 pAcquireImageMemoryBarriers[] = {
+        VkImageMemoryBarrier pAcquireImageMemoryBarriers[] = {
                 {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                        .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                         .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
@@ -271,10 +264,9 @@ static void childMainLoop(FbrApp *pApp) {
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                        .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
-                        .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
-                        .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                         .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
@@ -283,12 +275,15 @@ static void childMainLoop(FbrApp *pApp) {
                         FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 }
         };
-        VkDependencyInfo acquireDependencyInfo = {
-                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                .imageMemoryBarrierCount = 2,
-                .pImageMemoryBarriers = pAcquireImageMemoryBarriers,
-        };
-        vkCmdPipelineBarrier2(pVulkan->commandBuffer, &acquireDependencyInfo);
+        vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
+                                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
+                                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pAcquireImageMemoryBarriers);
 
         beginRenderPassImageless(pVulkan,
                                  pFrameBuffers[timelineSwitch],
@@ -333,12 +328,11 @@ static void childMainLoop(FbrApp *pApp) {
         fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
 
         // release framebuffer
-        VkImageMemoryBarrier2 pReleaseImageMemoryBarriers[] = {
+        VkImageMemoryBarrier pReleaseImageMemoryBarriers[] = {
                 {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                        .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                        .srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .dstAccessMask = 0,
                         .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
@@ -347,10 +341,9 @@ static void childMainLoop(FbrApp *pApp) {
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                        .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR,
-                        .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                        .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR,
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                        .dstAccessMask = 0,
                         .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
@@ -359,12 +352,14 @@ static void childMainLoop(FbrApp *pApp) {
                         FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 }
         };
-        VkDependencyInfo releaseDependencyInfo = {
-                .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                .imageMemoryBarrierCount = 2,
-                .pImageMemoryBarriers = pReleaseImageMemoryBarriers,
-        };
-        vkCmdPipelineBarrier2(pVulkan->commandBuffer, &releaseDependencyInfo);
+        vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
+                                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pReleaseImageMemoryBarriers);
 
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
 
@@ -469,9 +464,11 @@ static void parentMainLoop(FbrApp *pApp) {
             // transform child framebuffer from external to here
             // this technically isn't needed on nv hardware? but can maybe help sync anyways?
             // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#multiple-queues
-            VkImageMemoryBarrier2 imageMemoryBarrier[] = {
+            VkImageMemoryBarrier pPrePresentImageMemoryBarrier[] = {
                     {
-                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                            .srcAccessMask = 0,
+                            .dstAccessMask = 0,
                             .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                             .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
@@ -480,7 +477,9 @@ static void parentMainLoop(FbrApp *pApp) {
                             FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                     },
                     {
-                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                            .srcAccessMask = 0,
+                            .dstAccessMask = 0,
                             .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                             .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
@@ -489,12 +488,14 @@ static void parentMainLoop(FbrApp *pApp) {
                             FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                     }
             };
-            VkDependencyInfo dependencyInfo = {
-                    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                    .imageMemoryBarrierCount= 2,                      // imageMemoryBarrierCount
-                    .pImageMemoryBarriers = imageMemoryBarrier,    // pImageMemoryBarriers
-            };
-            vkCmdPipelineBarrier2(pVulkan->commandBuffer, &dependencyInfo);
+            vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
+                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                 0,
+                                 0, NULL,
+                                 0, NULL,
+                                 2, pPrePresentImageMemoryBarrier);
 //            FBR_LOG_DEBUG("parent switch", timelineSwitch, pTestNode->pChildSemaphore->waitValue);
         }
 
