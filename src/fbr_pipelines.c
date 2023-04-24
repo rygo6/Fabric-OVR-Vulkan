@@ -135,7 +135,7 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
                     .binding = 0,
                     .stride = sizeof(Vertex),
                     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-            }
+            },
     };
     const VkVertexInputAttributeDescription pVertexAttributeDescriptions[3] = {
             {
@@ -160,8 +160,8 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
     const VkPipelineVertexInputStateCreateInfo vertexInputState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             .vertexBindingDescriptionCount = 1,
-            .vertexAttributeDescriptionCount = 3,
             .pVertexBindingDescriptions = pVertexBindingDescriptions,
+            .vertexAttributeDescriptionCount = 3,
             .pVertexAttributeDescriptions = pVertexAttributeDescriptions
     };
     const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
@@ -171,20 +171,29 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
     };
 
     // Fragment
-    const VkPipelineColorBlendAttachmentState colorBlendAttachment = {
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                              VK_COLOR_COMPONENT_G_BIT |
-                              VK_COLOR_COMPONENT_B_BIT |
-                              VK_COLOR_COMPONENT_A_BIT,
-            .blendEnable = VK_FALSE,
+    const VkPipelineColorBlendAttachmentState pPipelineColorBlendAttachmentStates[] = {
+            {
+                    .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                                      VK_COLOR_COMPONENT_G_BIT |
+                                      VK_COLOR_COMPONENT_B_BIT |
+                                      VK_COLOR_COMPONENT_A_BIT,
+                    .blendEnable = VK_FALSE,
+            },
+            {
+                    .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                                      VK_COLOR_COMPONENT_G_BIT |
+                                      VK_COLOR_COMPONENT_B_BIT |
+                                      VK_COLOR_COMPONENT_A_BIT,
+                    .blendEnable = VK_FALSE,
+            }
     };
     const VkPipelineColorBlendStateCreateInfo colorBlendState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .pNext = NULL,
             .logicOpEnable = VK_FALSE,
             .logicOp = VK_LOGIC_OP_COPY,
-            .attachmentCount = 1,
-            .pAttachments = &colorBlendAttachment,
+            .attachmentCount = 2,
+            .pAttachments = pPipelineColorBlendAttachmentStates,
             .blendConstants[0] = 0.0f,
             .blendConstants[1] = 0.0f,
             .blendConstants[2] = 0.0f,

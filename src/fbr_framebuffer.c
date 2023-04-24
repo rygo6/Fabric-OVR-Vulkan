@@ -3,9 +3,7 @@
 #include "fbr_buffer.h"
 #include "fbr_log.h"
 
-bool hasStencilComponent(VkFormat format) {
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-}
+
 
 static VkFormat findSupportedDepthFormat(const FbrVulkan *pVulkan)
 {
@@ -13,25 +11,54 @@ static VkFormat findSupportedDepthFormat(const FbrVulkan *pVulkan)
     VkFormat candidates[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
     VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
     VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
     for (int i = 0; i < 3; ++i) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(pVulkan->physicalDevice, candidates[i], &props);
 
         if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-            return candidates[i];
+            depthFormat = candidates[i];
+            break;
         } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-            return candidates[i];
+            depthFormat = candidates[i];
+            break;
         }
     }
+
+    if (depthFormat == VK_FORMAT_UNDEFINED)
+        FBR_LOG_DEBUG("DepthFormat couldn't be foudn?!", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
+
+    if (depthFormat != VK_FORMAT_D32_SFLOAT)
+        FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
+
+    return depthFormat;
+}
+
+bool hasStencilComponent(VkFormat format) {
+    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+}
+
+static VkImageAspectFlagBits getDepthAspectMask()
+{
+    VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    // todo is this needed? a
+//    bool stencilComponent = hasStencilComponent(depthFormat);
+//    if (stencilComponent) {
+//        FBR_LOG_DEBUG("Depth has stencil component don't know what it is, from vulkan tutorial crossref with ovrexample", stencilComponent);
+//        depthAspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+//    }
+    return depthAspectMask;
 }
 
 static VkResult createFramebuffer(const FbrVulkan *pVulkan,
                                   FbrFramebuffer *pFrameBuffer,
                                   VkFormat colorFormat,
+                                  VkFormat normalFormat,
                                   VkFormat depthFormat,
                                   VkExtent2D extent,
                                   VkImageUsageFlags colorUsage,
+                                  VkImageUsageFlags normalUsage,
                                   VkImageUsageFlags depthUsage) {
     const VkFramebufferAttachmentImageInfo pFramebufferAttachmentImageInfos[] = {
             {
@@ -48,6 +75,15 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
                     .width = extent.width,
                     .height = extent.height,
                     .layerCount = 1,
+                    .usage = normalUsage,
+                    .pViewFormats = &normalFormat,
+                    .viewFormatCount = 1,
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+                    .width = extent.width,
+                    .height = extent.height,
+                    .layerCount = 1,
                     .usage = depthUsage,
                     .pViewFormats = &depthFormat,
                     .viewFormatCount = 1,
@@ -55,7 +91,7 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
     };
     const VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
-            .attachmentImageInfoCount = 2,
+            .attachmentImageInfoCount = 3,
             .pAttachmentImageInfos = pFramebufferAttachmentImageInfos,
     };
     const VkFramebufferCreateInfo framebufferCreateInfo = {
@@ -63,7 +99,7 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
             .pNext = &framebufferAttachmentsCreateInfo,
             .renderPass = pVulkan->renderPass,
             .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
-            .attachmentCount = 2,
+            .attachmentCount = 3,
             .width = extent.width,
             .height = extent.height,
             .layers = 1,
@@ -136,14 +172,27 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
+    // color
     fbrCreateTextureFromImage(pVulkan,
                               colorFormat,
                               extent,
                               image,
                               &pFramebuffer->pColorTexture);
+    // normal
+    fbrCreateTexture(pVulkan,
+                     FBR_NORMAL_BUFFER_FORMAT,
+                     extent,
+                     FBR_NORMAL_BUFFER_USAGE,
+                     VK_IMAGE_ASPECT_COLOR_BIT,
+                     false,
+                     &pFramebuffer->pNormalTexture);
+    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED,  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                      VK_IMAGE_ASPECT_COLOR_BIT);
+    // depth
     VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
-    if (depthFormat != VK_FORMAT_D32_SFLOAT)
-        FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
     fbrCreateTexture(pVulkan,
                      depthFormat,
                      extent,
@@ -151,12 +200,7 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
                      VK_IMAGE_ASPECT_DEPTH_BIT,
                      false,
                      &pFramebuffer->pDepthTexture);
-    VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    bool stencilComponent = hasStencilComponent(depthFormat);
-    if (stencilComponent) {
-        FBR_LOG_DEBUG("Depth has stencil component don't know what it is, from vulkan tutorial crossref with ovrexample", stencilComponent);
-        depthAspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
+    VkImageAspectFlagBits depthAspectMask = getDepthAspectMask();
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pDepthTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                                       VK_ACCESS_NONE, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
@@ -165,9 +209,11 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       colorFormat,
+                      FBR_NORMAL_BUFFER_FORMAT,
                       depthFormat,
                       extent,
                       FBR_COLOR_BUFFER_USAGE,
+                      FBR_NORMAL_BUFFER_USAGE,
                       FBR_DEPTH_BUFFER_USAGE);
 }
 
@@ -179,6 +225,7 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
+    // Color
     VkImageUsageFlags colorUsage = external ? FBR_EXTERNAL_COLOR_BUFFER_USAGE : FBR_COLOR_BUFFER_USAGE;
     fbrCreateTexture(pVulkan,
                      colorFormat,
@@ -187,16 +234,28 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                      VK_IMAGE_ASPECT_COLOR_BIT,
                      external,
                      &pFramebuffer->pColorTexture);
-    // You don't need to do this on nvidia ??
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                       VK_ACCESS_NONE, external ? VK_ACCESS_SHADER_READ_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , external ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
+    // Normal
+    VkImageUsageFlags normalUsage = external ? FBR_EXTERNAL_COLOR_BUFFER_USAGE : FBR_COLOR_BUFFER_USAGE;
+    fbrCreateTexture(pVulkan,
+                     FBR_NORMAL_BUFFER_FORMAT,
+                     extent,
+                     normalUsage,
+                     VK_IMAGE_ASPECT_COLOR_BIT,
+                     external,
+                     &pFramebuffer->pNormalTexture);
+    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_ACCESS_NONE, external ? VK_ACCESS_SHADER_READ_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , external ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                      VK_IMAGE_ASPECT_COLOR_BIT);
+    //Depth
     VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
-    if (depthFormat != VK_FORMAT_D32_SFLOAT)
-        FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
-    VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    VkImageAspectFlagBits depthAspectMask = getDepthAspectMask();
     VkImageUsageFlags depthUsage = external ? FBR_EXTERNAL_DEPTH_BUFFER_USAGE : FBR_DEPTH_BUFFER_USAGE;
     fbrCreateTexture(pVulkan,
                      depthFormat,
@@ -205,11 +264,6 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                      depthAspectMask,
                      external,
                      &pFramebuffer->pDepthTexture);
-//    bool stencilComponent = hasStencilComponent(depthFormat);
-//    if (stencilComponent) {
-//        FBR_LOG_DEBUG("Depth has stencil component don't know what it is, from vulkan tutorial crossref with ovrexample", stencilComponent);
-//        depthAspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-//    }
     fbrTransitionImageLayoutImmediate(pVulkan,
                                       pFramebuffer->pDepthTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED, external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -219,14 +273,17 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       colorFormat,
+                      FBR_NORMAL_BUFFER_FORMAT,
                       depthFormat,
                       extent,
                       colorUsage,
+                      normalUsage,
                       depthUsage);
 }
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                           HANDLE colorExternalMemory,
+                          HANDLE normalExternalMemory,
                           HANDLE depthExternalMemory,
                           VkFormat colorFormat,
                           VkExtent2D extent,
@@ -234,6 +291,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
+    // color
     fbrImportTexture(pVulkan,
                      colorFormat,
                      extent,
@@ -247,17 +305,23 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                                       VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
-
+    // normal
+    fbrImportTexture(pVulkan,
+                     FBR_NORMAL_BUFFER_FORMAT,
+                     extent,
+                     FBR_EXTERNAL_NORMAL_BUFFER_USAGE,
+                     VK_IMAGE_ASPECT_COLOR_BIT,
+                     normalExternalMemory,
+                     &pFramebuffer->pNormalTexture);
+    fbrTransitionImageLayoutImmediate(pVulkan,
+                                      pFramebuffer->pNormalTexture->image,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                      VK_IMAGE_ASPECT_COLOR_BIT);
+    // depth
     VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
-    if (depthFormat != VK_FORMAT_D32_SFLOAT)
-        FBR_LOG_DEBUG("Depth colorFormat should be VK_FORMAT_D32_SFLOAT accord to ovr example", depthFormat, (depthFormat == VK_FORMAT_D32_SFLOAT));
-    VkImageAspectFlagBits depthAspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    // todo is this needed? also cleanup duplicate code in here
-//    bool stencilComponent = hasStencilComponent(depthFormat);
-//    if (stencilComponent) {
-//        FBR_LOG_DEBUG("Depth has stencil component don't know what it is, from vulkan tutorial crossref with ovrexample", stencilComponent);
-//        depthAspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-//    }
+    VkImageAspectFlagBits depthAspectMask = getDepthAspectMask();
     fbrImportTexture(pVulkan,
                      depthFormat,
                      extent,
@@ -270,13 +334,14 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                                       VK_ACCESS_NONE, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
                                       depthAspectMask);
-
     createFramebuffer(pVulkan,
                       pFramebuffer,
                       colorFormat,
+                      FBR_NORMAL_BUFFER_FORMAT,
                       depthFormat,
                       extent,
                       FBR_EXTERNAL_COLOR_BUFFER_USAGE,
+                      FBR_EXTERNAL_NORMAL_BUFFER_USAGE,
                       FBR_EXTERNAL_DEPTH_BUFFER_USAGE);
 }
 

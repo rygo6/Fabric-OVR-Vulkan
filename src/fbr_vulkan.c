@@ -421,57 +421,47 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
 
 static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
     // supposedly most correct https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
-    const VkAttachmentReference colorAttachmentReference = {
-            .attachment = 0,
-            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    const VkAttachmentReference pColorAttachments[] = {
+            {
+                    .attachment = 0,
+                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            },
+            {
+                    .attachment = 1,
+                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            }
     };
     const VkAttachmentReference depthAttachmentReference = {
-            .attachment = 1,
+            .attachment = 2,
             .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     };
     const VkSubpassDescription subpassDescription = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .colorAttachmentCount = 1,
-            .pColorAttachments = &colorAttachmentReference,
+            .colorAttachmentCount = 2,
+            .pColorAttachments = pColorAttachments,
             .pDepthStencilAttachment = &depthAttachmentReference,
     };
     const VkSubpassDependency dependencies[] = {
             {
-                    // https://gist.github.com/chrisvarns/b4a5dbd1a09545948261d8c650070383
-                    // In subpassDescription 0...
-                    .dstSubpass = 0,
-                    // ... at this pipeline stage ...
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                    // ... wait before performing these operations ...
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                    // ... until all operations of that type stop ...
-                    .srcAccessMask = VK_ACCESS_NONE_KHR,
-                    // ... at that same stages ...
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                    // ... occuring in submission order prior to vkCmdBeginRenderPass ...
                     .srcSubpass = VK_SUBPASS_EXTERNAL,
-                    // ... have completed execution.
+                    .dstSubpass = 0,
+                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    .srcAccessMask = VK_ACCESS_NONE_KHR,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                     .dependencyFlags = 0,
             },
-//            {
-//                    // ... In the external scope after the subpassDescription ...
-//                    .dstSubpass = VK_SUBPASS_EXTERNAL,
-//                    // ... before anything can occur with this pipeline stage ...
-//                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-//                    // ... wait for all operations to stop ...
-//                    .dstAccessMask = VK_ACCESS_NONE_KHR,
-//                    // ... of this type ...
-//                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-//                    // ... at this stage ...
-//                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-//                    // ... in subpassDescription 0 ...
-//                    .srcSubpass = 0,
-//                    // ... before it can execute and signal the semaphore rendering complete semaphore
-//                    // set to VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR on vkQueueSubmit2KHR  .
-//                    .dependencyFlags = 0,
-//            },
+            {
+                    .srcSubpass = VK_SUBPASS_EXTERNAL,
+                    .dstSubpass = 0,
+                    .srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                    .dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                    .srcAccessMask = VK_ACCESS_NONE_KHR,
+                    .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .dependencyFlags = 0,
+            },
     };
-    const VkAttachmentDescription attachmentDescriptions[] = {
+    const VkAttachmentDescription pAttachments[] = {
             {
                     .format = format,
                     .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -484,23 +474,32 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
                     .flags = 0
             },
             {
-                    .format = VK_FORMAT_D32_SFLOAT,
+                    .format = FBR_NORMAL_BUFFER_FORMAT,
                     .samples = VK_SAMPLE_COUNT_1_BIT,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    // vulkan tutorial is little diff from here https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
-                    // sort that out
+                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .flags = 0
+            },
+            {
+                    .format = FBR_DEPTH_BUFFER_FORMAT,
+                    .samples = VK_SAMPLE_COUNT_1_BIT,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                     .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                     .flags = 0
-            }
+            },
     };
     VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = 2,
-            .pAttachments = attachmentDescriptions,
+            .attachmentCount = 3,
+            .pAttachments = pAttachments,
             .subpassCount = 1,
             .pSubpasses = &subpassDescription,
             .dependencyCount = 1,

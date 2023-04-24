@@ -121,6 +121,25 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         DUPLICATE_SAME_ACCESS);
         FBR_LOG_DEBUG("export", tex1DupHandle);
 
+        HANDLE normal0DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pFramebuffers[0]->pNormalTexture->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &normal0DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", normal0DupHandle);
+        HANDLE normal1DupHandle;
+        DuplicateHandle(GetCurrentProcess(),
+                        pApp->pTestNode->pFramebuffers[1]->pNormalTexture->externalMemory,
+                        pApp->pTestNode->pProcess->pi.hProcess,
+                        &normal1DupHandle,
+                        0,
+                        false,
+                        DUPLICATE_SAME_ACCESS);
+        FBR_LOG_DEBUG("export", normal1DupHandle);
+
         HANDLE depthTex0DupHandle;
         DuplicateHandle(GetCurrentProcess(),
                         pApp->pTestNode->pFramebuffers[0]->pDepthTexture->externalMemory,
@@ -185,6 +204,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                 .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.height,
                 .colorFramebuffer0ExternalHandle = tex0DupHandle,
                 .colorFramebuffer1ExternalHandle = tex1DupHandle,
+                .normalFramebuffer0ExternalHandle = normal0DupHandle,
+                .normalFramebuffer1ExternalHandle = normal1DupHandle,
                 .depthFramebuffer0ExternalHandle = depthTex0DupHandle,
                 .depthFramebuffer1ExternalHandle = depthTex1DupHandle,
                 .vertexUBO0ExternalHandle = vert0DupHandle,

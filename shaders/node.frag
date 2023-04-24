@@ -5,7 +5,8 @@ layout (set = 3, binding = 3) uniform sampler2D color;
 layout (location = 0) in vec3 inNormal;
 layout (location = 1) in vec2 inUV;
 
-layout (location = 0) out vec4 outFragColor;
+layout (location = 0) out vec4 outColor;
+layout (location = 1) out vec4 outNormal;
 
 float linearize_depth(float d,float zNear,float zFar)
 {
@@ -50,5 +51,10 @@ void main()
 
 //    depthValue = linearize_depth(depthValue, 0.01, 10000.0f);
 //    outFragColor = vec4(depthValue, depthValue, depthValue, 1.0);
-    outFragColor = texture(color, inUV);
+    outColor = texture(color, inUV);
+
+    // Is this right?! https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/subpasses/gbuffer.frag
+    vec3 N = normalize(inNormal);
+    N.y = -N.y;
+    outNormal = vec4(N, 1.0);
 }

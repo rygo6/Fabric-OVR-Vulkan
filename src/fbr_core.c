@@ -56,17 +56,19 @@ static void processInputFrame(FbrApp *pApp) {
 
 static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer, VkRenderPass renderPass, VkClearColorValue clearColorValue)
 {
-    VkClearValue pClearValues[2] = { };
+    VkClearValue pClearValues[3] = { };
     pClearValues[0].color = clearColorValue;
-    pClearValues[1].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
+    pClearValues[1].color = clearColorValue;
+    pClearValues[2].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
 
     const VkImageView pAttachments[] = {
             pFramebuffer->pColorTexture->imageView,
+            pFramebuffer->pNormalTexture->imageView,
             pFramebuffer->pDepthTexture->imageView
     };
     const VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-            .attachmentCount = 2,
+            .attachmentCount = 3,
             .pAttachments = pAttachments
     };
     const VkRenderPassBeginInfo vkRenderPassBeginInfo = {
@@ -75,7 +77,7 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuf
             .renderPass = renderPass,
             .framebuffer = pFramebuffer->framebuffer,
             .renderArea.extent = pFramebuffer->pColorTexture->extent,
-            .clearValueCount = 2,
+            .clearValueCount = 3,
             .pClearValues = pClearValues,
     };
     vkCmdBeginRenderPass(pVulkan->commandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
