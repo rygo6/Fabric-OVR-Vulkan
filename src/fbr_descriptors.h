@@ -15,12 +15,10 @@ typedef VkDescriptorSet FbrSetGlobal;
 
 #define FBR_PASS_SET_INDEX 1
 typedef VkDescriptorSetLayout FbrSetLayoutPass;
+typedef VkDescriptorSet FbrSetPass;
 
 #define FBR_MATERIAL_SET_INDEX 2
 typedef VkDescriptorSetLayout FbrSetLayoutMaterial;
-//typedef struct FbrMaterialSet { // Not used but should I?
-//    VkImageView imageView;
-//} FbrMaterialSet;
 typedef VkDescriptorSet FbrSetMaterial;
 
 #define FBR_OBJECT_SET_INDEX 3
@@ -39,6 +37,7 @@ typedef struct FbrDescriptors {
     FbrSetLayoutMaterial setLayoutMaterial;
     FbrSetLayoutObject setLayoutObject;
     FbrSetGlobal setGlobal;
+    FbrSetPass setPass;
 
     FbrSetLayoutNode setLayoutNode;
 
@@ -48,6 +47,11 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             FbrSetLayoutGlobal setLayout,
                             const FbrCamera *pCamera,
                             FbrSetGlobal *pSet);
+
+VkResult fbrCreateSetPass(const FbrVulkan *pVulkan,
+                          FbrSetLayoutPass setLayout,
+                          const FbrTexture *pNormalTexture,
+                          FbrSetPass *pSet);
 
 VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
                               FbrSetLayoutMaterial setLayout,
@@ -63,8 +67,9 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                           FbrSetLayoutNode setLayout,
                           const FbrTransform *pTransform,
                           const FbrCamera *pCamera,
-                          const FbrTexture *pDepthTexture,
                           const FbrTexture *pColorTexture,
+                          const FbrTexture *pNormalTexture,
+                          const FbrTexture *pDepthTexture,
                           FbrSetNode *pSet);
 
 VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std);

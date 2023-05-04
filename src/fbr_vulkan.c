@@ -435,13 +435,13 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
             .attachment = 2,
             .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     };
-    const VkSubpassDescription subpassDescription = {
+    const VkSubpassDescription subpass = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
             .colorAttachmentCount = 2,
             .pColorAttachments = pColorAttachments,
             .pDepthStencilAttachment = &depthAttachmentReference,
     };
-    const VkSubpassDependency dependencies[] = {
+    const VkSubpassDependency pDependencies[] = {
             {
                     .srcSubpass = VK_SUBPASS_EXTERNAL,
                     .dstSubpass = 0,
@@ -477,7 +477,7 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
                     .format = FBR_NORMAL_BUFFER_FORMAT,
                     .samples = VK_SAMPLE_COUNT_1_BIT,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -501,9 +501,9 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
             .attachmentCount = 3,
             .pAttachments = pAttachments,
             .subpassCount = 1,
-            .pSubpasses = &subpassDescription,
-            .dependencyCount = 1,
-            .pDependencies = dependencies,
+            .pSubpasses = &subpass,
+            .dependencyCount = 2,
+            .pDependencies = pDependencies,
     };
 
     FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));

@@ -186,9 +186,9 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
                      VK_IMAGE_ASPECT_COLOR_BIT,
                      false,
                      &pFramebuffer->pNormalTexture);
-    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
+    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pNormalTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED,  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_ACCESS_NONE,  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
     // depth
@@ -248,7 +248,7 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                      VK_IMAGE_ASPECT_COLOR_BIT,
                      external,
                      &pFramebuffer->pNormalTexture);
-    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
+    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pNormalTexture->image,
                                       VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                       VK_ACCESS_NONE, external ? VK_ACCESS_SHADER_READ_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , external ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,

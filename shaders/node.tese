@@ -14,8 +14,9 @@ layout (set = 3, binding = 1) uniform NodeUBO {
     mat4 proj;
 } nodeUBO;
 
-layout (set = 3, binding = 2) uniform sampler2D depth;
-layout (set = 3, binding = 3) uniform sampler2D color;
+layout (set = 3, binding = 2) uniform sampler2D color;
+layout (set = 3, binding = 3) uniform sampler2D normal;
+layout (set = 3, binding = 4) uniform sampler2D depth;
 
 layout(quads, equal_spacing, cw) in;
 
@@ -47,7 +48,7 @@ void main()
 
     /// this doesn't really work
     if (alphaValue == 0) {
-        float span = 1.0 / 10.0;
+        float span = 1.0 / 100.0;
 
         vec2 uvStep[8] = vec2[](
             vec2(outUV.x, outUV.y + span), //N

@@ -43,14 +43,14 @@ static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGl
 static FBR_RESULT createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
-            {
+            {// normal
                     .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                                   VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
-            }
+            },
     };
     FBR_ACK(createDescriptorSetLayout(pVulkan, 1, bindings, pSetLayout));
 
@@ -104,11 +104,10 @@ static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode
                     .binding = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
                     .pImmutableSamplers = NULL,
             },
-            {// depth
+            {// color
                     .binding = 2,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
@@ -116,14 +115,23 @@ static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode
                                   VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             },
-            {// color
+            {// normal
                     .binding = 3,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                                   VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
-            }
+            },
+            {// depth
+                    .binding = 4,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+
     };
     FBR_ACK(createDescriptorSetLayout(pVulkan,
                                       sizeof(pBindings) / sizeof(VkDescriptorSetLayoutBinding),
@@ -189,6 +197,42 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
                     .pImageInfo = NULL,
                     .pBufferInfo = &bufferInfo,
+                    .pTexelBufferView = NULL,
+            },
+    };
+    vkUpdateDescriptorSets(pVulkan->device,
+                           1,
+                           pDescriptorWrites,
+                           0,
+                           NULL);
+    return VK_SUCCESS;
+}
+
+VkResult fbrCreateSetPass(const FbrVulkan *pVulkan,
+                          FbrSetLayoutPass setLayout,
+                          const FbrTexture *pNormalTexture,
+                          FbrSetPass *pSet)
+{
+    FBR_ACK(allocateDescriptorSet(pVulkan,
+                                  1,
+                                  &setLayout,
+                                  pSet));
+    const VkDescriptorImageInfo normalImageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pNormalTexture->imageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkWriteDescriptorSet pDescriptorWrites[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo = &normalImageInfo,
+                    .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },
     };
@@ -277,8 +321,9 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                           FbrSetLayoutNode setLayout,
                           const FbrTransform *pTransform,
                           const FbrCamera *pCamera,
-                          const FbrTexture *pDepthTexture,
                           const FbrTexture *pColorTexture,
+                          const FbrTexture *pNormalTexture,
+                          const FbrTexture *pDepthTexture,
                           FbrSetNode *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
@@ -295,14 +340,19 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
             .offset = 0,
             .range = sizeof(FbrCamera),
     };
-    const VkDescriptorImageInfo depthImageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pDepthTexture->imageView,
-            .sampler = pVulkan->sampler,
-    };
     const VkDescriptorImageInfo colorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pColorTexture->imageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkDescriptorImageInfo normalImageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pNormalTexture->imageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkDescriptorImageInfo depthImageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = pDepthTexture->imageView,
             .sampler = pVulkan->sampler,
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
@@ -330,7 +380,7 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                     .pBufferInfo = &cameraBufferInfo,
                     .pTexelBufferView = NULL,
             },
-            {// depth map
+            {// rgb map
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
                     .dstSet = *pSet,
@@ -338,11 +388,11 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &depthImageInfo,
+                    .pImageInfo = &colorImageInfo,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },
-            {// rgb map
+            {// normal map
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
                     .dstSet = *pSet,
@@ -350,7 +400,19 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &colorImageInfo,
+                    .pImageInfo = &normalImageInfo,
+                    .pBufferInfo = NULL,
+                    .pTexelBufferView = NULL,
+            },
+            {// depth map
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 4,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo = &depthImageInfo,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },

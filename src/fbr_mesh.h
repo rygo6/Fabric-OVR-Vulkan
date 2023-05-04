@@ -23,6 +23,8 @@ typedef struct FbrMesh {
 
 void fbrCreateMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState);
 
+void fbrCreateSphereMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState);
+
 void fbrCleanupMesh(const FbrVulkan *pVulkan, FbrMesh *pMeshState);
 
 #endif //FABRIC_MESH_H

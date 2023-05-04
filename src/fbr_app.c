@@ -56,9 +56,13 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                            pApp->pDescriptors->setLayoutGlobal,
                            pApp->pCamera,
                            &pApp->pDescriptors->setGlobal);
+        fbrCreateSetPass(pApp->pVulkan,
+                             pApp->pDescriptors->setLayoutPass,
+                             pApp->pSwap->pFramebuffers[0]->pNormalTexture,
+                             &pApp->pDescriptors->setPass);
 
         // First Quad
-        fbrCreateMesh(pVulkan,
+        fbrCreateSphereMesh(pVulkan,
                       &pApp->pTestQuadMesh);
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
@@ -85,8 +89,9 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              pApp->pDescriptors->setLayoutNode,
                              pApp->pTestNode->pTransform,
                              pApp->pCamera,
-                             pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
                              pApp->pTestNode->pFramebuffers[i]->pColorTexture,
+                             pApp->pTestNode->pFramebuffers[i]->pNormalTexture,
+                             pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
                              &pApp->pCompMaterialSets[i]);
         }
 
@@ -230,8 +235,12 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                            pApp->pDescriptors->setLayoutGlobal,
                            pApp->pNodeParent->pCamera,
                            &pApp->pDescriptors->setGlobal);
+        fbrCreateSetPass(pApp->pVulkan,
+                         pApp->pDescriptors->setLayoutPass,
+                         pApp->pNodeParent->pFramebuffers[0]->pNormalTexture,
+                         &pApp->pDescriptors->setPass);
 
-        fbrCreateMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
+        fbrCreateSphereMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
         glm_vec3_add(pApp->pTestQuadTransform->pos,

@@ -268,6 +268,17 @@ static void childMainLoop(FbrApp *pApp) {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
+                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pFrameBuffers[timelineSwitch]->pNormalTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
                         .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                         .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                         .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -290,7 +301,7 @@ static void childMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pVulkan,
                                  pFrameBuffers[timelineSwitch],
                                  pVulkan->renderPass,
-                                 (VkClearColorValue) {{0.3f, 0.1f, 0.5f, 0.0f}});
+                                 (VkClearColorValue) {{0.2f, 0.2f, 0.2f, 0.0f}});
         vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
 
         // Global
@@ -303,6 +314,15 @@ static void childMainLoop(FbrApp *pApp) {
                                 &pDescriptors->setGlobal,
                                 1,
                                 &zeroOffset);
+//        // Pass
+//        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->pipeLayoutStandard,
+//                                FBR_PASS_SET_INDEX,
+//                                1,
+//                                &pDescriptors->setPass,
+//                                0,
+//                                NULL);
         // Material
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -340,6 +360,17 @@ static void childMainLoop(FbrApp *pApp) {
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .image = pFrameBuffers[timelineSwitch]->pColorTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                        .image = pFrameBuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
@@ -482,6 +513,17 @@ static void parentMainLoop(FbrApp *pApp) {
                             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                             .srcAccessMask = 0,
                             .dstAccessMask = 0,
+                            .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                            .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                            .image = pTestNode->pFramebuffers[timelineSwitch]->pNormalTexture->image,
+                            FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                    },
+                    {
+                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                            .srcAccessMask = 0,
+                            .dstAccessMask = 0,
                             .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                             .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
@@ -524,7 +566,15 @@ static void parentMainLoop(FbrApp *pApp) {
                                 &pDescriptors->setGlobal,
                                 1,
                                 &dynamicGlobalOffset);
-
+//        // Pass
+//        vkCmdBindDescriptorSets(pVulkan->commandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->pipeLayoutStandard,
+//                                FBR_PASS_SET_INDEX,
+//                                1,
+//                                &pDescriptors->setPass,
+//                                0,
+//                                NULL);
         // Material
         vkCmdBindDescriptorSets(pVulkan->commandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
