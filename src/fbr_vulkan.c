@@ -265,7 +265,7 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
 
         if (!foundGraphics && graphicsSupport && presentSupport) {
             if (!globalQueueSupport) {
-                FBR_LOG_ERROR("No Global Priority!");
+                FBR_LOG_ERROR("No Global Priority On Graphics!");
             }
             pVulkan->graphicsQueueFamilyIndex = i;
             foundGraphics = true;
@@ -273,6 +273,9 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
         }
 
         if (!foundCompute && computeSupport && presentSupport && !graphicsSupport) {
+            if (!globalQueueSupport) {
+                FBR_LOG_ERROR("No Global Priority On Compute!");
+            }
             pVulkan->computeQueueFamilyIndex = i;
             foundCompute = true;
             FBR_LOG_DEBUG("Compute Queue", pVulkan->computeQueueFamilyIndex);
@@ -291,26 +294,27 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
 VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     findQueueFamilies(pVulkan);
 
-    const uint32_t queueFamilyCount = 1;
-    VkDeviceQueueCreateInfo queueCreateInfos[queueFamilyCount];
-    uint32_t uniqueQueueFamilies[] = {pVulkan->graphicsQueueFamilyIndex };
-
-    float queuePriority[] =  {pVulkan->isChild ? 0.0f : 1.0f, pVulkan->isChild ? 0.0f : 1.0f };
-    for (int i = 0; i < queueFamilyCount; ++i) {
-        FBR_LOG_DEBUG("Creating graphicsQueue with family.", uniqueQueueFamilies[i]);
-        VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,
-                .globalPriority = pVulkan->isChild ? VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT
-        };
-        VkDeviceQueueCreateInfo queueCreateInfo = {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .pNext = &queueGlobalPriorityCreateInfo,
-                .queueFamilyIndex = uniqueQueueFamilies[i],
-                .queueCount = 2,
-                .pQueuePriorities = queuePriority
-        };
-        queueCreateInfos[i] = queueCreateInfo;
-    }
+    float queuePriority = pVulkan->isChild ? 0.0f : 1.0f;
+    VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,
+            .globalPriority = pVulkan->isChild ? VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT
+    };
+    VkDeviceQueueCreateInfo pQueueCreateInfos[2] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                    .pNext = &queueGlobalPriorityCreateInfo,
+                    .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .queueCount = 1,
+                    .pQueuePriorities = &queuePriority
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                    .pNext = &queueGlobalPriorityCreateInfo,
+                    .queueFamilyIndex = pVulkan->computeQueueFamilyIndex,
+                    .queueCount = 1,
+                    .pQueuePriorities = &queuePriority
+            }
+    };
 
     // TODO come up with something better for this
     VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT supportedPhysicalDeviceGlobalPriorityQueryFeatures = {
@@ -427,8 +431,8 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     const VkDeviceCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext = &enabledFeatures,
-            .queueCreateInfoCount = queueFamilyCount,
-            .pQueueCreateInfos = queueCreateInfos,
+            .queueCreateInfoCount = 2,
+            .pQueueCreateInfos = pQueueCreateInfos,
             .pEnabledFeatures = NULL,
             .enabledExtensionCount = requiredDeviceExtensionCount,
             .ppEnabledExtensionNames = pRequiredDeviceExtensions,
@@ -624,7 +628,9 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     pickPhysicalDevice(pVulkan);
     createLogicalDevice(pVulkan);
 
-    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->graphicsQueue);
+    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->graphicsQueue);
+    vkGetDeviceQueue(pVulkan->device, pVulkan->computeQueueFamilyIndex, 0, &pVulkan->computeQueue);
+
     vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
     // render

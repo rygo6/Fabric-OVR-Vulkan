@@ -189,7 +189,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrT
             .pSwapchains = &pSwap->swapChain,
             .pImageIndices = &swapIndex,
     };
-    FBR_ACK_EXIT(vkQueuePresentKHR(pVulkan->graphicsQueue, &presentInfo));
+    FBR_ACK_EXIT(vkQueuePresentKHR(pVulkan->computeQueue, &presentInfo));
 }
 
 static void beginFrameCommandBuffer(FbrVulkan *pVulkan, VkExtent2D extent) {
