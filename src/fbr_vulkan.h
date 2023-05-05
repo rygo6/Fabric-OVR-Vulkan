@@ -62,8 +62,11 @@ typedef struct FbrVulkan {
     VkPhysicalDevice physicalDevice;
     VkDevice device;
 
-    VkQueue queue;
+    VkQueue graphicsQueue;
     uint32_t graphicsQueueFamilyIndex;
+
+    VkQueue computeQueue;
+    uint32_t computeQueueFamilyIndex;
 
     VkRenderPass renderPass;
 

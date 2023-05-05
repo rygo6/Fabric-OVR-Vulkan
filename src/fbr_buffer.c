@@ -236,11 +236,11 @@ FBR_RESULT fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffe
             .signalSemaphoreCount = 0,
             .pSignalSemaphores = NULL
     };
-    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->queue,
+    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->graphicsQueue,
                                1,
                                &submitInfo,
                                VK_NULL_HANDLE));
-    FBR_ACK(vkQueueWaitIdle(pVulkan->queue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
+    FBR_ACK(vkQueueWaitIdle(pVulkan->graphicsQueue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
     vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
 

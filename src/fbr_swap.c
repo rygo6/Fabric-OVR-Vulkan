@@ -37,7 +37,7 @@ static VkPresentModeKHR chooseSwapPresentMode(const FbrVulkan *pVulkan)
         // 1. VK_PRESENT_MODE_IMMEDIATE_KHR - The presentation engine does not wait for a vertical blanking period to update the current image,
         //                                    meaning this mode may result in visible tearing
         // 2. VK_PRESENT_MODE_MAILBOX_KHR - The presentation engine waits for the next vertical blanking period to update the current image. Tearing cannot be observed.
-        //                                  An internal single-entry queue is used to hold pending presentation requests.
+        //                                  An internal single-entry graphicsQueue is used to hold pending presentation requests.
         // 3. VK_PRESENT_MODE_FIFO_RELAXED_KHR - equivalent of eglSwapInterval(-1).
         if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
             // The presentation engine does not wait for a vertical blanking period to update the

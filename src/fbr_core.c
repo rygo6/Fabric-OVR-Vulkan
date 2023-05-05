@@ -125,7 +125,7 @@ static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemapho
             .signalSemaphoreCount = 1,
             .pSignalSemaphores = &pSemaphore->semaphore
     };
-    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->queue,
+    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->graphicsQueue,
                                 1,
                                 &submitInfo,
                                 VK_NULL_HANDLE));
@@ -175,7 +175,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrT
             .signalSemaphoreCount = 2,
             .pSignalSemaphores = pSignalSemaphores
     };
-    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->queue,
+    FBR_ACK_EXIT(vkQueueSubmit(pVulkan->graphicsQueue,
                                1,
                                &submitInfo,
                                VK_NULL_HANDLE));
@@ -189,7 +189,7 @@ static void submitQueueAndPresent(FbrVulkan *pVulkan, const FbrSwap *pSwap, FbrT
             .pSwapchains = &pSwap->swapChain,
             .pImageIndices = &swapIndex,
     };
-    FBR_ACK_EXIT(vkQueuePresentKHR(pVulkan->queue, &presentInfo));
+    FBR_ACK_EXIT(vkQueuePresentKHR(pVulkan->graphicsQueue, &presentInfo));
 }
 
 static void beginFrameCommandBuffer(FbrVulkan *pVulkan, VkExtent2D extent) {
@@ -410,9 +410,9 @@ static void childMainLoop(FbrApp *pApp) {
                                                pChildSemaphore->waitValue}
         };
         FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &releaseSemaphoreWaitInfo, UINT64_MAX));
-        // for some reason this fixes a bug with validation layers thinking the queue hasn't finished wait on timeline should be enough!!!
+        // for some reason this fixes a bug with validation layers thinking the graphicsQueue hasn't finished wait on timeline should be enough!!!
         if (pVulkan->enableValidationLayers) {
-            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->queue));
+            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->graphicsQueue));
         }
 
         timelineSwitch = (timelineSwitch + 1) % 2;
@@ -465,10 +465,10 @@ static void parentMainLoop(FbrApp *pApp) {
         };
         FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
 
-        // for some reason this fixes a bug with validation layers thinking the queue hasnt finished
+        // for some reason this fixes a bug with validation layers thinking the graphicsQueue hasnt finished
         // wait on timeline should be enough!!
         if (pVulkan->enableValidationLayers)
-            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->queue));
+            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->graphicsQueue));
 
         processInputFrame(pApp);
 
@@ -652,6 +652,6 @@ void fbrMainLoop(FbrApp *pApp) {
         childMainLoop(pApp);
     }
 
-    vkQueueWaitIdle(pApp->pVulkan->queue);
+    vkQueueWaitIdle(pApp->pVulkan->graphicsQueue);
     vkDeviceWaitIdle(pApp->pVulkan->device);
 }

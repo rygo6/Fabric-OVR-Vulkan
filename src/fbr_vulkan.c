@@ -234,6 +234,7 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
     vkGetPhysicalDeviceQueueFamilyProperties2(pVulkan->physicalDevice,
                                              &queueFamilyCount,
                                              NULL);
+
     VkQueueFamilyGlobalPriorityPropertiesEXT queueFamilyGlobalPriorityProperties[queueFamilyCount];
     VkQueueFamilyProperties2 queueFamilies[queueFamilyCount];
     for (int i = 0; i < queueFamilyCount; ++i) {
@@ -243,29 +244,48 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
         queueFamilies[i].pNext = &queueFamilyGlobalPriorityProperties[i];
     }
     vkGetPhysicalDeviceQueueFamilyProperties2(pVulkan->physicalDevice,
-                                             &queueFamilyCount,
-                                              (VkQueueFamilyProperties2 *) &queueFamilies);
+                                              &queueFamilyCount,
+                                              queueFamilies);
 
     if (queueFamilyCount == 0) {
-        FBR_LOG_DEBUG("Failed to get queue properties.");
+        FBR_LOG_DEBUG("Failed to get graphicsQueue properties.");
     }
 
-    // Taking a cue from SteamVR Vulkan example and just assuming queue that supports both graphics and present is the only one we want. Don't entirely know if that's right.
-    for (int i = 0; i < queueFamilyCount; ++i) {
-        VkBool32 queueSupport = queueFamilyGlobalPriorityProperties[i].priorityCount > 0;
+    bool foundGraphics = false;
+    bool foundCompute = false;
 
-        VkBool32 graphicsSupport = queueFamilies[i].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+    // Taking a cue from SteamVR Vulkan example and just assuming graphicsQueue that supports both graphics and present is the only one we want. Don't entirely know if that's right.
+    for (int i = 0; i < queueFamilyCount; ++i) {
+        bool globalQueueSupport = queueFamilyGlobalPriorityProperties[i].priorityCount > 0;
+        bool graphicsSupport = queueFamilies[i].queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+        bool computeSupport = queueFamilies[i].queueFamilyProperties.queueFlags & VK_QUEUE_COMPUTE_BIT;
 
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(pVulkan->physicalDevice, i, pVulkan->surface, &presentSupport);
 
-        if (graphicsSupport && presentSupport) {
+        if (!foundGraphics && graphicsSupport && presentSupport) {
+            if (!globalQueueSupport) {
+                FBR_LOG_ERROR("No Global Priority!");
+            }
             pVulkan->graphicsQueueFamilyIndex = i;
-            return;
+            foundGraphics = true;
+            FBR_LOG_DEBUG("Graphics Queue", pVulkan->graphicsQueueFamilyIndex);
+        }
+
+        if (!foundCompute && computeSupport && presentSupport && !graphicsSupport) {
+            pVulkan->computeQueueFamilyIndex = i;
+            foundCompute = true;
+            FBR_LOG_DEBUG("Compute Queue", pVulkan->computeQueueFamilyIndex);
         }
     }
 
-    FBR_LOG_DEBUG("Failed to find a queue that supports both graphics and present!");
+    if (!foundGraphics) {
+        FBR_LOG_ERROR("Failed to find a graphicsQueue that supports both graphics and present!");
+    }
+
+    if (!foundCompute) {
+        FBR_LOG_ERROR("Failed to find a computeQueue!");
+    }
 }
 
 VkResult createLogicalDevice(FbrVulkan *pVulkan) {
@@ -277,7 +297,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
 
     float queuePriority[] =  {pVulkan->isChild ? 0.0f : 1.0f, pVulkan->isChild ? 0.0f : 1.0f };
     for (int i = 0; i < queueFamilyCount; ++i) {
-        FBR_LOG_DEBUG("Creating queue with family.", uniqueQueueFamilies[i]);
+        FBR_LOG_DEBUG("Creating graphicsQueue with family.", uniqueQueueFamilies[i]);
         VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,
                 .globalPriority = pVulkan->isChild ? VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT
@@ -604,7 +624,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     pickPhysicalDevice(pVulkan);
     createLogicalDevice(pVulkan);
 
-    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->queue);
+    vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, pVulkan->isChild ? 1 : 0, &pVulkan->graphicsQueue);
     vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
     // render
