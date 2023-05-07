@@ -220,8 +220,6 @@ static void childMainLoop(FbrApp *pApp) {
 
     // does the pointer indirection here actually cause issue!?
     FbrVulkan *pVulkan = pApp->pVulkan;
-    FbrFramebuffer *pFrameBuffers[] = {pApp->pNodeParent->pFramebuffers[0],
-                                       pApp->pNodeParent->pFramebuffers[1]};
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
     FbrCamera *pCamera = pApp->pNodeParent->pCamera;
@@ -250,7 +248,7 @@ static void childMainLoop(FbrApp *pApp) {
         uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
         memcpy(pCamera->pUBO->pUniformBufferMapped + dynamicGlobalOffset, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraUBO));
 
-        beginFrameCommandBuffer(pVulkan, pFrameBuffers[timelineSwitch]->pColorTexture->extent);
+        beginFrameCommandBuffer(pVulkan, pApp->pFramebuffers[timelineSwitch]->pColorTexture->extent);
 
         // Transfer framebuffer ownership
         VkImageMemoryBarrier pAcquireImageMemoryBarriers[] = {
@@ -262,7 +260,7 @@ static void childMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pFrameBuffers[timelineSwitch]->pColorTexture->image,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pColorTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
@@ -273,7 +271,7 @@ static void childMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pFrameBuffers[timelineSwitch]->pNormalTexture->image,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
@@ -284,7 +282,7 @@ static void childMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pFrameBuffers[timelineSwitch]->pDepthTexture->image,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pDepthTexture->image,
                         FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 }
         };
@@ -299,7 +297,7 @@ static void childMainLoop(FbrApp *pApp) {
                              2, pAcquireImageMemoryBarriers);
 
         beginRenderPassImageless(pVulkan,
-                                 pFrameBuffers[timelineSwitch],
+                                 pApp->pFramebuffers[timelineSwitch],
                                  pVulkan->renderPass,
                                  (VkClearColorValue) {{0.2f, 0.2f, 0.2f, 0.0f}});
         vkCmdBindPipeline(pVulkan->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
@@ -359,7 +357,7 @@ static void childMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-                        .image = pFrameBuffers[timelineSwitch]->pColorTexture->image,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pColorTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
@@ -370,7 +368,7 @@ static void childMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-                        .image = pFrameBuffers[timelineSwitch]->pNormalTexture->image,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
@@ -381,7 +379,7 @@ static void childMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-                        .image = pFrameBuffers[timelineSwitch]->pDepthTexture->image,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pDepthTexture->image,
                         FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 }
         };
@@ -445,7 +443,9 @@ static void parentMainLoop(FbrApp *pApp) {
 
     uint64_t priorChildTimeline = 0;
     uint8_t timelineSwitch = 1;
+    uint8_t framebufferIndex = 0;
 
+    VkExtent2D extents = pSwap->extent;
 
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
 //        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
@@ -472,18 +472,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         processInputFrame(pApp);
 
-        // Get open swap image
-        uint32_t swapIndex;
-        FBR_ACK_EXIT(vkAcquireNextImageKHR(pVulkan->device,
-                                           pSwap->swapChain,
-                                           UINT64_MAX,
-                                           pSwap->acquireComplete,
-                                           VK_NULL_HANDLE,
-                                           &swapIndex));
-
-        beginFrameCommandBuffer(pVulkan, pSwap->extent);
-
-
+        beginFrameCommandBuffer(pVulkan, extents);
 
         //TODO is reading the semaphore slower than just sharing CPU memory?
         vkGetSemaphoreCounterValue(pVulkan->device,
@@ -534,7 +523,7 @@ static void parentMainLoop(FbrApp *pApp) {
             };
             vkCmdPipelineBarrier(pVulkan->commandBuffer,
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
-                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier? YES SHOULD BE DIFF BARRIER AS PER OVER VULKAN EXAMPLE
                                  VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                                  0,
                                  0, NULL,
@@ -546,7 +535,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         //swap pass
         beginRenderPassImageless(pVulkan,
-                                 pSwap->pFramebuffers[swapIndex],
+                                 pApp->pFramebuffers[framebufferIndex],
                                  pVulkan->renderPass,
                                  (VkClearColorValue ){{0.1f, 0.2f, 0.3f, 0.0f}});
 
@@ -632,9 +621,108 @@ static void parentMainLoop(FbrApp *pApp) {
         // end swap pass
         vkCmdEndRenderPass(pVulkan->commandBuffer);
 
+        uint32_t swapIndex;
+        FBR_ACK_EXIT(vkAcquireNextImageKHR(pVulkan->device,
+                                           pSwap->swapChain,
+                                           UINT64_MAX,
+                                           pSwap->acquireComplete,
+                                           VK_NULL_HANDLE,
+                                           &swapIndex));
+
+
+        VkImageMemoryBarrier pTransitionBlitBarrier[] = {
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[framebufferIndex]->pColorTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pSwap->pSwapImages[swapIndex],
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+        };
+        vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT ,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pTransitionBlitBarrier);
+        const VkImageBlit imageBlit = {
+                .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .srcSubresource.mipLevel = 0,
+                .srcSubresource.layerCount = 1,
+                .srcSubresource.baseArrayLayer = 0,
+                .srcOffsets[1].x = extents.width,
+                .srcOffsets[1].y = extents.height,
+                .srcOffsets[1].z = 1,
+                .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .dstSubresource.mipLevel = 0,
+                .dstSubresource.layerCount = 1,
+                .dstSubresource.baseArrayLayer = 0,
+                .dstOffsets[1].x = extents.width,
+                .dstOffsets[1].y = extents.height,
+                .dstOffsets[1].z = 1,
+        };
+        vkCmdBlitImage(pVulkan->commandBuffer,
+                       pApp->pFramebuffers[framebufferIndex]->pColorTexture->image,
+                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       pSwap->pSwapImages[swapIndex],
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       1,
+                       &imageBlit,
+                       VK_FILTER_NEAREST);
+        const VkImageMemoryBarrier pTransitionPresentBarrier[] = {
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[framebufferIndex]->pColorTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pSwap->pSwapImages[swapIndex],
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+        };
+        vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT ,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pTransitionPresentBarrier);
+
+
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
 
         submitQueueAndPresent(pVulkan, pSwap, pMainSemaphore, swapIndex);
+
+        framebufferIndex = !framebufferIndex;
     }
 
 

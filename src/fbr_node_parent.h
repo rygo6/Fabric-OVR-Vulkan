@@ -10,7 +10,7 @@ typedef struct FbrNodeParent {
 
     FbrIPC *pReceiverIPC;
 
-    FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
+//    FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
     FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
 
     FbrTimelineSemaphore *pParentSemaphore;

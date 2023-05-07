@@ -62,7 +62,8 @@ static VkPresentModeKHR chooseSwapPresentMode(const FbrVulkan *pVulkan)
     return swapChainPresentMode;
 }
 
-static VkExtent2D chooseSwapExtent(const FbrVulkan *pVulkan, const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D chooseSwapExtent(const FbrVulkan *pVulkan, const VkSurfaceCapabilitiesKHR capabilities)
+{
     // Logic from OVR Vulkan sample. Logic little different from vulkan tutorial
     // Don't know why I can't just use screenwdith/height??
     VkExtent2D extents;
@@ -80,7 +81,8 @@ static VkExtent2D chooseSwapExtent(const FbrVulkan *pVulkan, const VkSurfaceCapa
     return extents;
 }
 
-static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap) {
+static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
+{
     // Logic from OVR Vulkan example
     VkSurfaceCapabilitiesKHR capabilities;
     FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pVulkan->physicalDevice, pVulkan->surface, &capabilities));
@@ -95,7 +97,7 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap) {
         FBR_LOG_DEBUG("FBR_SWAP_COUNT is less than minImageCount", FBR_SWAP_COUNT, capabilities.minImageCount);
     }
 
-    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
 //    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
 //        pVulkan->swapUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 //    } else {
@@ -142,19 +144,20 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap) {
         return VK_ERROR_UNKNOWN;
     }
 
-    VkImage pSwapImages[FBR_SWAP_COUNT];
-    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pSwap->swapChain, &swapCount, pSwapImages));
+//    VkImage pSwapImages[FBR_SWAP_COUNT];
+    FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pSwap->swapChain, &swapCount, pSwap->pSwapImages));
 
-    for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
-        fbrCreateFrameBufferFromImage(pVulkan, pSwap->format, pSwap->extent, pSwapImages[i], &pSwap->pFramebuffers[i]);
-    }
+//    for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
+//        fbrCreateFrameBufferFromImage(pVulkan, pSwap->format, pSwap->extent, pSwapImages[i], &pSwap->pFramebuffers[i]);
+//    }
 
     FBR_LOG_DEBUG("Swap created.", swapCount, surfaceFormat.format, pSwap->extent.width, pSwap->extent.height);
 
     return VK_SUCCESS;
 }
 
-static VkResult createSyncObjects(const FbrVulkan *pVulkan, FbrSwap *pSwap) { // todo move to swap sync objects?
+static VkResult createSyncObjects(const FbrVulkan *pVulkan, FbrSwap *pSwap)
+{ // todo move to swap sync objects?
     const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
@@ -176,10 +179,6 @@ void fbrCreateSwap(const FbrVulkan *pVulkan,
 
 void fbrDestroySwap(const FbrVulkan *pVulkan, FbrSwap *pSwap)
 {
-    for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
-        fbrDestroyFrameBuffer(pVulkan, pSwap->pFramebuffers[i]);
-    }
-
     vkDestroySemaphore(pVulkan->device, pSwap->renderCompleteSemaphore, NULL);
     vkDestroySemaphore(pVulkan->device, pSwap->acquireComplete, NULL);
 

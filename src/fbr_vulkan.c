@@ -443,7 +443,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     FBR_ACK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
 }
 
-static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
+static void createRenderPass(FbrVulkan *pVulkan) {
     // supposedly most correct https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
     const VkAttachmentReference pColorAttachments[] = {
             {
@@ -487,14 +487,15 @@ static void createRenderPass(FbrVulkan *pVulkan, VkFormat format) {
     };
     const VkAttachmentDescription pAttachments[] = {
             {
-                    .format = format,
+                    .format = FBR_COLOR_BUFFER_FORMAT,
                     .samples = VK_SAMPLE_COUNT_1_BIT,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                    .finalLayout = pVulkan->isChild ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+//                    .finalLayout = pVulkan->isChild ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                     .flags = 0
             },
             {
@@ -634,8 +635,8 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
     // render
-    VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
-    createRenderPass(pVulkan, swapFormat); // todo shouldn't be here?
+//    VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
+    createRenderPass(pVulkan); // todo shouldn't be here?
     createCommandPool(pVulkan);
     createCommandBuffer(pVulkan);
     createDescriptorPool(pVulkan);

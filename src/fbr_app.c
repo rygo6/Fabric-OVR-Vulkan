@@ -14,9 +14,6 @@
 #include "fbr_transform.h"
 #include "fbr_swap.h"
 
-#define FBR_DEFAULT_SCREEN_WIDTH 800
-#define FBR_DEFAULT_SCREEN_HEIGHT 600
-
 static void initWindow(FbrApp *pApp) {
     FBR_LOG_DEBUG("initializing window!");
 
@@ -56,10 +53,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                            pApp->pDescriptors->setLayoutGlobal,
                            pApp->pCamera,
                            &pApp->pDescriptors->setGlobal);
-        fbrCreateSetPass(pApp->pVulkan,
-                             pApp->pDescriptors->setLayoutPass,
-                             pApp->pSwap->pFramebuffers[0]->pNormalTexture,
-                             &pApp->pDescriptors->setPass);
+//        fbrCreateSetPass(pApp->pVulkan,
+//                             pApp->pDescriptors->setLayoutPass,
+//                             pApp->pSwap->pFramebuffers[0]->pNormalTexture,
+//                             &pApp->pDescriptors->setPass);
 
         // First Quad
         fbrCreateSphereMesh(pVulkan,
@@ -235,10 +232,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                            pApp->pDescriptors->setLayoutGlobal,
                            pApp->pNodeParent->pCamera,
                            &pApp->pDescriptors->setGlobal);
-        fbrCreateSetPass(pApp->pVulkan,
-                         pApp->pDescriptors->setLayoutPass,
-                         pApp->pNodeParent->pFramebuffers[0]->pNormalTexture,
-                         &pApp->pDescriptors->setPass);
+//        fbrCreateSetPass(pApp->pVulkan,
+//                         pApp->pDescriptors->setLayoutPass,
+//                         pApp->pNodeParent->pFramebuffers[0]->pNormalTexture,
+//                         &pApp->pDescriptors->setPass);
 
         fbrCreateSphereMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
         fbrCreateTransform(pVulkan,
@@ -280,8 +277,12 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
         fbrCreateSwap(pApp->pVulkan,
                       extent,
                       &pApp->pSwap);
+        for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
+            fbrCreateFrameBuffer(pApp->pVulkan, false, FBR_COLOR_BUFFER_FORMAT, extent, &pApp->pFramebuffers[i]);
+        }
         fbrInitInput(pApp);
     }
+
 
     initEntities(pApp, externalTextureTest);
 }
@@ -292,6 +293,10 @@ void fbrCleanup(FbrApp *pApp) {
     FbrVulkan *pVulkan = pApp->pVulkan;
 
     fbrDestroySwap(pVulkan, pApp->pSwap);
+
+    for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
+        fbrDestroyFrameBuffer(pVulkan, pApp->pFramebuffers[i]);
+    }
 
     // todo this needs to be better
     if (pApp->isChild) {

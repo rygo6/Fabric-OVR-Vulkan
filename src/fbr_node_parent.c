@@ -111,8 +111,8 @@ void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodePa
 
 void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) {
     // Should I be destroy imported things???
-    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[0]);
-    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[1]);
+//    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[0]);
+//    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[1]);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pParentSemaphore);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pChildSemaphore);
     fbrDestroyCamera(pVulkan, pNodeParent->pCamera);
@@ -139,7 +139,7 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                          pParam->depthFramebuffer0ExternalHandle,
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
-                         &pNodeParent->pFramebuffers[0]);
+                         &pApp->pFramebuffers[0]);
     FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->colorFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->normalFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->depthFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
@@ -149,7 +149,7 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                          pParam->depthFramebuffer1ExternalHandle,
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
-                         &pNodeParent->pFramebuffers[1]);
+                         &pApp->pFramebuffers[1]);
 
     FBR_LOG_DEBUG("Importing pVertexUBOs.", pParam->vertexUBO0ExternalHandle);
     fbrImportUBO(pVulkan,

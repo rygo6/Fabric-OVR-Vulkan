@@ -6,6 +6,10 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
+#define FBR_DEFAULT_SCREEN_WIDTH 800
+#define FBR_DEFAULT_SCREEN_HEIGHT 600
+#define FBR_FRAMEBUFFER_COUNT 2
+
 typedef struct FbrCamera FbrCamera;
 typedef struct FbrMesh FbrMesh;
 typedef struct FbrTexture FbrTexture;
@@ -38,6 +42,8 @@ typedef struct FbrApp {
     FbrSwap *pSwap;
     FbrCamera *pCamera;
     FbrTime *pTime;
+
+    FbrFramebuffer *pFramebuffers[FBR_FRAMEBUFFER_COUNT];
 
     int cameraCount;
     FbrCamera *pCameras;

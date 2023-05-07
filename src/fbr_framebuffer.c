@@ -164,58 +164,58 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
 //    );
 //}
 
-void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
-                                   VkFormat colorFormat,
-                                   VkExtent2D extent,
-                                   VkImage image,
-                                   FbrFramebuffer **ppAllocFramebuffer) {
-    *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
-    FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
-    pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
-    // color
-    fbrCreateTextureFromImage(pVulkan,
-                              colorFormat,
-                              extent,
-                              image,
-                              &pFramebuffer->pColorTexture);
-    // normal
-    fbrCreateTexture(pVulkan,
-                     FBR_NORMAL_BUFFER_FORMAT,
-                     extent,
-                     FBR_NORMAL_BUFFER_USAGE,
-                     VK_IMAGE_ASPECT_COLOR_BIT,
-                     false,
-                     &pFramebuffer->pNormalTexture);
-    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pNormalTexture->image,
-                                      VK_IMAGE_LAYOUT_UNDEFINED,  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE,  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                      VK_IMAGE_ASPECT_COLOR_BIT);
-    // depth
-    VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
-    fbrCreateTexture(pVulkan,
-                     depthFormat,
-                     extent,
-                     FBR_DEPTH_BUFFER_USAGE,
-                     VK_IMAGE_ASPECT_DEPTH_BIT,
-                     false,
-                     &pFramebuffer->pDepthTexture);
-    VkImageAspectFlagBits depthAspectMask = getDepthAspectMask();
-    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pDepthTexture->image,
-                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                      VK_ACCESS_NONE, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                                      depthAspectMask);
-    createFramebuffer(pVulkan,
-                      pFramebuffer,
-                      colorFormat,
-                      FBR_NORMAL_BUFFER_FORMAT,
-                      depthFormat,
-                      extent,
-                      FBR_COLOR_BUFFER_USAGE,
-                      FBR_NORMAL_BUFFER_USAGE,
-                      FBR_DEPTH_BUFFER_USAGE);
-}
+//void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
+//                                   VkFormat colorFormat,
+//                                   VkExtent2D extent,
+//                                   VkImage image,
+//                                   FbrFramebuffer **ppAllocFramebuffer) {
+//    *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
+//    FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
+//    pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
+//    // color
+//    fbrCreateTextureFromImage(pVulkan,
+//                              FBR_COLOR_BUFFER_FORMAT,
+//                              extent,
+//                              image,
+//                              &pFramebuffer->pColorTexture);
+//    // normal
+//    fbrCreateTexture(pVulkan,
+//                     FBR_NORMAL_BUFFER_FORMAT,
+//                     extent,
+//                     FBR_NORMAL_BUFFER_USAGE,
+//                     VK_IMAGE_ASPECT_COLOR_BIT,
+//                     false,
+//                     &pFramebuffer->pNormalTexture);
+//    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pNormalTexture->image,
+//                                      VK_IMAGE_LAYOUT_UNDEFINED,  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+//                                      VK_ACCESS_NONE,  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+//                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+//                                      VK_IMAGE_ASPECT_COLOR_BIT);
+//    // depth
+//    VkFormat depthFormat = findSupportedDepthFormat(pVulkan);
+//    fbrCreateTexture(pVulkan,
+//                     depthFormat,
+//                     extent,
+//                     FBR_DEPTH_BUFFER_USAGE,
+//                     VK_IMAGE_ASPECT_DEPTH_BIT,
+//                     false,
+//                     &pFramebuffer->pDepthTexture);
+//    VkImageAspectFlagBits depthAspectMask = getDepthAspectMask();
+//    fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pDepthTexture->image,
+//                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+//                                      VK_ACCESS_NONE, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+//                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+//                                      depthAspectMask);
+//    createFramebuffer(pVulkan,
+//                      pFramebuffer,
+//                      FBR_COLOR_BUFFER_FORMAT,
+//                      FBR_NORMAL_BUFFER_FORMAT,
+//                      depthFormat,
+//                      extent,
+//                      FBR_COLOR_BUFFER_USAGE,
+//                      FBR_NORMAL_BUFFER_USAGE,
+//                      FBR_DEPTH_BUFFER_USAGE);
+//}
 
 void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                           bool external,
@@ -228,7 +228,7 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
     // Color
     VkImageUsageFlags colorUsage = external ? FBR_EXTERNAL_COLOR_BUFFER_USAGE : FBR_COLOR_BUFFER_USAGE;
     fbrCreateTexture(pVulkan,
-                     colorFormat,
+                     FBR_COLOR_BUFFER_FORMAT,
                      extent,
                      colorUsage,
                      VK_IMAGE_ASPECT_COLOR_BIT,
@@ -240,7 +240,7 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , external ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
     // Normal
-    VkImageUsageFlags normalUsage = external ? FBR_EXTERNAL_COLOR_BUFFER_USAGE : FBR_COLOR_BUFFER_USAGE;
+    VkImageUsageFlags normalUsage = external ? FBR_EXTERNAL_NORMAL_BUFFER_USAGE : FBR_NORMAL_BUFFER_USAGE;
     fbrCreateTexture(pVulkan,
                      FBR_NORMAL_BUFFER_FORMAT,
                      extent,
@@ -272,7 +272,7 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                                       depthAspectMask);
     createFramebuffer(pVulkan,
                       pFramebuffer,
-                      colorFormat,
+                      FBR_COLOR_BUFFER_FORMAT,
                       FBR_NORMAL_BUFFER_FORMAT,
                       depthFormat,
                       extent,
@@ -293,7 +293,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
     // color
     fbrImportTexture(pVulkan,
-                     colorFormat,
+                     FBR_COLOR_BUFFER_FORMAT,
                      extent,
                      FBR_EXTERNAL_COLOR_BUFFER_USAGE,
                      VK_IMAGE_ASPECT_COLOR_BIT,
@@ -336,7 +336,7 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                                       depthAspectMask);
     createFramebuffer(pVulkan,
                       pFramebuffer,
-                      colorFormat,
+                      FBR_COLOR_BUFFER_FORMAT,
                       FBR_NORMAL_BUFFER_FORMAT,
                       depthFormat,
                       extent,

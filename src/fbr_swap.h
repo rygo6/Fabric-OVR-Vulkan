@@ -14,7 +14,7 @@ typedef struct FbrSwap {
     VkExtent2D extent;
     VkSemaphore acquireComplete;
     VkSemaphore renderCompleteSemaphore;
-    FbrFramebuffer *pFramebuffers[FBR_SWAP_COUNT];
+    VkImage pSwapImages[FBR_SWAP_COUNT];
 } FbrSwap;
 
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const FbrVulkan *pVulkan);
