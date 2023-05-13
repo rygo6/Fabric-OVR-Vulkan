@@ -1,6 +1,7 @@
 #include "fbr_swap.h"
 #include "fbr_vulkan.h"
 #include "fbr_log.h"
+#include "fbr_buffer.h"
 
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const FbrVulkan *pVulkan)
 {
@@ -144,12 +145,16 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
         return VK_ERROR_UNKNOWN;
     }
 
-//    VkImage pSwapImages[FBR_SWAP_COUNT];
     FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pSwap->swapChain, &swapCount, pSwap->pSwapImages));
 
-//    for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
-//        fbrCreateFrameBufferFromImage(pVulkan, pSwap->format, pSwap->extent, pSwapImages[i], &pSwap->pFramebuffers[i]);
-//    }
+    for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
+        fbrTransitionImageLayoutImmediate(pVulkan,
+                                          pSwap->pSwapImages[i],
+                                          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                          VK_ACCESS_NONE, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                          VK_IMAGE_ASPECT_COLOR_BIT);
+    }
 
     FBR_LOG_DEBUG("Swap created.", swapCount, surfaceFormat.format, pSwap->extent.width, pSwap->extent.height);
 
