@@ -250,8 +250,8 @@ static void childMainLoop(FbrApp *pApp) {
 
         beginFrameCommandBuffer(pVulkan, pApp->pFramebuffers[timelineSwitch]->pColorTexture->extent);
 
-        // Transfer framebuffer ownership
-        VkImageMemoryBarrier pAcquireImageMemoryBarriers[] = {
+        // Acquire Framebuffer Ownership
+        const VkImageMemoryBarrier pAcquireColorImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
@@ -273,7 +273,16 @@ static void childMainLoop(FbrApp *pApp) {
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .image = pApp->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
+                }
+        };
+        vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pAcquireColorImageMemoryBarriers);
+        const VkImageMemoryBarrier pAcquireDepthImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
@@ -287,14 +296,14 @@ static void childMainLoop(FbrApp *pApp) {
                 }
         };
         vkCmdPipelineBarrier(pVulkan->commandBuffer,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
-                                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
-                                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
                              0,
                              0, NULL,
                              0, NULL,
-                             2, pAcquireImageMemoryBarriers);
+                             1, pAcquireDepthImageMemoryBarriers);
+
+
 
         beginRenderPassImageless(pVulkan,
                                  pApp->pFramebuffers[timelineSwitch],
@@ -347,8 +356,9 @@ static void childMainLoop(FbrApp *pApp) {
 
         fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
 
-        // release framebuffer
-        VkImageMemoryBarrier pReleaseImageMemoryBarriers[] = {
+
+        // Release Framebuffer Ownership
+        const VkImageMemoryBarrier pReleaseColorImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -370,7 +380,16 @@ static void childMainLoop(FbrApp *pApp) {
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .image = pApp->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
+                }
+        };
+        vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pReleaseColorImageMemoryBarriers);
+        const VkImageMemoryBarrier pReleaseDepthImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
@@ -384,13 +403,13 @@ static void childMainLoop(FbrApp *pApp) {
                 }
         };
         vkCmdPipelineBarrier(pVulkan->commandBuffer,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
-                                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier?
+                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
                              VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                              0,
                              0, NULL,
                              0, NULL,
-                             2, pReleaseImageMemoryBarriers);
+                             1, pReleaseDepthImageMemoryBarriers);
+
 
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->commandBuffer));
 
@@ -478,15 +497,12 @@ static void parentMainLoop(FbrApp *pApp) {
         vkGetSemaphoreCounterValue(pVulkan->device,
                                    pTestNode->pChildSemaphore->semaphore,
                                    &pTestNode->pChildSemaphore->waitValue);
-        // Claim child framebuffers! Do this outside of renderpass
-        // wait two sempahore value because it submits again to release framebuffer
         if (priorChildTimeline != pTestNode->pChildSemaphore->waitValue) {
             priorChildTimeline = pTestNode->pChildSemaphore->waitValue;
             timelineSwitch = (timelineSwitch + 1) % 2;
-            // transform child framebuffer from external to here
-            // this technically isn't needed on nv hardware? but can maybe help sync anyways?
-            // https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#multiple-queues
-            VkImageMemoryBarrier pPrePresentImageMemoryBarrier[] = {
+
+            // Acquire Framebuffer Ownership
+            const VkImageMemoryBarrier pPrePresentColorImageMemoryBarrier[] = {
                     {
                             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                             .srcAccessMask = 0,
@@ -509,6 +525,15 @@ static void parentMainLoop(FbrApp *pApp) {
                             .image = pTestNode->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                             FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                     },
+            };
+            vkCmdPipelineBarrier(pVulkan->commandBuffer,
+                                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                 0,
+                                 0, NULL,
+                                 0, NULL,
+                                 2, pPrePresentColorImageMemoryBarrier);
+            const VkImageMemoryBarrier pPrePresentDepthjImageMemoryBarrier[] = {
                     {
                             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                             .srcAccessMask = 0,
@@ -522,13 +547,12 @@ static void parentMainLoop(FbrApp *pApp) {
                     }
             };
             vkCmdPipelineBarrier(pVulkan->commandBuffer,
-                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | // Color
-                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, // Depth. Should these be in separate vkCmdPipelineBarrier? YES SHOULD BE DIFF BARRIER AS PER OVER VULKAN EXAMPLE
-                                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                  0,
                                  0, NULL,
                                  0, NULL,
-                                 2, pPrePresentImageMemoryBarrier);
+                                 1, pPrePresentDepthjImageMemoryBarrier);
 //            FBR_LOG_DEBUG("parent switch", timelineSwitch, pTestNode->pChildSemaphore->waitValue);
         }
 
@@ -630,7 +654,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                            &swapIndex));
 
 
-        VkImageMemoryBarrier pTransitionBlitBarrier[] = {
+        const VkImageMemoryBarrier pTransitionBlitBarrier[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
