@@ -56,6 +56,29 @@ static FBR_RESULT createPipeLayoutNode(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
+static FBR_RESULT createPipeLayoutComposite(const FbrVulkan *pVulkan,
+                                            const FbrDescriptors *pDescriptors,
+                                            FbrComputePipeLayoutComposite *pPipeLayout)
+{
+    const VkDescriptorSetLayout pSetLayouts[] = {
+            pDescriptors->setLayoutComposite,
+    };
+    const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = NULL,
+            .setLayoutCount = 1,
+            .pSetLayouts = pSetLayouts,
+            .pPushConstantRanges = NULL,
+            .pushConstantRangeCount  = 0
+    };
+    FBR_ACK(vkCreatePipelineLayout(pVulkan->device,
+                                   &pipelineLayoutInfo,
+                                   FBR_ALLOCATOR,
+                                   pPipeLayout));
+
+    return FBR_SUCCESS;
+}
+
 static FBR_RESULT createPipelineLayouts(const FbrVulkan *pVulkan,
                                       const FbrDescriptors *pDescriptors,
                                       FbrPipelines *pPipelines)
@@ -66,6 +89,9 @@ static FBR_RESULT createPipelineLayouts(const FbrVulkan *pVulkan,
     FBR_ACK(createPipeLayoutNode(pVulkan,
                                       pDescriptors,
                                       &pPipelines->pipeLayoutNode));
+    FBR_ACK(createPipeLayoutComposite(pVulkan,
+                                      pDescriptors,
+                                      &pPipelines->computePipeLayoutComposite));
 
     return FBR_SUCCESS;
 }
@@ -402,6 +428,37 @@ FBR_RESULT fbrCreatePipeNode(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
+
+FBR_RESULT fbrCreateComputePipeComposite(const FbrVulkan *pVulkan,
+                                         FbrComputePipeLayoutComposite layout,
+                                         const char *pCompositeShaderPath,
+                                         FbrComputePipeComposite *pPipe)
+{
+    VkShaderModule compositeShaderModule;
+    FBR_ACK(createShaderModule(pVulkan,
+                               pCompositeShaderPath,
+                               &compositeShaderModule));
+    const VkPipelineShaderStageCreateInfo stage = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+            .module = compositeShaderModule,
+            .pName = "main",
+    };
+    const VkComputePipelineCreateInfo pipelineInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .layout = layout,
+            .stage = stage,
+    };
+    FBR_ACK(vkCreateComputePipelines(pVulkan->device,
+                                     VK_NULL_HANDLE,
+                                     1,
+                                     &pipelineInfo,
+                                     FBR_ALLOCATOR,
+                                     pPipe));
+
+    return FBR_SUCCESS;
+}
+
 static FBR_RESULT createPipes(const FbrVulkan *pVulkan,
                             FbrPipelines *pPipes)
 {
@@ -412,14 +469,17 @@ static FBR_RESULT createPipes(const FbrVulkan *pVulkan,
 //                                  "./shaders/frag_crasher.spv":
                                   "./shaders/frag.spv",
                                   &pPipes->pipeStandard));
-
     FBR_ACK(fbrCreatePipeNode(pVulkan,
-                                   pPipes->pipeLayoutNode,
-                                   "./shaders/node_vert.spv",
-                                   "./shaders/node_frag.spv",
-                                   "./shaders/node_tesc.spv",
-                                   "./shaders/node_tese.spv",
-                                   &pPipes->pipeNode));
+                              pPipes->pipeLayoutNode,
+                              "./shaders/node_vert.spv",
+                              "./shaders/node_frag.spv",
+                              "./shaders/node_tesc.spv",
+                              "./shaders/node_tese.spv",
+                              &pPipes->pipeNode));
+    FBR_ACK(fbrCreateComputePipeComposite(pVulkan,
+                                          pPipes->computePipeLayoutComposite,
+                                          "./shaders/composite_comp.spv",
+                                          &pPipes->computePipeComposite));
 
     return FBR_SUCCESS;
 }

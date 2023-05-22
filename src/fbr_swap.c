@@ -10,9 +10,10 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(const FbrVulkan *pVulkan)
     VkSurfaceFormatKHR formats[formatCount];
     FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, (VkSurfaceFormatKHR *) &formats));
 
-    // Favor sRGB if it's available
+    // Favor sRGB if it's available why?
     for (int i = 0; i < formatCount; ++i) {
-        if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB || formats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
+//        if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB || formats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
+        if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM) {
             return formats[i];
         }
     }
@@ -93,17 +94,27 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
     pSwap->format = surfaceFormat.format;
     pSwap->extent = chooseSwapExtent(pVulkan, capabilities);
 
+    FBR_LOG_DEBUG("Swap Surface: ", pSwap->format);
+
     // I am setting this to 2 on the premise you get the least latency in VR.
     if (FBR_SWAP_COUNT < capabilities.minImageCount) {
         FBR_LOG_DEBUG("FBR_SWAP_COUNT is less than minImageCount", FBR_SWAP_COUNT, capabilities.minImageCount);
     }
 
-    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+//    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
 //    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
 //        pVulkan->swapUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 //    } else {
 //        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
 //    }
+
+    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT)) {
+        FBR_LOG_DEBUG("Swap support VK_IMAGE_USAGE_STORAGE_BIT adding!");
+        pSwap->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    } else {
+        FBR_LOG_ERROR("Vulkan Swap does not support VK_IMAGE_USAGE_STORAGE_BIT!");
+    }
 
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
@@ -154,6 +165,23 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
                                           VK_ACCESS_NONE, VK_ACCESS_NONE,
                                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                           VK_IMAGE_ASPECT_COLOR_BIT);
+
+        const VkImageViewCreateInfo viewInfo = {
+                .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .image = pSwap->pSwapImages[i],
+                .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                .format = pSwap->format,
+                .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .subresourceRange.baseMipLevel = 0,
+                .subresourceRange.levelCount = 1,
+                .subresourceRange.baseArrayLayer = 0,
+                .subresourceRange.layerCount = 1,
+        };
+        FBR_ACK(vkCreateImageView(pVulkan->device, &viewInfo, FBR_ALLOCATOR, &pSwap->pSwapImageViews[i]));
     }
 
     FBR_LOG_DEBUG("Swap created.", swapCount, surfaceFormat.format, pSwap->extent.width, pSwap->extent.height);
@@ -166,7 +194,7 @@ static VkResult createSyncObjects(const FbrVulkan *pVulkan, FbrSwap *pSwap)
     const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
-    FBR_ACK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->acquireComplete));
+    FBR_ACK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->acquireCompleteSemaphore));
     FBR_ACK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pSwap->renderCompleteSemaphore));
 }
 
@@ -185,7 +213,7 @@ void fbrCreateSwap(const FbrVulkan *pVulkan,
 void fbrDestroySwap(const FbrVulkan *pVulkan, FbrSwap *pSwap)
 {
     vkDestroySemaphore(pVulkan->device, pSwap->renderCompleteSemaphore, NULL);
-    vkDestroySemaphore(pVulkan->device, pSwap->acquireComplete, NULL);
+    vkDestroySemaphore(pVulkan->device, pSwap->acquireCompleteSemaphore, NULL);
 
     free(pSwap);
 }

@@ -45,7 +45,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     fbrCreatePipelines(pVulkan, pApp->pDescriptors, &pApp->pPipelines);
 
     if (!pApp->isChild) {
-
         fbrCreateCamera(pVulkan,
                         FBR_DYNAMIC_MAIN_CAMERA_COUNT,
                         &pApp->pCamera);
@@ -81,7 +80,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         glm_vec3_add(pApp->pTestNode->pTransform->pos,
                      (vec3) {1, 0, 0},
                      pApp->pTestNode->pTransform->pos);
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutNode,
                              pApp->pTestNode->pTransform,
@@ -92,6 +91,21 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              &pApp->pCompMaterialSets[i]);
         }
 
+
+//        VkImageView pSourceTextures[FBR_FRAMEBUFFER_COUNT];
+//        for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
+//            pSourceTextures[i] = pApp->pTestNode->pFramebuffers[i]->pColorTexture->imageView;
+//        }
+//        VkImageView pTargetTextures[FBR_SWAP_COUNT];
+//        for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
+//            pTargetTextures[i] = pApp->pSwap->pSwapImageViews[i];
+//        }
+//        fbrCreateSetComposite(pApp->pVulkan,
+//                              pApp->pDescriptors->setLayoutComposite,
+//                              pSourceTextures,
+//                              pTargetTextures,
+//                              &pApp->pDescriptors->setComposite);
+        
 
         // todo below can go into create node
         HANDLE camDupHandle;
@@ -182,7 +196,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         HANDLE parentSemDupHandle;
         DuplicateHandle(GetCurrentProcess(),
-                        pApp->pVulkan->pMainSemaphore->externalHandle,
+                        pApp->pVulkan->pMainTimelineSemaphore->externalHandle,
                         pApp->pTestNode->pProcess->pi.hProcess,
                         &parentSemDupHandle,
                         0,

@@ -209,7 +209,7 @@ FBR_RESULT fbrBeginImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuf
     const VkCommandBufferAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandPool =  pVulkan->commandPool,
+            .commandPool =  pVulkan->graphicsCommandPool,
             .commandBufferCount = 1,
     };
     FBR_ACK(vkAllocateCommandBuffers(pVulkan->device, &allocInfo, pCommandBuffer));
@@ -242,7 +242,7 @@ FBR_RESULT fbrEndImmediateCommandBuffer(const FbrVulkan *pVulkan, VkCommandBuffe
                                VK_NULL_HANDLE));
     FBR_ACK(vkQueueWaitIdle(pVulkan->graphicsQueue)); // TODO could be more optimized with vkWaitForFences https://vulkan-tutorial.com/Vertex_buffers/Staging_buffer
 
-    vkFreeCommandBuffers(pVulkan->device, pVulkan->commandPool, 1, pCommandBuffer);
+    vkFreeCommandBuffers(pVulkan->device, pVulkan->graphicsCommandPool, 1, pCommandBuffer);
 
     return FBR_SUCCESS;
 }

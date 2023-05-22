@@ -294,12 +294,12 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
 VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     findQueueFamilies(pVulkan);
 
-    float queuePriority = pVulkan->isChild ? 0.0f : 1.0f;
-    VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
+    const float queuePriority = pVulkan->isChild ? 0.0f : 1.0f;
+    const VkDeviceQueueGlobalPriorityCreateInfoEXT queueGlobalPriorityCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT,
             .globalPriority = pVulkan->isChild ? VK_QUEUE_GLOBAL_PRIORITY_LOW_EXT : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT
     };
-    VkDeviceQueueCreateInfo pQueueCreateInfos[2] = {
+    const VkDeviceQueueCreateInfo pQueueCreateInfos[2] = {
             {
                     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                     .pNext = &queueGlobalPriorityCreateInfo,
@@ -494,6 +494,7 @@ static void createRenderPass(FbrVulkan *pVulkan) {
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+//                    .finalLayout = pVulkan->isChild ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL,
 //                    .finalLayout = pVulkan->isChild ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                     .flags = 0
@@ -534,17 +535,17 @@ static void createRenderPass(FbrVulkan *pVulkan) {
     FBR_VK_CHECK(vkCreateRenderPass(pVulkan->device, &renderPassInfo, NULL, &pVulkan->renderPass));
 }
 
-static void createCommandPool(FbrVulkan *pVulkan) {
-    VkCommandPoolCreateInfo poolInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-    };
-    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device,
-                                     &poolInfo,
-                                     NULL,
-                                     &pVulkan->commandPool));
-}
+//static void createCommandPool(FbrVulkan *pVulkan) {
+//    VkCommandPoolCreateInfo poolInfo = {
+//            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+//            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+//            .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+//    };
+//    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device,
+//                                     &poolInfo,
+//                                     NULL,
+//                                     &pVulkan->graphicsCommandPool));
+//}
 
 static FBR_RESULT createDescriptorPool(FbrVulkan *pVulkan) {
     const VkDescriptorPoolSize poolSizes[] = {
@@ -563,6 +564,8 @@ static FBR_RESULT createDescriptorPool(FbrVulkan *pVulkan) {
     };
     const VkDescriptorPoolCreateInfo poolInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .pNext = NULL,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
             .poolSizeCount = 3,
             .pPoolSizes = poolSizes,
             .maxSets = 12,
@@ -573,17 +576,46 @@ static FBR_RESULT createDescriptorPool(FbrVulkan *pVulkan) {
                                    &pVulkan->descriptorPool));
 }
 
-static FBR_RESULT createCommandBuffer(FbrVulkan *pVulkan) {
-    VkCommandBufferAllocateInfo allocInfo = {
+static FBR_RESULT createCommandBuffers(FbrVulkan *pVulkan) {
+    // Graphics + Compute
+    const VkCommandPoolCreateInfo graphicsPoolInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+    };
+    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device,
+                                     &graphicsPoolInfo,
+                                     NULL,
+                                     &pVulkan->graphicsCommandPool));
+    const VkCommandBufferAllocateInfo graphicsAllocateInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = pVulkan->commandPool,
+            .commandPool = pVulkan->graphicsCommandPool,
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = 1,
     };
-
     FBR_ACK(vkAllocateCommandBuffers(pVulkan->device,
-                                     &allocInfo,
-                                     &pVulkan->commandBuffer));
+                                     &graphicsAllocateInfo,
+                                     &pVulkan->graphicsCommandBuffer));
+
+    // Compute
+    const VkCommandPoolCreateInfo computePoolInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = pVulkan->computeQueueFamilyIndex,
+    };
+    FBR_VK_CHECK(vkCreateCommandPool(pVulkan->device,
+                                     &computePoolInfo,
+                                     NULL,
+                                     &pVulkan->computeCommandPool));
+    const VkCommandBufferAllocateInfo computeAllocInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandPool = pVulkan->computeCommandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = 1,
+    };
+    FBR_ACK(vkAllocateCommandBuffers(pVulkan->device,
+                                     &computeAllocInfo,
+                                     &pVulkan->computeCommandBuffer));
 }
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
@@ -635,16 +667,14 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
     // render
-//    VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
     createRenderPass(pVulkan); // todo shouldn't be here?
-    createCommandPool(pVulkan);
-    createCommandBuffer(pVulkan);
+    createCommandBuffers(pVulkan);
     createDescriptorPool(pVulkan);
 
     createTextureSampler(pVulkan);
 
     if (!pApp->isChild) {
-        fbrCreateTimelineSemaphore(pVulkan, true, true, &pVulkan->pMainSemaphore);
+        fbrCreateTimelineSemaphore(pVulkan, true, true, &pVulkan->pMainTimelineSemaphore);
     }
 }
 
@@ -672,14 +702,15 @@ static void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
 }
 
 void fbrCleanupVulkan(FbrVulkan *pVulkan) {
-    if (pVulkan->pMainSemaphore != NULL)
-        fbrDestroyTimelineSemaphore(pVulkan, pVulkan->pMainSemaphore);
+    if (pVulkan->pMainTimelineSemaphore != NULL)
+        fbrDestroyTimelineSemaphore(pVulkan, pVulkan->pMainTimelineSemaphore);
 
     vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, NULL);
 
     vkDestroyRenderPass(pVulkan->device, pVulkan->renderPass, NULL);
 
-    vkDestroyCommandPool(pVulkan->device, pVulkan->commandPool, NULL);
+    vkDestroyCommandPool(pVulkan->device, pVulkan->graphicsCommandPool, NULL);
+    vkDestroyCommandPool(pVulkan->device, pVulkan->computeCommandPool, NULL);
 
     vkDestroySampler(pVulkan->device, pVulkan->sampler, NULL);
 
@@ -700,5 +731,5 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
 
 void fbrIPCTargetImportMainSemaphore(FbrApp *pApp, FbrIPCParamImportTimelineSemaphore *pParam){
     FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->handle);
-    fbrImportTimelineSemaphore(pApp->pVulkan, true, pParam->handle, &pApp->pVulkan->pMainSemaphore);
+    fbrImportTimelineSemaphore(pApp->pVulkan, true, pParam->handle, &pApp->pVulkan->pMainTimelineSemaphore);
 }

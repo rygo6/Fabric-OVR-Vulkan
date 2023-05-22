@@ -12,9 +12,10 @@ typedef struct FbrSwap {
     VkFormat format;
     VkImageUsageFlags usage;
     VkExtent2D extent;
-    VkSemaphore acquireComplete;
+    VkSemaphore acquireCompleteSemaphore;
     VkSemaphore renderCompleteSemaphore;
     VkImage pSwapImages[FBR_SWAP_COUNT];
+    VkImageView pSwapImageViews[FBR_SWAP_COUNT];
 } FbrSwap;
 
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const FbrVulkan *pVulkan);

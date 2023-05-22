@@ -3,6 +3,7 @@
 
 #include "fbr_app.h"
 #include "fbr_camera.h"
+#include "fbr_swap.h"
 #include <vulkan/vulkan.h>
 
 // Standard Pipeline
@@ -25,21 +26,33 @@ typedef VkDescriptorSet FbrSetMaterial;
 typedef VkDescriptorSetLayout FbrSetLayoutObject;
 typedef VkDescriptorSet FbrSetObject;
 
-// Node Compositor Pipeline
 #define FBR_NODE_SET_INDEX 3
 typedef VkDescriptorSetLayout FbrSetLayoutNode;
 typedef VkDescriptorSet FbrSetNode;
 
+#define FBR_COMPOSITE_SET_INDEX 0
+typedef VkDescriptorSetLayout FbrSetLayoutComposite;
+typedef VkDescriptorSet FbrSetComposite;
+
 
 typedef struct FbrDescriptors {
     FbrSetLayoutGlobal setLayoutGlobal;
-    FbrSetLayoutPass setLayoutPass;
-    FbrSetLayoutMaterial setLayoutMaterial;
-    FbrSetLayoutObject setLayoutObject;
     FbrSetGlobal setGlobal;
+
+
+    FbrSetLayoutPass setLayoutPass;
     FbrSetPass setPass;
 
+
+    FbrSetLayoutMaterial setLayoutMaterial;
+    FbrSetLayoutObject setLayoutObject;
+
+
     FbrSetLayoutNode setLayoutNode;
+
+
+    FbrSetLayoutComposite setLayoutComposite;
+//    FbrSetComposite setComposite;
 
 } FbrDescriptors;
 
@@ -71,6 +84,12 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                           const FbrTexture *pNormalTexture,
                           const FbrTexture *pDepthTexture,
                           FbrSetNode *pSet);
+
+FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
+                                 FbrSetLayoutComposite setLayout,
+                                 VkImageView sourceImageView,
+                                 VkImageView destinationImageView,
+                                 FbrSetComposite *pSet);
 
 VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std);
 

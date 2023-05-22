@@ -110,7 +110,15 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
                                 &pFrameBuffer->framebuffer));
 }
 
-//void fbrTransitionForRender(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
+static FBR_RESULT createSyncObjects(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer)
+{
+    const VkSemaphoreCreateInfo swapchainSemaphoreCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+    FBR_ACK(vkCreateSemaphore(pVulkan->device, &swapchainSemaphoreCreateInfo, NULL, &pFramebuffer->renderCompleteSemaphore));
+}
+
+//void fbrTransitionForRender(VkCommandBuffer graphicsCommandBuffer, FbrFramebuffer *pFramebuffer) {
 //    VkImageMemoryBarrier barrier = {
 //            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 //            .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -127,7 +135,7 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
 //            .dstAccessMask = 0,
 //    };
 //    vkCmdPipelineBarrier(
-//            commandBuffer,
+//            graphicsCommandBuffer,
 //            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 //            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 //            0,
@@ -137,7 +145,7 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
 //    );
 //}
 //
-//void fbrTransitionForDisplay(VkCommandBuffer commandBuffer, FbrFramebuffer *pFramebuffer) {
+//void fbrTransitionForDisplay(VkCommandBuffer graphicsCommandBuffer, FbrFramebuffer *pFramebuffer) {
 //    VkImageMemoryBarrier barrier = {
 //            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 //            .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -154,7 +162,7 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
 //            .dstAccessMask = 0,
 //    };
 //    vkCmdPipelineBarrier(
-//            commandBuffer,
+//            graphicsCommandBuffer,
 //            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 //            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 //            0,
@@ -235,7 +243,8 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                      external,
                      &pFramebuffer->pColorTexture);
     fbrTransitionImageLayoutImmediate(pVulkan, pFramebuffer->pColorTexture->image,
-                                      VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+//                                      VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_UNDEFINED,  external ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL,
                                       VK_ACCESS_NONE, external ? VK_ACCESS_SHADER_READ_BIT : VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT , external ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       VK_IMAGE_ASPECT_COLOR_BIT);
@@ -279,6 +288,7 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                       colorUsage,
                       normalUsage,
                       depthUsage);
+    createSyncObjects(pVulkan, pFramebuffer);
 }
 
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,

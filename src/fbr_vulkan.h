@@ -71,12 +71,15 @@ typedef struct FbrVulkan {
     VkRenderPass renderPass;
 
     //todo should go elsewhere?
-    FbrTimelineSemaphore *pMainSemaphore;
+    FbrTimelineSemaphore *pMainTimelineSemaphore;
 
     VkDescriptorPool descriptorPool;
 
-    VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    VkCommandPool graphicsCommandPool;
+    VkCommandBuffer graphicsCommandBuffer;
+
+    VkCommandPool computeCommandPool;
+    VkCommandBuffer computeCommandBuffer;
 
     VkSampler sampler;
 

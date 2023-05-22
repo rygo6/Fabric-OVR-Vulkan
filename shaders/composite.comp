@@ -1,0 +1,25 @@
+#version 450
+
+layout (set = 0, binding = 0, rgba8) uniform readonly image2D inputImage;
+layout (set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
+
+//layout (local_size_x = 800, local_size_y = 600, local_size_z = 1) in;
+
+vec4 convertUNORMtoSRGB(vec4 color)
+{
+    vec3 linearRGB = color.rgb * color.a;  // Multiply color by alpha to undo premultiplication
+
+    // Convert linear RGB to sRGB
+    vec3 sRGB = pow(linearRGB, vec3(1.0 / 2.2));
+
+    // Swap red and blue channels
+    vec3 sRGBswapped = sRGB.bgr;
+
+    return vec4(sRGBswapped, color.a);
+}
+
+void main()
+{
+    vec4 pixel = imageLoad(inputImage, ivec2(gl_GlobalInvocationID.xy));
+    imageStore(outputImage, ivec2(gl_GlobalInvocationID.xy), convertUNORMtoSRGB(pixel));
+}
