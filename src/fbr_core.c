@@ -815,8 +815,8 @@ static void parentMainLoop(FbrApp *pApp) {
         vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, 2);
 
         vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 0);
-        const int opsPerThread = 4;
-        vkCmdDispatch(pVulkan->computeCommandBuffer, extents.width / opsPerThread, extents.height / opsPerThread, 1);
+        const int localSize = 32;
+        vkCmdDispatch(pVulkan->computeCommandBuffer, extents.width / localSize, extents.height / localSize, 1);
         vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 1);
 
 

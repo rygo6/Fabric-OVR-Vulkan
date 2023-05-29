@@ -671,6 +671,10 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
         FBR_LOG_ERROR("Does Not support timestampComputeAndGraphics!");
     }
     FBR_LOG_DEBUG("Timestamp Period: ", pVulkan->physicalDeviceProperties.limits.timestampPeriod);
+    FBR_LOG_DEBUG("Max Compute Work Group Size X: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[0]);
+    FBR_LOG_DEBUG("Max Compute Work Group Size Y: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[1]);
+    FBR_LOG_DEBUG("Max Compute Work Group Size Z: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[2]);
+    FBR_LOG_DEBUG("Max Compute Work Group Invocations: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupInvocations);
 
     const VkQueryPoolCreateInfo queryPoolCreateInfo =  {
         .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
