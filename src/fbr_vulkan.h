@@ -86,6 +86,8 @@ typedef struct FbrVulkan {
     VkPhysicalDeviceProperties  physicalDeviceProperties;
     VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
+    VkQueryPool queryPool;
+
 } FbrVulkan;
 
 void fbrCreateVulkan(const FbrApp *pApp,

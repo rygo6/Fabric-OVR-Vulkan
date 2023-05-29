@@ -243,8 +243,11 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
             .flags = 0,
             .depthClampEnable = VK_FALSE,
             .rasterizerDiscardEnable = VK_FALSE,
+#ifdef FBR_DEBUG_WIREFRAME
+            .polygonMode = pVulkan->isChild ? VK_POLYGON_MODE_FILL : VK_POLYGON_MODE_LINE,
+#else
             .polygonMode = VK_POLYGON_MODE_FILL,
-//            .polygonMode = VK_POLYGON_MODE_LINE,
+#endif
             .cullMode = VK_CULL_MODE_NONE,
             .frontFace = VK_FRONT_FACE_CLOCKWISE,
             .depthBiasEnable = VK_FALSE,
@@ -500,8 +503,13 @@ FBR_RESULT fbrCreatePipelines(const FbrVulkan *pVulkan,
 void fbrDestroyPipelines(const FbrVulkan *pVulkan,
                          FbrPipelines *pPipelines)
 {
-    vkDestroyPipelineLayout(pVulkan->device, pPipelines->pipeLayoutStandard, NULL);
-    vkDestroyPipeline(pVulkan->device, pPipelines->pipeStandard, NULL);
+    vkDestroyPipelineLayout(pVulkan->device, pPipelines->pipeLayoutStandard, FBR_ALLOCATOR);
+    vkDestroyPipelineLayout(pVulkan->device, pPipelines->pipeLayoutNode, FBR_ALLOCATOR);
+    vkDestroyPipelineLayout(pVulkan->device, pPipelines->computePipeLayoutComposite, FBR_ALLOCATOR);
+
+    vkDestroyPipeline(pVulkan->device, pPipelines->pipeStandard, FBR_ALLOCATOR);
+    vkDestroyPipeline(pVulkan->device, pPipelines->pipeNode, FBR_ALLOCATOR);
+    vkDestroyPipeline(pVulkan->device, pPipelines->computePipeComposite, FBR_ALLOCATOR);
 
     free(pPipelines);
 }

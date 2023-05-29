@@ -528,9 +528,14 @@ void fbrDestroyDescriptors(const FbrVulkan *pVulkan,
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutPass, NULL);
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutMaterial, NULL);
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutObject, NULL);
-    vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pDescriptors->setGlobal);
-
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutComposite, NULL);
     vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutNode, NULL);
+
+    vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pDescriptors->setGlobal);
+    if (pDescriptors->setPass != NULL)
+        vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pDescriptors->setPass);
+
+
 
     free(pDescriptors);
 }

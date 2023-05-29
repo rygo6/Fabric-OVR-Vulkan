@@ -376,18 +376,19 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     };
     VkPhysicalDeviceVulkan13Features enabledFeatures13 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .pNext = &physicalDeviceRobustness2Features,
 //            .synchronization2 = true,
             .robustImageAccess = true,
             .shaderTerminateInvocation = true,
             .shaderDemoteToHelperInvocation = true,
-            .pNext = &physicalDeviceRobustness2Features,
     };
     // TODO enable swapFramebuffer ?
     VkPhysicalDeviceVulkan12Features enabledFeatures12 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext = &enabledFeatures13,
             .timelineSemaphore = true,
             .imagelessFramebuffer = true,
-            .pNext = &enabledFeatures13,
+            .hostQueryReset = true,
     };
     VkPhysicalDeviceVulkan11Features enabledFeatures11 = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
@@ -666,6 +667,21 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
 
     vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
+    if (!pVulkan->physicalDeviceProperties.limits.timestampComputeAndGraphics) {
+        FBR_LOG_ERROR("Does Not support timestampComputeAndGraphics!");
+    }
+    FBR_LOG_DEBUG("Timestamp Period: ", pVulkan->physicalDeviceProperties.limits.timestampPeriod);
+
+    const VkQueryPoolCreateInfo queryPoolCreateInfo =  {
+        .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+        .pNext = NULL,
+//        .flags = ,
+        .queryType = VK_QUERY_TYPE_TIMESTAMP,
+        .queryCount = 2,
+//        .pipelineStatistics = ,
+    };
+    vkCreateQueryPool(pVulkan->device, &queryPoolCreateInfo, FBR_ALLOCATOR, &pVulkan->queryPool);
+
     // render
     createRenderPass(pVulkan); // todo shouldn't be here?
     createCommandBuffers(pVulkan);
@@ -705,23 +721,25 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     if (pVulkan->pMainTimelineSemaphore != NULL)
         fbrDestroyTimelineSemaphore(pVulkan, pVulkan->pMainTimelineSemaphore);
 
-    vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, NULL);
+    vkDestroyDescriptorPool(pVulkan->device, pVulkan->descriptorPool, FBR_ALLOCATOR);
 
-    vkDestroyRenderPass(pVulkan->device, pVulkan->renderPass, NULL);
+    vkDestroyQueryPool(pVulkan->device, pVulkan->queryPool, FBR_ALLOCATOR);
 
-    vkDestroyCommandPool(pVulkan->device, pVulkan->graphicsCommandPool, NULL);
-    vkDestroyCommandPool(pVulkan->device, pVulkan->computeCommandPool, NULL);
+    vkDestroyRenderPass(pVulkan->device, pVulkan->renderPass, FBR_ALLOCATOR);
 
-    vkDestroySampler(pVulkan->device, pVulkan->sampler, NULL);
+    vkDestroyCommandPool(pVulkan->device, pVulkan->graphicsCommandPool, FBR_ALLOCATOR);
+    vkDestroyCommandPool(pVulkan->device, pVulkan->computeCommandPool, FBR_ALLOCATOR);
 
-    vkDestroyDevice(pVulkan->device, NULL);
+    vkDestroySampler(pVulkan->device, pVulkan->sampler, FBR_ALLOCATOR);
+
+    vkDestroyDevice(pVulkan->device, FBR_ALLOCATOR);
 
     if (pVulkan->enableValidationLayers) {
-        destroyDebugUtilsMessengerEXT(pVulkan->instance, pVulkan->debugMessenger, NULL);
+        destroyDebugUtilsMessengerEXT(pVulkan->instance, pVulkan->debugMessenger, FBR_ALLOCATOR);
     }
 
-    vkDestroySurfaceKHR(pVulkan->instance, pVulkan->surface, NULL);
-    vkDestroyInstance(pVulkan->instance, NULL);
+    vkDestroySurfaceKHR(pVulkan->instance, pVulkan->surface, FBR_ALLOCATOR);
+    vkDestroyInstance(pVulkan->instance, FBR_ALLOCATOR);
 
     free(pVulkan);
 

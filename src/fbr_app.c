@@ -287,6 +287,7 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
                     FBR_DEFAULT_SCREEN_WIDTH,
                     FBR_DEFAULT_SCREEN_HEIGHT,
                     true);
+
     if (!pApp->isChild) {
         fbrCreateSwap(pApp->pVulkan,
                       extent,

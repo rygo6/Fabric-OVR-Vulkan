@@ -6,9 +6,10 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-#define FBR_DEFAULT_SCREEN_WIDTH 800
-#define FBR_DEFAULT_SCREEN_HEIGHT 600
+#define FBR_DEFAULT_SCREEN_WIDTH 1920
+#define FBR_DEFAULT_SCREEN_HEIGHT 1080
 #define FBR_FRAMEBUFFER_COUNT 2
+//#define FBR_DEBUG_WIREFRAME
 
 typedef struct FbrCamera FbrCamera;
 typedef struct FbrMesh FbrMesh;

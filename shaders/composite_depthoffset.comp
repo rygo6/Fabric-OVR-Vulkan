@@ -1,0 +1,61 @@
+#version 450
+
+#define FRAME_WIDTH 800
+#define FRAME_HEIGHT 600
+#define OPS_PER_THREAD 4
+
+layout (set = 0, binding = 0) uniform GlobalUBO {
+    mat4 view;
+    mat4 proj;
+} globalUBO;
+
+layout (set = 0, binding = 0, rgba8) uniform readonly image2D inputDepth;
+layout (set = 0, binding = 1, rgba8) uniform readonly image2D inputNormal;
+
+layout (set = 0, binding = 3, rgba8) uniform readonly image2D inputNodeDepth;
+
+layout (set = 0, binding = 4, rgba8) uniform writeonly image2D outputOffsetUV;
+
+layout (local_size_x = OPS_PER_THREAD, local_size_y = OPS_PER_THREAD, local_size_z = 1) in;
+
+vec4 calcWorldPos(vec2 outUV) {
+    // Calculate clip space coordinates
+    vec4 clipPos = vec4(outUV * 2.0 - 1.0, depthValue, 1.0);
+    // Convert clip space coordinates to eye space coordinates
+    vec4 eyePos = inverse(globalUBO.proj) * clipPos;
+    // Divide by w component to obtain normalized device coordinates
+    vec3 ndcPos = eyePos.xyz / eyePos.w;
+    // Convert NDC coordinates to world space coordinates
+    vec4 worldPos = inverse(globalUBO.view) * vec4(ndcPos, 1.0);
+
+    return worldPos;
+}
+
+void pixelOperation(ivec2 coord){
+    float depth = imageLoad(inputDepth, ivec2(gl_GlobalInvocationID.xy)).a;
+    vec3 normal = imageLoad(inputNormal, ivec2(gl_GlobalInvocationID.xy)).rgb; // needs to not be normal but angle to camera pinhole
+    float nodeDepth = imageLoad(inputNodeDepth, ivec2(gl_GlobalInvocationID.xy)).a;
+
+    vec2 uv = vec2(FRAME_WIDTH / coord.x, FRAME_HEIGHT / coord.y);
+    vec4 worldPos = worldPos(uv);
+    float depthDiff = nodeDepth - depth;
+    vec3 newWorldPos = worldPos.xyz + (depthDiff * normal);
+    vec3 newPos = globalUBO.proj * globalUBO.view * newWorldPos;
+
+    vec4 pixel = imageLoad(inputImage, coord);
+    vec3 sRGB = pow(pixel.rgb, vec3(1.0 / 2.2));
+    vec3 sRGBswapped = sRGB.bgr;
+
+    imageStore(outputImage, coord, vec4(sRGBswapped.rgb, pixel.a));
+}
+
+void main()
+{
+    ivec2 globalCoord = ivec2(gl_GlobalInvocationID.xy * OPS_PER_THREAD);
+    for (int x = 0; x < OPS_PER_THREAD; ++x) {
+        for (int y = 0; y < OPS_PER_THREAD; ++y) {
+            ivec2 coord = globalCoord + ivec2(x, y);
+            pixelOperation(coord);
+        }
+    }
+}

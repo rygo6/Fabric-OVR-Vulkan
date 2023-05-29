@@ -811,8 +811,13 @@ static void parentMainLoop(FbrApp *pApp) {
                                 &setComposite,
                                 0,
                                 0);
-        vkCmdDispatch(pVulkan->computeCommandBuffer, 800, 600, 1);
 
+        vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, 2);
+
+        vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 0);
+        const int opsPerThread = 4;
+        vkCmdDispatch(pVulkan->computeCommandBuffer, extents.width / opsPerThread, extents.height / opsPerThread, 1);
+        vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 1);
 
 
         const VkImageMemoryBarrier pTransitionEndBlitBarrier[] = {
@@ -918,6 +923,12 @@ static void parentMainLoop(FbrApp *pApp) {
             FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->graphicsQueue));
             FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->computeQueue));
         }
+
+        uint64_t timestamps[2];
+        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, 2, sizeof(uint64_t) * 2, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
+        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
+        FBR_LOG_DEBUG("Compute: ", ms);
+
 
         vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &setComposite);
 
