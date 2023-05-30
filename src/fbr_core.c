@@ -492,7 +492,7 @@ static void parentMainLoop(FbrApp *pApp) {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
                         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
                         .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -682,7 +682,7 @@ static void parentMainLoop(FbrApp *pApp) {
                         .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                         .dstAccessMask = 0,
                         .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
                         .image = pApp->pFramebuffers[framebufferIndex]->pColorTexture->image,
@@ -766,7 +766,7 @@ static void parentMainLoop(FbrApp *pApp) {
                         .srcAccessMask = 0,
                         .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
                         .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
                         .image = pApp->pFramebuffers[framebufferIndex]->pColorTexture->image,
@@ -816,7 +816,7 @@ static void parentMainLoop(FbrApp *pApp) {
 
         vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 0);
         const int localSize = 32;
-        vkCmdDispatch(pVulkan->computeCommandBuffer, extents.width / localSize, extents.height / localSize, 1);
+        vkCmdDispatch(pVulkan->computeCommandBuffer, (extents.width / localSize), (extents.height / localSize), 1);
         vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 1);
 
 
@@ -924,10 +924,10 @@ static void parentMainLoop(FbrApp *pApp) {
             FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->computeQueue));
         }
 
-        uint64_t timestamps[2];
-        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, 2, sizeof(uint64_t) * 2, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
-        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
-        FBR_LOG_DEBUG("Compute: ", ms);
+//        uint64_t timestamps[2];
+//        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, 2, sizeof(uint64_t) * 2, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
+//        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
+//        FBR_LOG_DEBUG("Compute: ", ms);
 
 
         vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &setComposite);

@@ -418,7 +418,7 @@ static FBR_RESULT createSetLayoutComposite(const FbrVulkan *pVulkan, FbrSetLayou
     VkDescriptorSetLayoutBinding pBindings[] = {
             {
                     .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
                     .pImmutableSamplers = NULL,
@@ -451,9 +451,9 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                                   pSet));
 
     const VkDescriptorImageInfo sourceImageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = sourceImageView,
-//            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->sampler,
     };
     const VkDescriptorImageInfo targetImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
@@ -469,7 +469,7 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .pImageInfo = &sourceImageInfo,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,

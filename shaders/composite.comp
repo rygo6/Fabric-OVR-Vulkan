@@ -1,14 +1,12 @@
 #version 450
 
-#define FRAME_WIDTH 800
-#define FRAME_HEIGHT 600
-
-#define OPS_PER_THREAD 4
+#define FRAME_WIDTH 1920
+#define FRAME_HEIGHT 1080
 
 #define LOCAL_SIZE 32
 
-layout (set = 0, binding = 0, rgba8) uniform readonly image2D inputImage;
-//layout (set = 0, binding = 0) uniform sampler2D inputImage;
+//layout (set = 0, binding = 0, rgba8) uniform readonly image2D inputImage;
+layout (set = 0, binding = 0) uniform sampler2D inputImage;
 layout (set = 0, binding = 1, rgba8) uniform writeonly image2D outputImage;
 
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
@@ -16,7 +14,9 @@ layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) 
 void main()
 {
     ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-    vec4 pixel = imageLoad(inputImage, coord);
+    vec2 uv = vec2(float(gl_GlobalInvocationID.x) / float(FRAME_WIDTH), float(gl_GlobalInvocationID.y) / float(FRAME_HEIGHT));
+//    vec4 pixel = imageLoad(inputImage, coord);
+    vec4 pixel = texture(inputImage, uv);
     vec3 sRGB = pow(pixel.rgb, vec3(1.0 / 2.2));
     vec3 sRGBswapped = sRGB.bgr;
     imageStore(outputImage, coord, vec4(sRGBswapped.rgb, pixel.a));

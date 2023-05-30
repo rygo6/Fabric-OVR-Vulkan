@@ -2,21 +2,23 @@
 
 #define FRAME_WIDTH 800
 #define FRAME_HEIGHT 600
-#define OPS_PER_THREAD 4
+
+#define LOCAL_SIZE 32
 
 layout (set = 0, binding = 0) uniform GlobalUBO {
     mat4 view;
     mat4 proj;
 } globalUBO;
 
-layout (set = 0, binding = 0, rgba8) uniform readonly image2D inputDepth;
-layout (set = 0, binding = 1, rgba8) uniform readonly image2D inputNormal;
+layout (set = 0, binding = 0) uniform sampler2D inputColor;
+layout (set = 0, binding = 1, rgba8) uniform readonly image2D inputDepth;
+layout (set = 0, binding = 2, rgba8) uniform readonly image2D inputNormal;
 
 layout (set = 0, binding = 3, rgba8) uniform readonly image2D inputNodeDepth;
 
 layout (set = 0, binding = 4, rgba8) uniform writeonly image2D outputOffsetUV;
 
-layout (local_size_x = OPS_PER_THREAD, local_size_y = OPS_PER_THREAD, local_size_z = 1) in;
+layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
 
 vec4 calcWorldPos(vec2 outUV) {
     // Calculate clip space coordinates
@@ -31,31 +33,28 @@ vec4 calcWorldPos(vec2 outUV) {
     return worldPos;
 }
 
-void pixelOperation(ivec2 coord){
-    float depth = imageLoad(inputDepth, ivec2(gl_GlobalInvocationID.xy)).a;
-    vec3 normal = imageLoad(inputNormal, ivec2(gl_GlobalInvocationID.xy)).rgb; // needs to not be normal but angle to camera pinhole
-    float nodeDepth = imageLoad(inputNodeDepth, ivec2(gl_GlobalInvocationID.xy)).a;
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 uv = vec2(float(gl_GlobalInvocationID.x) / float(FRAME_WIDTH), float(gl_GlobalInvocationID.y) / float(FRAME_HEIGHT));
 
-    vec2 uv = vec2(FRAME_WIDTH / coord.x, FRAME_HEIGHT / coord.y);
-    vec4 worldPos = worldPos(uv);
+//    vec4 color = imageLoad(inputColor, coord);
+    float depth = imageLoad(inputDepth, coord).a;
+    vec3 normal = imageLoad(inputNormal, coord).rgb; // needs to not be normal but angle to camera pinhole
+    float nodeDepth = imageLoad(inputNodeDepth, coord).a;
+
     float depthDiff = nodeDepth - depth;
-    vec3 newWorldPos = worldPos.xyz + (depthDiff * normal);
-    vec3 newPos = globalUBO.proj * globalUBO.view * newWorldPos;
 
-    vec4 pixel = imageLoad(inputImage, coord);
+    vec4 worldPos = worldPos(uv);
+    vec3 newWorldPos = worldPos.xyz + (depthDiff * normal);
+    vec4 newClipPos = globalUBO.proj * globalUBO.view * vec4(newWorldPos, 1);
+    vec2 newUV = (newClipPos.xy + 1.0) * 0.5;
+
+    vec4 pixel = texture(inputColor, newUV);
+
+//    vec4 pixel = imageLoad(inputImage, coord);
     vec3 sRGB = pow(pixel.rgb, vec3(1.0 / 2.2));
     vec3 sRGBswapped = sRGB.bgr;
 
     imageStore(outputImage, coord, vec4(sRGBswapped.rgb, pixel.a));
-}
-
-void main()
-{
-    ivec2 globalCoord = ivec2(gl_GlobalInvocationID.xy * OPS_PER_THREAD);
-    for (int x = 0; x < OPS_PER_THREAD; ++x) {
-        for (int y = 0; y < OPS_PER_THREAD; ++y) {
-            ivec2 coord = globalCoord + ivec2(x, y);
-            pixelOperation(coord);
-        }
-    }
 }
