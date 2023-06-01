@@ -30,7 +30,7 @@ typedef VkDescriptorSet FbrSetObject;
 typedef VkDescriptorSetLayout FbrSetLayoutNode;
 typedef VkDescriptorSet FbrSetNode;
 
-#define FBR_COMPOSITE_SET_INDEX 0
+#define FBR_COMPOSITE_SET_INDEX 1
 typedef VkDescriptorSetLayout FbrSetLayoutComposite;
 typedef VkDescriptorSet FbrSetComposite;
 
@@ -87,8 +87,11 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
 
 FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                                  FbrSetLayoutComposite setLayout,
-                                 VkImageView sourceImageView,
-                                 VkImageView destinationImageView,
+                                 VkImageView inputColorImageView,
+                                 VkImageView inputDepthImageView,
+                                 VkImageView inputNormalImageView,
+                                 VkImageView nodeDepthImageView,
+                                 VkImageView outputColorImageView,
                                  FbrSetComposite *pSet);
 
 VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std);

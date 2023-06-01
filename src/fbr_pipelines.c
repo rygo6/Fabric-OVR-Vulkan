@@ -17,7 +17,7 @@ static FBR_RESULT createPipeLayoutStandard(const FbrVulkan *pVulkan,
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .pNext = NULL,
-            .setLayoutCount = 4,
+            .setLayoutCount = COUNT(pSetLayouts),
             .pSetLayouts = pSetLayouts,
             .pPushConstantRanges = NULL,
             .pushConstantRangeCount  = 0
@@ -43,7 +43,7 @@ static FBR_RESULT createPipeLayoutNode(const FbrVulkan *pVulkan,
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .pNext = NULL,
-            .setLayoutCount = 4,
+            .setLayoutCount = COUNT(pSetLayouts),
             .pSetLayouts = pSetLayouts,
             .pPushConstantRanges = NULL,
             .pushConstantRangeCount  = 0
@@ -61,12 +61,13 @@ static FBR_RESULT createPipeLayoutComposite(const FbrVulkan *pVulkan,
                                             FbrComputePipeLayoutComposite *pPipeLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
+            pDescriptors->setLayoutGlobal,
             pDescriptors->setLayoutComposite,
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .pNext = NULL,
-            .setLayoutCount = 1,
+            .setLayoutCount = COUNT(pSetLayouts),
             .pSetLayouts = pSetLayouts,
             .pPushConstantRanges = NULL,
             .pushConstantRangeCount  = 0
@@ -350,7 +351,7 @@ FBR_RESULT fbrCreatePipeStandard(const FbrVulkan *pVulkan,
     FBR_ACK(createOpaqueTrianglePipe(pVulkan,
                                      layout,
                                      VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-                                     2,
+                                     COUNT(pStages),
                                      pStages,
                                      NULL,
                                      pPipe));
@@ -419,7 +420,7 @@ FBR_RESULT fbrCreatePipeNode(const FbrVulkan *pVulkan,
     FBR_ACK(createOpaqueTrianglePipe(pVulkan,
                                      layout,
                                      VK_PRIMITIVE_TOPOLOGY_PATCH_LIST,
-                                     4,
+                                     COUNT(pStages),
                                      pStages,
                                      &pipelineTessellationStateCreateInfo,
                                      pPipe));
@@ -481,7 +482,7 @@ static FBR_RESULT createPipes(const FbrVulkan *pVulkan,
                               &pPipes->pipeNode));
     FBR_ACK(fbrCreateComputePipeComposite(pVulkan,
                                           pPipes->computePipeLayoutComposite,
-                                          "./shaders/composite_comp.spv",
+                                          "./shaders/composite_depthoffset_comp.spv",
                                           &pPipes->computePipeComposite));
 
     return FBR_SUCCESS;
