@@ -472,13 +472,13 @@ static FBR_RESULT createSetLayoutComposite(const FbrVulkan *pVulkan, FbrSetLayou
 }
 
 FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
-                               FbrSetLayoutComposite setLayout,
-                               VkImageView inputColorImageView,
-                               VkImageView inputDepthImageView,
-                               VkImageView inputNormalImageView,
-                               VkImageView nodeDepthImageView,
-                               VkImageView outputColorImageView,
-                               FbrSetComposite *pSet)
+                                 FbrSetLayoutComposite setLayout,
+                                 VkImageView inputColorImageView,
+                                 VkImageView inputNormalImageView,
+                                 VkImageView inputGBufferImageView,
+                                 VkImageView inputDepthImageView,
+                                 VkImageView outputColorImageView,
+                                 FbrSetComposite *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
                                   1,
@@ -490,19 +490,19 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
             .imageView = inputColorImageView,
             .sampler = pVulkan->sampler,
     };
-    const VkDescriptorImageInfo inputDepthImageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = inputDepthImageView,
-            .sampler = pVulkan->sampler,
-    };
     const VkDescriptorImageInfo inputNormalImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputNormalImageView,
             .sampler = pVulkan->sampler,
     };
-    const VkDescriptorImageInfo nodeDepthImageInfo = {
+    const VkDescriptorImageInfo inputGBufferImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = nodeDepthImageView,
+            .imageView = inputGBufferImageView,
+            .sampler = pVulkan->sampler,
+    };
+    const VkDescriptorImageInfo inputDepthImageInfo = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = inputDepthImageView,
             .sampler = pVulkan->sampler,
     };
     const VkDescriptorImageInfo outputColorImageInfo = {
@@ -524,19 +524,6 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },
-            // input depth
-            {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 1,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &inputDepthImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
-            },
             // input normal
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -550,7 +537,7 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },
-            // node depth
+            // input g buffer
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                     .pNext = NULL,
@@ -559,7 +546,20 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &nodeDepthImageInfo,
+                    .pImageInfo = &inputGBufferImageInfo,
+                    .pBufferInfo = NULL,
+                    .pTexelBufferView = NULL,
+            },
+            // input depth
+            {
+                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                    .pNext = NULL,
+                    .dstSet = *pSet,
+                    .dstBinding = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .pImageInfo = &inputDepthImageInfo,
                     .pBufferInfo = NULL,
                     .pTexelBufferView = NULL,
             },

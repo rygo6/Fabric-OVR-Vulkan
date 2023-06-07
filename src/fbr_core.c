@@ -888,9 +888,8 @@ static void parentMainLoop(FbrApp *pApp) {
         fbrCreateSetComposite(pApp->pVulkan,
                               pApp->pDescriptors->setLayoutComposite,
                               pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->imageView,
-                              pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->imageView,
                               pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->imageView,
-//                              pTestNode->pFramebuffers[testNodeTimelineSwitch]->pDepthTexture->imageView,
+                              pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->imageView,
                               pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->imageView,
                               pSwap->pSwapImageViews[swapIndex],
                               &setComposite);
