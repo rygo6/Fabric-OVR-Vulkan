@@ -54,14 +54,16 @@ static bool isChild;
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                    void *pUserData) {
+                                                    void *pUserData)
+{
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         FBR_LOG_DEBUG(isChild ? "Child Validation Layer" : "Parent Validation Layer", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
 
-static VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo() {
+static VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo()
+{
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
@@ -71,7 +73,8 @@ static VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo() {
     return createInfo;
 }
 
-static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensionCount, const char *pExtensions[]) {
+static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensionCount, const char *pExtensions[])
+{
     uint32_t glfwExtensionCount = 0;
     const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -94,7 +97,8 @@ static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensio
     }
 }
 
-static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uint32_t availableLayerCount) {
+static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uint32_t availableLayerCount)
+{
     for (int i = 0; i < requiredInstanceLayerCount; ++i) {
         bool layerFound = false;
 
@@ -113,7 +117,8 @@ static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uin
     return true;
 }
 
-static VkResult createInstance(FbrVulkan *pVulkan) {
+static VkResult createInstance(FbrVulkan *pVulkan)
+{
     if (pVulkan->enableValidationLayers) {
         uint32_t availableLayerCount = 0;
         FBR_ACK(vkEnumerateInstanceLayerProperties(&availableLayerCount, NULL));
@@ -204,7 +209,8 @@ static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
     }
 }
 
-static void setupDebugMessenger(FbrVulkan *pVulkan) {
+static void setupDebugMessenger(FbrVulkan *pVulkan)
+{
     if (!pVulkan->enableValidationLayers)
         return;
 
@@ -213,7 +219,8 @@ static void setupDebugMessenger(FbrVulkan *pVulkan) {
     FBR_VK_CHECK(CreateDebugUtilsMessengerEXT(pVulkan->instance, &createInfo, NULL, &pVulkan->debugMessenger));
 }
 
-static void pickPhysicalDevice(FbrVulkan *pVulkan) {
+static void pickPhysicalDevice(FbrVulkan *pVulkan)
+{
     uint32_t deviceCount = 0;
     FBR_VK_CHECK(vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, NULL));
     if (deviceCount == 0) {
@@ -229,7 +236,8 @@ static void pickPhysicalDevice(FbrVulkan *pVulkan) {
     vkGetPhysicalDeviceMemoryProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceMemoryProperties);
 }
 
-static void findQueueFamilies(FbrVulkan *pVulkan) {
+static void findQueueFamilies(FbrVulkan *pVulkan)
+{
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties2(pVulkan->physicalDevice,
                                              &queueFamilyCount,
@@ -291,7 +299,8 @@ static void findQueueFamilies(FbrVulkan *pVulkan) {
     }
 }
 
-VkResult createLogicalDevice(FbrVulkan *pVulkan) {
+VkResult createLogicalDevice(FbrVulkan *pVulkan)
+{
     findQueueFamilies(pVulkan);
 
     const float queuePriority = pVulkan->isChild ? 0.0f : 1.0f;
@@ -444,7 +453,8 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan) {
     FBR_ACK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));
 }
 
-static void createRenderPass(FbrVulkan *pVulkan) {
+static void createRenderPass(FbrVulkan *pVulkan)
+{
     // supposedly most correct https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#swapchain-image-acquire-and-present
     const VkAttachmentReference pColorAttachments[] = {
             {
@@ -454,15 +464,19 @@ static void createRenderPass(FbrVulkan *pVulkan) {
             {
                     .attachment = 1,
                     .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            },
+            {
+                    .attachment = 2,
+                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             }
     };
     const VkAttachmentReference depthAttachmentReference = {
-            .attachment = 2,
+            .attachment = 3,
             .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
     };
     const VkSubpassDescription subpass = {
             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .colorAttachmentCount = 2,
+            .colorAttachmentCount = COUNT(pColorAttachments),
             .pColorAttachments = pColorAttachments,
             .pDepthStencilAttachment = &depthAttachmentReference,
     };
@@ -512,6 +526,17 @@ static void createRenderPass(FbrVulkan *pVulkan) {
                     .flags = 0
             },
             {
+                    .format = FBR_G_BUFFER_FORMAT,
+                    .samples = VK_SAMPLE_COUNT_1_BIT,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .flags = 0
+            },
+            {
                     .format = FBR_DEPTH_BUFFER_FORMAT,
                     .samples = VK_SAMPLE_COUNT_1_BIT,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -523,13 +548,13 @@ static void createRenderPass(FbrVulkan *pVulkan) {
                     .flags = 0
             },
     };
-    VkRenderPassCreateInfo renderPassInfo = {
+    const VkRenderPassCreateInfo renderPassInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = 3,
+            .attachmentCount = COUNT(pAttachments),
             .pAttachments = pAttachments,
             .subpassCount = 1,
             .pSubpasses = &subpass,
-            .dependencyCount = 2,
+            .dependencyCount = COUNT(pDependencies),
             .pDependencies = pDependencies,
     };
 

@@ -56,19 +56,21 @@ static void processInputFrame(FbrApp *pApp) {
 
 static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer, VkRenderPass renderPass, VkClearColorValue clearColorValue)
 {
-    VkClearValue pClearValues[3] = { };
+    VkClearValue pClearValues[4] = { };
     pClearValues[0].color = clearColorValue;
     pClearValues[1].color = clearColorValue;
-    pClearValues[2].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
+    pClearValues[2].color = clearColorValue;
+    pClearValues[3].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
 
     const VkImageView pAttachments[] = {
             pFramebuffer->pColorTexture->imageView,
             pFramebuffer->pNormalTexture->imageView,
+            pFramebuffer->pGBufferTexture->imageView,
             pFramebuffer->pDepthTexture->imageView
     };
     const VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-            .attachmentCount = 3,
+            .attachmentCount = COUNT(pAttachments),
             .pAttachments = pAttachments
     };
     const VkRenderPassBeginInfo vkRenderPassBeginInfo = {
@@ -77,7 +79,7 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuf
             .renderPass = renderPass,
             .framebuffer = pFramebuffer->framebuffer,
             .renderArea.extent = pFramebuffer->pColorTexture->extent,
-            .clearValueCount = 3,
+            .clearValueCount = COUNT(pClearValues),
             .pClearValues = pClearValues,
     };
     vkCmdBeginRenderPass(pVulkan->graphicsCommandBuffer, &vkRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -274,6 +276,17 @@ static void childMainLoop(FbrApp *pApp) {
                         .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .image = pApp->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pGBufferTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 }
         };
         vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
@@ -282,7 +295,7 @@ static void childMainLoop(FbrApp *pApp) {
                              0,
                              0, NULL,
                              0, NULL,
-                             2, pAcquireColorImageMemoryBarriers);
+                             COUNT(pAcquireColorImageMemoryBarriers), pAcquireColorImageMemoryBarriers);
         const VkImageMemoryBarrier pAcquireDepthImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -381,6 +394,17 @@ static void childMainLoop(FbrApp *pApp) {
                         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
                         .image = pApp->pFramebuffers[timelineSwitch]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                        .image = pApp->pFramebuffers[timelineSwitch]->pGBufferTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 }
         };
         vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
@@ -389,7 +413,7 @@ static void childMainLoop(FbrApp *pApp) {
                              0,
                              0, NULL,
                              0, NULL,
-                             2, pReleaseColorImageMemoryBarriers);
+                             COUNT(pReleaseColorImageMemoryBarriers), pReleaseColorImageMemoryBarriers);
         const VkImageMemoryBarrier pReleaseDepthImageMemoryBarriers[] = {
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -409,7 +433,7 @@ static void childMainLoop(FbrApp *pApp) {
                              0,
                              0, NULL,
                              0, NULL,
-                             1, pReleaseDepthImageMemoryBarriers);
+                             COUNT(pReleaseDepthImageMemoryBarriers), pReleaseDepthImageMemoryBarriers);
 
 
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->graphicsCommandBuffer));
@@ -511,6 +535,17 @@ static void parentMainLoop(FbrApp *pApp) {
                         .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
+                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
         };
         vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -600,7 +635,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                  0,
                                  0, NULL,
                                  0, NULL,
-                                 1, pAcquireChildDepthFrameBufferBarrier);
+                                 COUNT(pAcquireChildDepthFrameBufferBarrier), pAcquireChildDepthFrameBufferBarrier);
 //            FBR_LOG_DEBUG("parent switch", testNodeTimelineSwitch, pTestNode->pChildSemaphore->waitValue);
         }
 
@@ -731,6 +766,17 @@ static void parentMainLoop(FbrApp *pApp) {
                         .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
         };
         vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -844,12 +890,12 @@ static void parentMainLoop(FbrApp *pApp) {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
                         .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->image,
-                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
                 },
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -859,8 +905,19 @@ static void parentMainLoop(FbrApp *pApp) {
                         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
                         .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
                         .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->image,
                         FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                        .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->image,
+                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
                 },
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -889,7 +946,7 @@ static void parentMainLoop(FbrApp *pApp) {
                               pApp->pDescriptors->setLayoutComposite,
                               pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->imageView,
                               pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->imageView,
-                              pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->imageView,
+                              pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->imageView,
                               pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->imageView,
                               pSwap->pSwapImageViews[swapIndex],
                               &setComposite);

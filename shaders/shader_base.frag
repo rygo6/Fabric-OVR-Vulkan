@@ -9,6 +9,7 @@ layout(location = 1) in vec2 inUV;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outGBuffer;
 
 void main() {
     outColor = texture(texSampler, inUV);
@@ -19,4 +20,6 @@ void main() {
     N.y = -N.y;
     outNormal = vec4(N, 1.0);
 //    outColor = outNormal;
+
+    outGBuffer = vec4(0,0,0,0);
 }

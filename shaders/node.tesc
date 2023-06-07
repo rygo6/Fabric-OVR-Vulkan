@@ -11,7 +11,7 @@ void main()
 {
     if (gl_InvocationID == 0)
     {
-        float tessellationFactor = 64;
+        float tessellationFactor = 1;
         gl_TessLevelOuter[0] = tessellationFactor;
         gl_TessLevelOuter[1] = tessellationFactor;
         gl_TessLevelOuter[2] = tessellationFactor;

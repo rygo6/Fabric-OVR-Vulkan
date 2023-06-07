@@ -43,7 +43,7 @@ void main()
     vec2 uv = vec2(float(gl_GlobalInvocationID.x) / float(FRAME_WIDTH), float(gl_GlobalInvocationID.y) / float(FRAME_HEIGHT));
 
     vec4 color = texture(inputColor, uv);
-    float depth = texture(inputDepth, uv).a;
+    float depth = texture(inputDepth, uv).r;
     float linearDepth = linearize_depth(depth, 0.01, 10000.0f);
     vec3 worldNormal = texture(inputNormal, uv).rgb; // needs to not be normal but angle to camera pinhole
     float nodeDepth = texture(inputGBuffer, uv).a;
@@ -59,6 +59,8 @@ void main()
     vec3 sRGB = pow(newColor.rgb, vec3(1.0 / 2.2));
     vec3 sRGBswapped = sRGB.bgr;
 
-//    imageStore(outputColor, coord, vec4(sRGBswapped.rgb, pixel.a));
-    imageStore(outputColor, coord, color);
+    imageStore(outputColor, coord, vec4(sRGBswapped.rgb, color.a));
+//    imageStore(outputColor, coord, vec4(nodeDepth, 0, 0, 1));
+//    imageStore(outputColor, coord, vec4(worldNormal, 1));
+//    imageStore(outputColor, coord, color);
 }

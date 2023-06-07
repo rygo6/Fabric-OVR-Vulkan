@@ -212,6 +212,13 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
                                       VK_COLOR_COMPONENT_B_BIT |
                                       VK_COLOR_COMPONENT_A_BIT,
                     .blendEnable = VK_FALSE,
+            },
+            {
+                    .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                                      VK_COLOR_COMPONENT_G_BIT |
+                                      VK_COLOR_COMPONENT_B_BIT |
+                                      VK_COLOR_COMPONENT_A_BIT,
+                    .blendEnable = VK_FALSE,
             }
     };
     const VkPipelineColorBlendStateCreateInfo colorBlendState = {
@@ -219,7 +226,7 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
             .pNext = NULL,
             .logicOpEnable = VK_FALSE,
             .logicOp = VK_LOGIC_OP_COPY,
-            .attachmentCount = 2,
+            .attachmentCount = COUNT(pPipelineColorBlendAttachmentStates),
             .pAttachments = pPipelineColorBlendAttachmentStates,
             .blendConstants[0] = 0.0f,
             .blendConstants[1] = 0.0f,

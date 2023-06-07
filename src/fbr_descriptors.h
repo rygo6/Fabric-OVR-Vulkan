@@ -88,9 +88,9 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
 FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                                  FbrSetLayoutComposite setLayout,
                                  VkImageView inputColorImageView,
-                                 VkImageView inputDepthImageView,
                                  VkImageView inputNormalImageView,
-                                 VkImageView nodeDepthImageView,
+                                 VkImageView inputGBufferImageView,
+                                 VkImageView inputDepthImageView,
                                  VkImageView outputColorImageView,
                                  FbrSetComposite *pSet);
 
