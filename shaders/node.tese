@@ -44,49 +44,16 @@ void main()
         gl_TessCoord.y);
 
     float alphaValue = texture(color, outUV).a;
+
     float depthValue = texture(depth, outUV).r;
-
-    /// this doesn't really work
-//    if (alphaValue == 0) {
-//        float span = 1.0 / 100.0;
-//
-//        vec2 uvStep[8] = vec2[](
-//            vec2(outUV.x, outUV.y + span), //N
-//            vec2(outUV.x + span, outUV.y + span), //NE
-//            vec2(outUV.x + span, outUV.y), //E
-//            vec2(outUV.x + span, outUV.y - span), //SE
-//            vec2(outUV.x, outUV.y - span), //S
-//            vec2(outUV.x - span, outUV.y - span), //SW
-//            vec2(outUV.x - span, outUV.y), //W
-//            vec2(outUV.x - span, outUV.y + span)//NW
-//        );
-//
-//        int addedCount = 0;
-//        for (int i = 0; i < 8; ++i) {
-//            float subAlpha = texture(color, uvStep[i]).a;
-//            float subDepth = texture(depth, uvStep[i]).r;
-//            if (subAlpha != 0) {
-//                if (addedCount == 0) {
-//                    depthValue = subDepth;
-//                }
-//                else{
-//                    depthValue += subDepth;
-//                }
-//                addedCount++;
-//            }
-//        }
-//        depthValue /= addedCount;
-//    }
-
     // Calculate clip space coordinates
-    vec4 clipPos = vec4(outUV * 2.0 - 1.0, depthValue, 1.0);
+    vec4 clipPos = vec4(outUV * 2.0 - 1.0,  depthValue, 1.0);
     // Convert clip space coordinates to eye space coordinates
     vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
     // Divide by w component to obtain normalized device coordinates
     vec3 ndcPos = eyePos.xyz / eyePos.w;
     // Convert NDC coordinates to world space coordinates
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
-
 
     gl_Position = alphaValue > 0 ?
         globalUBO.proj * globalUBO.view * worldPos :

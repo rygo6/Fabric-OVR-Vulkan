@@ -58,8 +58,8 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuf
 {
     VkClearValue pClearValues[4] = { };
     pClearValues[0].color = clearColorValue;
-    pClearValues[1].color = clearColorValue;
-    pClearValues[2].color = clearColorValue;
+    pClearValues[1].color = (VkClearColorValue ){{0.0f, 0.0f, 0.0f, 0.0f}};
+    pClearValues[2].color = (VkClearColorValue ){{0.0f, 0.0f, 0.0f, 0.0f}};
     pClearValues[3].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
 
     const VkImageView pAttachments[] = {
@@ -229,7 +229,7 @@ static void childMainLoop(FbrApp *pApp) {
     FbrPipelines *pPipelines = pApp->pPipelines;
     FbrDescriptors *pDescriptors = pApp->pDescriptors;
 
-    const uint64_t parentTimelineStep = 48;
+    const uint64_t parentTimelineStep = 120;
     vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
     pParentSemaphore->waitValue += parentTimelineStep;
     FBR_LOG_DEBUG("starting parent timeline value", pParentSemaphore->waitValue);
@@ -322,7 +322,7 @@ static void childMainLoop(FbrApp *pApp) {
         beginRenderPassImageless(pVulkan,
                                  pApp->pFramebuffers[timelineSwitch],
                                  pVulkan->renderPass,
-                                 (VkClearColorValue) {{0.2f, 0.2f, 0.2f, 0.0f}});
+                                 (VkClearColorValue) {{0.0f, 0.0f, 0.0f, 0.0f}});
         vkCmdBindPipeline(pVulkan->graphicsCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
 
         // Global
@@ -1092,6 +1092,8 @@ static void parentMainLoop(FbrApp *pApp) {
         vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &setComposite);
 
         mainFrameBufferIndex = !mainFrameBufferIndex;
+
+//        Sleep(100);
     }
 }
 
