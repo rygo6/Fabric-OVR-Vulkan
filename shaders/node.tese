@@ -25,6 +25,7 @@ layout (location = 1) in vec2 inUV[];
 
 layout (location = 0) out vec3 outNormal;
 layout (location = 1) out vec2 outUV;
+layout (location = 2) out vec4 outWorldPos;
 
 void main()
 {
@@ -44,20 +45,20 @@ void main()
         gl_TessCoord.y);
 
     float alphaValue = texture(color, outUV).a;
-
     float depthValue = texture(depth, outUV).r;
-    // Calculate clip space coordinates
+
     vec4 clipPos = vec4(outUV * 2.0 - 1.0,  depthValue, 1.0);
-    // Convert clip space coordinates to eye space coordinates
     vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
-    // Divide by w component to obtain normalized device coordinates
     vec3 ndcPos = eyePos.xyz / eyePos.w;
-    // Convert NDC coordinates to world space coordinates
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
-    gl_Position = alphaValue > 0 ?
-        globalUBO.proj * globalUBO.view * worldPos :
-        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+//    gl_Position = alphaValue > 0 ?
+//        globalUBO.proj * globalUBO.view * worldPos :
+//        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+
+    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+
+    outWorldPos = worldPos;
 
 //    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
 }

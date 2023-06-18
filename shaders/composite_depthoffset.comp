@@ -19,6 +19,15 @@ layout (set = 1, binding = 4, rgba8) uniform writeonly image2D outputColor;
 
 layout (local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
 
+//vec2 getNDC(vec2 fragCoord)
+//{
+//    vec2 ndc = fragCoord;
+//    fragCoord.x /= FRAME_WIDTH;
+//    fragCoord.y /= FRAME_HEIGHT;
+//    ndc.y = 1.0 - ndc.y * 2.0; // Invert y-axis and adjust range to [-1, 1]
+//    return ndc;
+//}
+
 vec4 depthAndUVToWorld(vec2 uv, float depth) {
     vec4 clipSpacePos = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 viewSpacePos = inverse(globalUBO.proj) * clipSpacePos; // DONT DO INVERSE IN SHADER CALC ON CPU
@@ -28,8 +37,8 @@ vec4 depthAndUVToWorld(vec2 uv, float depth) {
     return worldSpacePos;
 }
 
-vec2 worldToDepthAndUV(vec4 worldPos) {
-    vec4 viewSpacePos = globalUBO.view * worldPos;
+vec2 worldToDepthAndUV(vec3 worldPos) {
+    vec4 viewSpacePos = globalUBO.view * vec4(worldPos, 1);
     vec4 clipSpacePos = globalUBO.proj * viewSpacePos;
     vec2 uv = (clipSpacePos.xy / clipSpacePos.w) * 0.5 + 0.5;
     return uv;
@@ -44,20 +53,27 @@ void main()
     float depth = texture(inputDepth, uv).r;
     vec3 worldNormal = texture(inputNormal, uv).rgb; // needs to not be normal but angle to camera pinhole
     vec4 gBuffer = texture(inputGBuffer, uv);
-    float nodeDepth = gBuffer.r;
 
+//    vec2 ndc = getNDC(fragCoord);
+
+//    float nodeDepth = gBuffer.r;
 //    float depthDiff = depth - nodeDepth;
-    float depthDiff = nodeDepth;
+//    float depthDiff = nodeDepth;
 
-    vec4 worldPos = depthAndUVToWorld(uv, depth);
-    vec4 newWorldPos = vec4(worldPos.xyz + (worldNormal * depthDiff), worldPos.w);
-    vec2 newUV = worldToDepthAndUV(newWorldPos);
+//    vec4 worldPos = depthAndUVToWorld(uv, depth);
+//    vec4 newWorldPos = vec4(worldPos.xyz + (worldNormal * depthDiff), worldPos.w);
+//    vec2 newUV = worldToDepthAndUV(newWorldPos);
+//    vec2 newUV = worldToDepthAndUV(color.rgb);
+    vec3 worldPos = gBuffer.rgb;
+    vec4 newNDC = globalUBO.proj * globalUBO.view * vec4(worldPos, 1);
+    vec2 newUV = (newNDC.xy / newNDC.w) * 0.5 + 0.5;
     ivec2 newCoord = ivec2(round(newUV.x * float(FRAME_WIDTH)), round(newUV.y * float(FRAME_HEIGHT)));
 
     vec3 sRGB = pow(color.rgb, vec3(1.0 / 2.2));
     vec4 sRGBswapped = vec4(sRGB.bgr, color.a);
 
     imageStore(outputColor, newCoord, sRGBswapped);
+//        imageStore(outputColor, coord, color);
 
 //    if (gBuffer.a > 0) {
 //        imageStore(outputColor, newCoord, sRGBswapped);
@@ -65,7 +81,9 @@ void main()
 //    else {
 //        imageStore(outputColor, coord, sRGBswapped);
 //    }
-//    imageStore(outputColor, coord, color);
+
+
+//    imageStore(outputColor, coord, gBuffer);
 //    imageStore(outputColor, coord, worldPos);
 
 

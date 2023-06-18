@@ -33,7 +33,8 @@ static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGl
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                                   VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_COMPUTE_BIT,
+                                  VK_SHADER_STAGE_COMPUTE_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             }
     };
@@ -272,14 +273,16 @@ static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             },
             {// camera rendered from ubo
                     .binding = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             },
             {// color

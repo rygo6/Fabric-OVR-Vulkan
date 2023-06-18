@@ -62,6 +62,9 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                       &pApp->pTestQuadMesh);
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
+//        glm_vec3_add(pApp->pTestQuadTransform->pos,
+//                     (vec3) {1, 0, 0},
+//                     pApp->pTestQuadTransform->pos);
         fbrCreateTextureFromFile(pVulkan,
                                  false,
                                  "textures/test.jpg",
