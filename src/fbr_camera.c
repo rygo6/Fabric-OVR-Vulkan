@@ -5,10 +5,9 @@
 
 #include <windows.h>
 
-void fbrUpdateCameraUBO(FbrCamera *pCamera, uint32_t dynamicIndex)
+void fbrUpdateCameraUBO(FbrCamera *pCamera)
 {
-    uint32_t dynamicOffset = dynamicIndex * pCamera->pUBO->dynamicAlignment;
-    memcpy(pCamera->pUBO->pUniformBufferMapped + dynamicOffset, &pCamera->uboData, sizeof(FbrCameraUBO));
+    memcpy(pCamera->pUBO->pUniformBufferMapped, &pCamera->bufferData, sizeof(FbrCameraBuffer));
 }
 
 void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const FbrTime *pTimeState) {
@@ -36,8 +35,8 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
             fbrUpdateTransformMatrix(pCamera->pTransform);
 
-            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->uboData.trs);
-            glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->uboData.view);
+            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
+            glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
             break;
         }
         case FBR_MOUSE_POS_INPUT: {
@@ -48,8 +47,8 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
             fbrUpdateTransformMatrix(pCamera->pTransform);
 
-            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->uboData.trs);
-            glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->uboData.view);
+            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
+            glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
             break;
         }
         case FBR_MOUSE_BUTTON_INPUT: {
@@ -61,11 +60,10 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
 void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
     FBR_LOG_DEBUG("Importing Camera.", pParam->handle);
-    fbrImportCamera(pApp->pVulkan, 0, &pApp->pCamera,pParam->handle);
+    fbrImportCamera(pApp->pVulkan, &pApp->pCamera,pParam->handle);
 }
 
 FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
-                     uint32_t dynamicCount,
                      HANDLE externalMemory,
                      FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
@@ -74,14 +72,13 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->uboData.proj);
+    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                  sizeof(FbrCamera),
-                 dynamicCount,
                  externalMemory,
                  &pCamera->pUBO);
 
@@ -89,7 +86,6 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
 }
 
 FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
-                           uint32_t dynamicCount,
                            FbrCamera **ppAllocCameraState) {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
@@ -97,18 +93,17 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->uboData.proj);
+    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
     fbrUpdateTransformMatrix(pCamera->pTransform);
 
     FBR_ACK(fbrCreateUBO(pVulkan,
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                          sizeof(FbrCamera),
-                         dynamicCount,
-                         true,
+                         false,
                          &pCamera->pUBO));
 
-    fbrUpdateCameraUBO(pCamera, 0);
+    fbrUpdateCameraUBO(pCamera);
 
     return FBR_SUCCESS;
 }

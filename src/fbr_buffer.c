@@ -7,21 +7,21 @@
 #define FBR_EXTERNAL_MEMORY_HANDLE_TYPE VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR
 #endif
 
-static void setDynamicAlignment(const FbrVulkan *pVulkan, uint32_t bufferSize, uint32_t dynamicCount, FbrUniformBufferObject *pBuffer)
-{
-    pBuffer->bufferSize = bufferSize;
-    pBuffer->dynamicCount = dynamicCount;
-    if (pBuffer->dynamicCount != FBR_NO_DYNAMIC_BUFFER) {
-        // https://github.com/SaschaWillems/Vulkan/blob/master/examples/dynamicuniformbuffer/README.md
-        size_t minUboAlignment = pVulkan->physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-        pBuffer->dynamicAlignment = pBuffer->bufferSize;
-        if (minUboAlignment > 0) {
-            pBuffer->dynamicAlignment = (pBuffer->dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
-        }
-        pBuffer->bufferSize = pBuffer->dynamicAlignment * pBuffer->dynamicCount;
-        FBR_LOG_DEBUG("Creating Dynamic Buffer.", pBuffer->dynamicAlignment, pBuffer->bufferSize);
-    }
-}
+//static void setDynamicAlignment(const FbrVulkan *pVulkan, uint32_t bufferSize, uint32_t dynamicCount, FbrUniformBufferObject *pBuffer)
+//{
+//    pBuffer->bufferSize = bufferSize;
+//    pBuffer->dynamicCount = dynamicCount;
+//    if (pBuffer->dynamicCount != FBR_NO_DYNAMIC_BUFFER) {
+//        // https://github.com/SaschaWillems/Vulkan/blob/master/examples/dynamicuniformbuffer/README.md
+//        size_t minUboAlignment = pVulkan->physicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+//        pBuffer->dynamicAlignment = pBuffer->bufferSize;
+//        if (minUboAlignment > 0) {
+//            pBuffer->dynamicAlignment = (pBuffer->dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
+//        }
+//        pBuffer->bufferSize = pBuffer->dynamicAlignment * pBuffer->dynamicCount;
+//        FBR_LOG_DEBUG("Creating Dynamic Buffer.", pBuffer->dynamicAlignment, pBuffer->bufferSize);
+//    }
+//}
 
 // From OVR Vulkan example. Is this better/same as vulkan tutorial!?
 static VkResult memoryTypeFromProperties(const VkPhysicalDeviceMemoryProperties memoryProperties,
@@ -392,26 +392,21 @@ FBR_RESULT fbrCreateUBO(const FbrVulkan *pVulkan,
                       VkMemoryPropertyFlags properties,
                       VkBufferUsageFlags usage,
                       VkDeviceSize bufferSize,
-                      uint32_t dynamicCount,
                       bool external,
                       FbrUniformBufferObject **ppAllocUBO) {
     *ppAllocUBO = calloc(1, sizeof(FbrUniformBufferObject));
     FbrUniformBufferObject *pUBO = *ppAllocUBO;
-    setDynamicAlignment(pVulkan,
-                        bufferSize,
-                        dynamicCount,
-                        pUBO);
     FBR_ACK(createAllocBindBuffer(pVulkan,
                                   properties,
                                   usage,
-                                  pUBO->bufferSize ,
+                                  bufferSize ,
                                   external,
                                   &pUBO->uniformBuffer,
                                   &pUBO->uniformBufferMemory));
     FBR_ACK(vkMapMemory(pVulkan->device,
                         pUBO->uniformBufferMemory,
                         0,
-                        pUBO->bufferSize ,
+                        bufferSize ,
                         0,
                         &pUBO->pUniformBufferMapped));
     if (external) {
@@ -419,7 +414,6 @@ FBR_RESULT fbrCreateUBO(const FbrVulkan *pVulkan,
                                   &pUBO->uniformBufferMemory,
                                   &pUBO->externalMemory));
     }
-
     return FBR_SUCCESS;
 }
 
@@ -427,26 +421,21 @@ void fbrImportUBO(const FbrVulkan *pVulkan,
                   VkMemoryPropertyFlags properties,
                   VkBufferUsageFlags usage,
                   VkDeviceSize bufferSize,
-                  uint32_t dynamicCount,
                   HANDLE externalMemory,
                   FbrUniformBufferObject **ppAllocUBO) {
     *ppAllocUBO = calloc(1, sizeof(FbrUniformBufferObject));
     FbrUniformBufferObject *pUBO = *ppAllocUBO;
-    setDynamicAlignment(pVulkan,
-                        bufferSize,
-                        dynamicCount,
-                        pUBO);
     importBuffer(pVulkan,
                  properties,
                  usage,
-                 pUBO->bufferSize ,
+                 bufferSize,
                  externalMemory,
                  &pUBO->uniformBuffer,
                  &pUBO->uniformBufferMemory);
     vkMapMemory(pVulkan->device,
                 pUBO->uniformBufferMemory,
                 0,
-                pUBO->bufferSize ,
+                bufferSize,
                 0,
                 &pUBO->pUniformBufferMapped);
     pUBO->externalMemory = externalMemory;

@@ -46,7 +46,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
     if (!pApp->isChild) {
         fbrCreateCamera(pVulkan,
-                        FBR_DYNAMIC_MAIN_CAMERA_COUNT,
                         &pApp->pCamera);
         fbrCreateSetGlobal(pApp->pVulkan,
                            pApp->pDescriptors->setLayoutGlobal,
@@ -87,7 +86,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutNode,
                              pApp->pTestNode->pTransform,
-                             pApp->pCamera,
+                             pApp->pTestNode->pCamera,
                              pApp->pTestNode->pFramebuffers[i]->pColorTexture,
                              pApp->pTestNode->pFramebuffers[i]->pNormalTexture,
                              pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
@@ -111,15 +110,15 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         
 
         // todo below can go into create node
-        HANDLE camDupHandle;
-        DuplicateHandle(GetCurrentProcess(),
-                        pApp->pCamera->pUBO->externalMemory,
-                        pApp->pTestNode->pProcess->pi.hProcess,
-                        &camDupHandle,
-                        0,
-                        false,
-                        DUPLICATE_SAME_ACCESS);
-        FBR_LOG_DEBUG("export", camDupHandle);
+//        HANDLE camDupHandle;
+//        DuplicateHandle(GetCurrentProcess(),
+//                        pApp->pCamera->pUBO->externalMemory,
+//                        pApp->pTestNode->pProcess->pi.hProcess,
+//                        &camDupHandle,
+//                        0,
+//                        false,
+//                        DUPLICATE_SAME_ACCESS);
+//        FBR_LOG_DEBUG("export", camDupHandle);
 
         HANDLE tex0DupHandle;
         DuplicateHandle(GetCurrentProcess(),
@@ -218,7 +217,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         FBR_LOG_DEBUG("export", childSemDupHandle);
 
         FbrIPCParamImportNodeParent importNodeParentParam =  {
-                .cameraExternalHandle = camDupHandle,
+//                .cameraExternalHandle = camDupHandle,
                 .framebufferWidth = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.width,
                 .framebufferHeight = pApp->pTestNode->pFramebuffers[0]->pColorTexture->extent.height,
                 .colorFramebuffer0ExternalHandle = tex0DupHandle,
@@ -234,7 +233,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         };
         fbrIPCEnque(pApp->pTestNode->pProducerIPC, FBR_IPC_TARGET_IMPORT_NODE_PARENT, &importNodeParentParam);
     } else {
-
+        fbrCreateCamera(pVulkan,
+                        &pApp->pCamera);
         fbrCreateNodeParent(pVulkan, &pApp->pNodeParent);
         glm_vec3_add(pApp->pNodeParent->pTransform->pos,
                      (vec3) {1, 0, 0},
@@ -243,11 +243,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         // for debugging ipc now, wait for camera
         while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
-            FBR_LOG_DEBUG("Wait Message", pApp->pNodeParent->pReceiverIPC->pIPCBuffer->tail, pApp->pNodeParent->pReceiverIPC->pIPCBuffer->head);
+            FBR_LOG_DEBUG("Wait Message", pApp->pNodeParent->pReceiverIPC->pRingBuffer->tail, pApp->pNodeParent->pReceiverIPC->pRingBuffer->head);
         }
         fbrCreateSetGlobal(pApp->pVulkan,
                            pApp->pDescriptors->setLayoutGlobal,
-                           pApp->pNodeParent->pCamera,
+                           pApp->pCamera,
                            &pApp->pDescriptors->setGlobal);
 //        fbrCreateSetPass(pApp->pVulkan,
 //                         pApp->pDescriptors->setLayoutPass,

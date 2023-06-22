@@ -6,35 +6,32 @@
 #include "fbr_transform.h"
 #include "fbr_buffer.h"
 
-#define FBR_DYNAMIC_MAIN_CAMERA_COUNT 128
 #define FBR_CAMERA_NEAR_DEPTH 0.01f
 #define FBR_CAMERA_FAR_DEPTH 100.0f
 
-typedef struct FbrCameraUBO {
+typedef struct FbrCameraBuffer {
     mat4 view;
     mat4 proj;
     mat4 trs;
-} FbrCameraUBO;
+} FbrCameraBuffer;
 
 typedef struct FbrCamera {
     FbrTransform *pTransform;
-    FbrCameraUBO uboData;
+    FbrCameraBuffer bufferData;
     FbrUniformBufferObject *pUBO;
 } FbrCamera;
 
-void fbrUpdateCameraUBO(FbrCamera *pCamera, uint32_t dynamicOffset);
+void fbrUpdateCameraUBO(FbrCamera *pCamera);
 
 void fbrUpdateCamera(FbrCamera *pCamera,
                      const FbrInputEvent *pInputEvent,
                      const FbrTime *pTimeState);
 
 FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
-                           uint32_t dynamicCount,
                            HANDLE externalMemory,
                            FbrCamera **ppAllocCameraState);
 
 FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
-                           uint32_t dynamicCount,
                            FbrCamera **ppAllocCameraState);
 
 void fbrDestroyCamera(const FbrVulkan *pVulkan, FbrCamera *pCameraState);

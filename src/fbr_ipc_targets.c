@@ -17,7 +17,7 @@ int fbrIPCTargetParamSize(int target) {
     return FbrIPCTargetParamSize[target];
 }
 
-void fbrIPCSetTargets(FbrIPC *pIPC) {
+void fbrIPCSetTargets(FbrIPCRingBuffer *pIPC) {
     pIPC->pTargetFuncs[FBR_IPC_TARGET_IMPORT_FRAMEBUFFER] = (void (*)(FbrApp *, void *)) fbrIPCTargetImportFrameBuffer;
     pIPC->pTargetFuncs[FBR_IPC_TARGET_IMPORT_CAMERA] = (void (*)(FbrApp *, void *)) fbrIPCTargetImportCamera;
     pIPC->pTargetFuncs[FBR_IPC_TARGET_IMPORT_MAIN_SEMAPHORE] = (void (*)(FbrApp *, void *)) fbrIPCTargetImportMainSemaphore;

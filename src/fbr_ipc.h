@@ -10,36 +10,49 @@
 #include <windows.h>
 #endif
 
-#define FBR_IPC_BUFFER_COUNT 256
-#define FBR_IPC_BUFFER_SIZE FBR_IPC_BUFFER_COUNT * sizeof(uint8_t)
-#define FBR_IPC_HEADER_SIZE 1
+#define FBR_IPC_RING_BUFFER_COUNT 256
+#define FBR_IPC_RING_BUFFER_SIZE FBR_IPC_RING_BUFFER_COUNT * sizeof(uint8_t)
+#define FBR_IPC_RING_HEADER_SIZE 1
 
 #define FBR_IPC_TARGET_COUNT 4
 
-typedef struct FbrIPCBuffer {
+typedef struct FbrRingBuffer {
     uint8_t head;
     uint8_t tail;
-    uint8_t pRingBuffer[FBR_IPC_BUFFER_COUNT];
-} FbrIPCBuffer;
+    uint8_t pRingBuffer[FBR_IPC_RING_BUFFER_COUNT];
+} FbrRingBuffer;
 
-typedef struct FbrIPC {
+typedef struct FbrIPCRingBuffer {
 #ifdef WIN32
     HANDLE hMapFile;
 #endif
-    FbrIPCBuffer *pIPCBuffer;
+    FbrRingBuffer *pRingBuffer;
     void (*pTargetFuncs[FBR_IPC_TARGET_COUNT])( /*const*/ FbrApp*, void*);
-} FbrIPC;
+} FbrIPCRingBuffer;
 
-//bool fbrIPCDequeAvailable(const FbrIPCBuffer *pIPCBuffer);
+typedef struct FbrIPCBuffer {
+#ifdef WIN32
+    HANDLE hMapFile;
+#endif
+    void *pBuffer;
+} FbrIPCBuffer;
 
-int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC);
+//bool fbrIPCDequeAvailable(const FbrRingBuffer *pRingBuffer);
 
-void fbrIPCEnque(FbrIPC *pIPC, FbrIPCTargetType target, void *param);
+int fbrIPCPollDeque(FbrApp *pApp, FbrIPCRingBuffer *pIPC);
 
-int fbrCreateProducerIPC(FbrIPC **ppAllocIPC);
+void fbrIPCEnque(FbrIPCRingBuffer *pIPC, FbrIPCTargetType target, void *param);
 
-int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC);
+int fbrCreateProducerIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC);
 
-void fbrDestroyIPC(FbrIPC *pIPC);
+int fbrCreateReceiverIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC);
+
+int fbrCreateIPCBuffer(FbrIPCBuffer **ppAllocIPC, int bufferSize);
+
+int fbrImportIPCBuffer(FbrIPCBuffer **ppAllocIPC, int bufferSize);
+
+void fbrDestroyIPCBuffer(FbrIPCBuffer *pIPC);
+
+void fbrDestroyIPCRingBuffer(FbrIPCRingBuffer *pIPC);
 
 #endif //FABRIC_IPC_H

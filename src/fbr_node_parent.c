@@ -14,11 +14,10 @@ const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
         {{-0.5f, 0.5f, 0.0f},  {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 };
 
-void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int dynamicCameraIndex, int timelineSwitch, FbrNodeParent *pNode)
+void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNodeParent *pNode)
 {
-    uint32_t dynamicOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
-    memcpy(&pCamera->uboData, pCamera->pUBO->pUniformBufferMapped + dynamicOffset, sizeof(FbrCameraUBO));
-    glm_mat4_copy(pCamera->uboData.trs, pCamera->pTransform->uboData.model);
+    memcpy(&pCamera->bufferData, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraBuffer));
+    glm_mat4_copy(pCamera->bufferData.trs, pCamera->pTransform->uboData.model);
 
 //    printf("child\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
 //           pCamera->transform.matrix[0][0],pCamera->transform.matrix[0][1],pCamera->transform.matrix[0][2],pCamera->transform.matrix[0][3],
@@ -34,7 +33,7 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int d
     glm_vec3_copy(pos, pCamera->pTransform->pos);
 
     mat4 viewProj;
-    glm_mat4_mul(pCamera->uboData.proj, pCamera->uboData.view, viewProj);
+    glm_mat4_mul(pCamera->bufferData.proj, pCamera->bufferData.view, viewProj);
     mat4 mvp;
     glm_mat4_mul(viewProj, pNode->pTransform->uboData.model, mvp);
 
@@ -102,7 +101,7 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int d
 void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent) {
     *ppAllocNodeParent = calloc(1, sizeof(FbrNodeParent));
     FbrNodeParent *pNodeParent = *ppAllocNodeParent;
-    fbrCreateReceiverIPC(&pNodeParent->pReceiverIPC);
+    fbrCreateReceiverIPCRingBuffer(&pNodeParent->pReceiverIPC);
 
     fbrCreateTransform(pVulkan, &pNodeParent->pTransform);
 
@@ -115,8 +114,9 @@ void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) 
 //    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[1]);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pParentSemaphore);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pChildSemaphore);
-    fbrDestroyCamera(pVulkan, pNodeParent->pCamera);
-    fbrDestroyIPC(pNodeParent->pReceiverIPC);
+//    fbrDestroyCamera(pVulkan, pNodeParent->pCamera);
+    fbrDestroyIPCRingBuffer(pNodeParent->pReceiverIPC);
+    fbrDestroyIPCBuffer(pNodeParent->pCameraIPCBuffer);
 }
 
 void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pParam) {
@@ -124,11 +124,12 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
     FbrVulkan *pVulkan = pApp->pVulkan;
     VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
 
-    FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
-    fbrImportCamera(pVulkan,
-                    FBR_DYNAMIC_MAIN_CAMERA_COUNT,
-                    pParam->cameraExternalHandle,
-                    &pNodeParent->pCamera);
+//    FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
+//    fbrImportCamera(pVulkan,
+//                    pParam->cameraExternalHandle,
+//                    &pNodeParent->pCamera);
+    fbrImportIPCBuffer(&pNodeParent->pCameraIPCBuffer,
+                       sizeof(FbrCameraBuffer));
 
     FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->colorFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->normalFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
@@ -156,7 +157,6 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  FBR_NODE_VERTEX_BUFFER_SIZE,
-                 FBR_NO_DYNAMIC_BUFFER,
                  pParam->vertexUBO0ExternalHandle,
                  &pNodeParent->pVertexUBOs[0]);
     fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[0], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
@@ -166,7 +166,6 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  FBR_NODE_VERTEX_BUFFER_SIZE,
-                 FBR_NO_DYNAMIC_BUFFER,
                  pParam->vertexUBO1ExternalHandle,
                  &pNodeParent->pVertexUBOs[1]);
     fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[1], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);

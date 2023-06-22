@@ -15,7 +15,7 @@ const uint16_t nodeIndices[] = {
         0, 1, 2, 3,
 };
 
-void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraUBO camUboData, versor camRot, int timelineSwitch, FbrNode *pNode) {
+void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraBuffer camUboData, versor camRot, int timelineSwitch, FbrNode *pNode) {
     mat4 viewProj;
     glm_mat4_mul(camUboData.proj, camUboData.view, viewProj);
     mat4 mvp;
@@ -70,7 +70,7 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
     *ppAllocNode = calloc(1, sizeof(FbrNode));
     FbrNode *pNode = *ppAllocNode;
     pNode->pName = strdup(pName);
-    pNode->radius = 1.0f;
+//    pNode->radius = 1.0f;
 
     FbrVulkan *pVulkan = pApp->pVulkan;
 
@@ -80,8 +80,8 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
 
     fbrCreateProcess(&pNode->pProcess);
 
-    if (fbrCreateProducerIPC(&pNode->pProducerIPC) != 0){
-        FBR_LOG_ERROR("fbrCreateProducerIPC fail");
+    if (fbrCreateProducerIPCRingBuffer(&pNode->pProducerIPC) != 0){
+        FBR_LOG_ERROR("fbrCreateProducerIPCRingBuffer fail");
         return VK_ERROR_UNKNOWN;
     }
     // todo create receiverIPC
@@ -98,7 +98,6 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                              FBR_NODE_VERTEX_BUFFER_SIZE,
-                             FBR_NO_DYNAMIC_BUFFER,
                              true,
                              &pNode->pVertexUBOs[i]));
 //        fbrMemCopyMappedUBO(pNode->pVertexUBOs[i], pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
@@ -108,10 +107,13 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, // host cached too?
                           VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                          FBR_NODE_INDEX_BUFFER_SIZE,
-                         FBR_NO_DYNAMIC_BUFFER,
                          false,
                          &pNode->pIndexUBO));
     fbrMemCopyMappedUBO(pNode->pIndexUBO, nodeIndices, FBR_NODE_INDEX_BUFFER_SIZE);
+
+    fbrCreateIPCBuffer(&pNode->pCameraIPCBuffer, sizeof(FbrCameraBuffer));
+
+    fbrCreateCamera(pVulkan, &pNode->pCamera);
 }
 
 void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode) {
@@ -124,8 +126,8 @@ void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode) {
 
     fbrDestroyProcess(pNode->pProcess);
 
-    fbrDestroyIPC(pNode->pProducerIPC);
-    fbrDestroyIPC(pNode->pReceiverIPC);
+    fbrDestroyIPCRingBuffer(pNode->pProducerIPC);
+    fbrDestroyIPCRingBuffer(pNode->pReceiverIPC);
 
     for (int i = 0; i < FBR_NODE_FRAMEBUFFER_COUNT; ++i) {
         fbrDestroyFrameBuffer(pVulkan, pNode->pFramebuffers[i]);

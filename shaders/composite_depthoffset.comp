@@ -72,15 +72,15 @@ void main()
     vec3 sRGB = pow(color.rgb, vec3(1.0 / 2.2));
     vec4 sRGBswapped = vec4(sRGB.bgr, color.a);
 
-    imageStore(outputColor, newCoord, sRGBswapped);
+//    imageStore(outputColor, newCoord, sRGBswapped);
 //        imageStore(outputColor, coord, color);
 
-//    if (gBuffer.a > 0) {
-//        imageStore(outputColor, newCoord, sRGBswapped);
-//    }
-//    else {
-//        imageStore(outputColor, coord, sRGBswapped);
-//    }
+    if (gBuffer.a > 0) {
+        imageStore(outputColor, newCoord, sRGBswapped);
+    }
+    else {
+        imageStore(outputColor, coord, sRGBswapped);
+    }
 
 
 //    imageStore(outputColor, coord, gBuffer);

@@ -56,7 +56,7 @@ typedef struct FbrDescriptors {
 
 } FbrDescriptors;
 
-VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
+FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             FbrSetLayoutGlobal setLayout,
                             const FbrCamera *pCamera,
                             FbrSetGlobal *pSet);

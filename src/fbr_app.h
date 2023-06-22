@@ -17,7 +17,8 @@ typedef struct FbrTexture FbrTexture;
 typedef struct FbrVulkan FbrVulkan;
 typedef struct FbrFramebuffer FbrFramebuffer;
 typedef struct FbrProcess FbrProcess;
-typedef struct FbrIPC FbrIPC;
+typedef struct FbrIPCRingBuffer FbrIPCRingBuffer;
+typedef struct FbrIPCBuffer FbrIPCBuffer;
 typedef struct FbrNode FbrNode;
 typedef struct FbrTimelineSemaphore FbrTimelineSemaphore;
 typedef struct FbrNodeParent FbrNodeParent;
@@ -46,8 +47,8 @@ typedef struct FbrApp {
 
     FbrFramebuffer *pFramebuffers[FBR_FRAMEBUFFER_COUNT];
 
-    int cameraCount;
-    FbrCamera *pCameras;
+//    int cameraCount;
+//    FbrCamera *pCameras;
 
 
     // go in a fbr_scene?

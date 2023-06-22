@@ -10,6 +10,7 @@
 #include "fbr_pipelines.h"
 #include "fbr_descriptors.h"
 #include "fbr_swap.h"
+#include "fbr_ipc.h"
 
 #include "cglm/cglm.h"
 
@@ -224,7 +225,8 @@ static void childMainLoop(FbrApp *pApp) {
     FbrVulkan *pVulkan = pApp->pVulkan;
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
     FbrTimelineSemaphore *pChildSemaphore = pApp->pNodeParent->pChildSemaphore;
-    FbrCamera *pCamera = pApp->pNodeParent->pCamera;
+//    FbrCamera *pCamera = pApp->pNodeParent->pCamera;
+    FbrCamera *pCamera = pApp->pCamera;
     FbrTime *pTime = pApp->pTime;
     FbrPipelines *pPipelines = pApp->pPipelines;
     FbrDescriptors *pDescriptors = pApp->pDescriptors;
@@ -246,12 +248,12 @@ static void childMainLoop(FbrApp *pApp) {
 
         // Update to current parent time, don't let it go faster than parent allows.
         vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
-//        uint8_t dynamicCameraIndex = (uint8_t) pParentSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT;
-        uint8_t dynamicCameraIndex = 1;
-        uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
-        memcpy(pCamera->pUBO->pUniformBufferMapped + dynamicGlobalOffset, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraUBO));
 
         beginFrameCommandBuffer(pVulkan, pApp->pFramebuffers[timelineSwitch]->pColorTexture->extent);
+
+        memcpy(&pCamera->bufferData, pApp->pNodeParent->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
+        FBR_LOG_DEBUG("cam", pCamera->bufferData.trs[0][0]);
+        fbrUpdateCameraUBO(pCamera);
 
         // Acquire Framebuffer Ownership
         const VkImageMemoryBarrier pAcquireColorImageMemoryBarriers[] = {
@@ -326,15 +328,15 @@ static void childMainLoop(FbrApp *pApp) {
         vkCmdBindPipeline(pVulkan->graphicsCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
 
         // Global
-        uint32_t zeroOffset = 0;
+//        uint32_t zeroOffset = 0;
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pPipelines->pipeLayoutStandard,
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
-                                1,
-                                &zeroOffset);
+                                0,
+                                NULL);
 //        // Pass
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -368,7 +370,7 @@ static void childMainLoop(FbrApp *pApp) {
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
 
-        fbrUpdateNodeParentMesh(pVulkan, pCamera, dynamicCameraIndex, timelineSwitch, pApp->pNodeParent);
+        fbrUpdateNodeParentMesh(pVulkan, pCamera, timelineSwitch, pApp->pNodeParent);
 
 
         // Release Framebuffer Ownership
@@ -510,6 +512,8 @@ static void parentMainLoop(FbrApp *pApp) {
         };
         FBR_ACK_EXIT(vkBeginCommandBuffer(pVulkan->graphicsCommandBuffer, &beginInfo));
 
+        fbrUpdateCameraUBO(pCamera);
+
         // Acquire Parent Framebuffers
 //        FBR_LOG_DEBUG("pAcquireFrameBufferBarrier");
         const VkImageMemoryBarrier pAcquireFrameBufferBarrier[] = {
@@ -637,6 +641,11 @@ static void parentMainLoop(FbrApp *pApp) {
                                  0, NULL,
                                  COUNT(pAcquireChildDepthFrameBufferBarrier), pAcquireChildDepthFrameBufferBarrier);
 //            FBR_LOG_DEBUG("parent switch", testNodeTimelineSwitch, pTestNode->pChildSemaphore->waitValue);
+
+            // camera ipc to parent camera ubo, then update camera ipc to latest parent ubo
+            memcpy(&pTestNode->pCamera->bufferData, pTestNode->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
+            fbrUpdateCameraUBO(pTestNode->pCamera);
+            memcpy( pTestNode->pCameraIPCBuffer->pBuffer, &pCamera->bufferData, sizeof(FbrCameraBuffer));
         }
 
         // Being Parent Render Pass
@@ -664,18 +673,14 @@ static void parentMainLoop(FbrApp *pApp) {
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pPipelines->pipeStandard);
         // Global
-//        uint8_t dynamicCameraIndex = (int) (pMainTimelineSemaphore->waitValue % FBR_DYNAMIC_MAIN_CAMERA_COUNT);
-        uint8_t dynamicCameraIndex = 0;
-        fbrUpdateCameraUBO(pCamera, dynamicCameraIndex);
-        uint32_t dynamicGlobalOffset = dynamicCameraIndex * pCamera->pUBO->dynamicAlignment;
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pPipelines->pipeLayoutStandard,
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
-                                1,
-                                &dynamicGlobalOffset);
+                                0,
+                                NULL);
 //        // Pass
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -721,17 +726,16 @@ static void parentMainLoop(FbrApp *pApp) {
                                     FBR_GLOBAL_SET_INDEX,
                                     1,
                                     &pDescriptors->setGlobal,
-                                    1,
-                                    &dynamicGlobalOffset);
-            uint32_t childDynamicGlobalOffset = 1 * pCamera->pUBO->dynamicAlignment;
+                                    0,
+                                    NULL);
             vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pPipelines->pipeLayoutNode,
                                     FBR_NODE_SET_INDEX,
                                     1,
                                     &pApp->pCompMaterialSets[testNodeTimelineSwitch],
-                                    1,
-                                    &childDynamicGlobalOffset);
+                                    0,
+                                    NULL);
             recordNodeRenderPass(pVulkan,
                                  pTestNode,
                                  testNodeTimelineSwitch);
@@ -959,8 +963,8 @@ static void parentMainLoop(FbrApp *pApp) {
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
-                                1,
-                                &dynamicGlobalOffset);
+                                0,
+                                NULL);
         vkCmdBindDescriptorSets(pVulkan->computeCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_COMPUTE,
                                 pApp->pPipelines->computePipeLayoutComposite,
@@ -968,7 +972,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                 1,
                                 &setComposite,
                                 0,
-                                0);
+                                NULL);
 
         vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, 2);
 

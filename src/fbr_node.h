@@ -14,31 +14,33 @@
 #define FBR_NODE_INDEX_BUFFER_SIZE (sizeof(uint16_t) * FBR_NODE_INDEX_COUNT)
 #define FBR_NODE_FRAMEBUFFER_COUNT 2
 
-typedef struct FbrNodeVertex {
-    vec2 pos;
-    vec2 texCoord;
-} FbrNodeVertex;
+//typedef struct FbrNodeVertex {
+//    vec2 pos;
+//    vec2 texCoord;
+//} FbrNodeVertex;
 
-typedef struct FbrNodeState {
-    uint8_t timelineSwitch;
-} FbrNodeState;
+//typedef struct FbrNodeState {
+//    uint8_t timelineSwitch;
+//} FbrNodeState;
 
 typedef struct FbrNode {
     FbrTransform *pTransform;
 
-    char *pName;
+    FbrCamera *pCamera;
 
-    float radius;
+    char *pName;
 
     FbrProcess *pProcess;
 
-    FbrIPC *pProducerIPC;
-    FbrIPC *pReceiverIPC;
+    FbrIPCRingBuffer *pProducerIPC;
+    FbrIPCRingBuffer *pReceiverIPC;
 
-#ifdef WIN32
-    HANDLE nodeStateExternalHandle;
-#endif
-    FbrNodeState *pNodeState;
+    FbrIPCBuffer *pCameraIPCBuffer;
+
+//#ifdef WIN32
+//    HANDLE nodeStateExternalHandle;
+//#endif
+//    FbrNodeState *pNodeState;
 
     FbrTimelineSemaphore *pChildSemaphore;
 
@@ -51,7 +53,7 @@ typedef struct FbrNode {
 
 } FbrNode;
 
-void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraUBO camUboData, versor camRot, int timelineSwitch, FbrNode *pNode);
+void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraBuffer camUboData, versor camRot, int timelineSwitch, FbrNode *pNode);
 
 VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
 

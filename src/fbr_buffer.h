@@ -7,16 +7,14 @@
 #include <windows.h>
 #endif
 
-#define FBR_NO_DYNAMIC_BUFFER 0
-
-#define FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE\
+#define FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE \
 .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,\
 .subresourceRange.baseMipLevel = 0,\
 .subresourceRange.levelCount = 1,\
 .subresourceRange.baseArrayLayer = 0,\
 .subresourceRange.layerCount = 1,\
 
-#define FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE\
+#define FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE \
 .subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,\
 .subresourceRange.baseMipLevel = 0,\
 .subresourceRange.levelCount = 1,\
@@ -28,13 +26,22 @@ typedef struct FbrUniformBufferObject {
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
     void *pUniformBufferMapped;
-    uint32_t bufferSize;
-    uint32_t dynamicAlignment;
-    uint32_t dynamicCount;
 #ifdef WIN32
-    HANDLE externalMemory;
+    HANDLE externalMemory; // Todo get rid of HANDLE with additional type FbrExternalUniformBufferObject
 #endif
 } FbrUniformBufferObject;
+
+//typedef struct FbrDynamicUniformBufferObject {
+//    VkBuffer uniformBuffer;
+//    VkDeviceMemory uniformBufferMemory;
+//    void *pUniformBufferMapped;
+//    uint32_t bufferSize;
+//    uint32_t dynamicAlignment;
+//    uint32_t dynamicCount;
+//#ifdef WIN32
+//    HANDLE externalMemory;
+//#endif
+//} FbrDynamicUniformBufferObject;
 
 VkResult fbrImageMemoryTypeFromProperties(const FbrVulkan *pVulkan,
                                           VkImage image,
@@ -83,7 +90,6 @@ VkResult fbrCreateUBO(const FbrVulkan *pVulkan,
                       VkMemoryPropertyFlags properties,
                       VkBufferUsageFlags usage,
                       VkDeviceSize bufferSize,
-                      uint32_t dynamicCount,
                       bool external,
                       FbrUniformBufferObject **ppAllocUBO);
 
@@ -91,7 +97,6 @@ void fbrImportUBO(const FbrVulkan *pVulkan,
                   VkMemoryPropertyFlags properties,
                   VkBufferUsageFlags usage,
                   VkDeviceSize bufferSize,
-                  uint32_t dynamicCount,
                   HANDLE externalMemory,
                   FbrUniformBufferObject **ppAllocUBO);
 

@@ -35,7 +35,6 @@ VkResult fbrCreateTransform(const FbrVulkan *pVulkan, FbrTransform **ppAllocTran
                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                          sizeof(FbrTransform),
-                         FBR_NO_DYNAMIC_BUFFER,
                          false,
                          &pTransform->pUBO));
 

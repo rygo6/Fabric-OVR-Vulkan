@@ -3,12 +3,85 @@
 #include "fbr_log.h"
 #include "fbr_ipc_targets.h"
 
-const char sharedMemoryName[] = "FbrIPC";
+const char sharedMemoryName[] = "FbrIPCRingBuffer";
+const char sharedTempCamMemoryName[] = "FbrIPCCamera";
 
-int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
+static int createIPCBuffer(int bufferSize, const char *pSharedMemoryName, HANDLE *phMapFile, void **pBuffer)
+{
+    HANDLE hMapFile;
+    LPVOID pBuf;
+
+    hMapFile = CreateFileMapping(
+            INVALID_HANDLE_VALUE,    // use paging file
+            NULL,                    // default security
+            PAGE_READWRITE,          // read/write access
+            0,                       // maximum object size (high-order DWORD)
+            bufferSize,                // maximum object size (low-order DWORD)
+            pSharedMemoryName);                 // name of mapping object
+
+    if (hMapFile == NULL) {
+        FBR_LOG_DEBUG("Could not create file mapping object (%lu)", GetLastError());
+        return 1;
+    }
+    pBuf = MapViewOfFile(hMapFile,
+                         FILE_MAP_ALL_ACCESS,
+                         0,
+                         0,
+                         bufferSize);
+
+    memset(pBuf, 0, bufferSize);
+
+    if (pBuf == NULL) {
+        printf(TEXT("Could not map view of file (%lu).\n"), GetLastError());
+        CloseHandle(hMapFile);
+        return 1;
+    }
+
+    *phMapFile = hMapFile;
+    *pBuffer = pBuf;
+
+    return 0;
+}
+
+int createImportIPCBuffer(int bufferSize, const char *pSharedMemoryName, HANDLE *phMapFile, void **pBuffer)
+{
+    HANDLE hMapFile;
+    LPVOID pBuf;
+
+    // need to using handle somehow!? phMapFile
+    hMapFile = OpenFileMapping(
+            FILE_MAP_ALL_ACCESS,   // read/write access
+            FALSE,                 // do not inherit the name
+            pSharedMemoryName);               // name of mapping object
+
+    if (hMapFile == NULL) {
+        FBR_LOG_DEBUG("Could not create file mapping object", GetLastError());
+        return 1;
+    }
+
+    pBuf = MapViewOfFile(hMapFile,
+                         FILE_MAP_ALL_ACCESS,
+                         0,
+                         0,
+                         bufferSize);
+
+    if (pBuf == NULL) {
+        FBR_LOG_DEBUG("Could not map view of file", GetLastError());
+        CloseHandle(hMapFile);
+        return 1;
+    }
+
+    *phMapFile = hMapFile;
+    *pBuffer = pBuf;
+
+    return 0;
+}
+
+int fbrIPCPollDeque(FbrApp *pApp, FbrIPCRingBuffer *pIPC)
+{
     // TODO this needs to actually cycle around the ring buffer, this is only half done
 
-    FbrIPCBuffer *pIPCBuffer = pIPC->pIPCBuffer;
+    FbrRingBuffer *pIPCBuffer = pIPC->pRingBuffer;
 
     if (pIPCBuffer->head == pIPCBuffer->tail)
         return 1;
@@ -21,108 +94,89 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPC *pIPC) {
     // If consumer consumes too slow then producer might run out of data in a stream?
     // From trusted parent app sending shared memory through is probably fine
 //    void *param = malloc(fbrIPCTargetParamSize(target));
-//    memcpy(param, pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE, fbrIPCTargetParamSize(target));
-    void *param = pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_HEADER_SIZE;
+//    memcpy(param, pRingBuffer->pRingBuffer + pRingBuffer->tail + FBR_IPC_RING_HEADER_SIZE, fbrIPCTargetParamSize(target));
+    void *param = pIPCBuffer->pRingBuffer + pIPCBuffer->tail + FBR_IPC_RING_HEADER_SIZE;
 
-    if (pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target) > FBR_IPC_BUFFER_SIZE){
+    if (pIPCBuffer->tail + FBR_IPC_RING_HEADER_SIZE + fbrIPCTargetParamSize(target) > FBR_IPC_RING_BUFFER_SIZE){
         FBR_LOG_ERROR("IPC BYTE ARRAY REACHED END!!!");
     }
 
     FBR_LOG_DEBUG("Calling IPC Target", target);
     pIPC->pTargetFuncs[target](pApp, param);
 
-    pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target);
+    pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_RING_HEADER_SIZE + fbrIPCTargetParamSize(target);
 
     return 0;
 }
 
-void fbrIPCEnque(FbrIPC *pIPC, FbrIPCTargetType target, void *param) {
-    FbrIPCBuffer *pIPCBuffer = pIPC->pIPCBuffer;
+void fbrIPCEnque(FbrIPCRingBuffer *pIPC, FbrIPCTargetType target, void *param)
+{
+    FbrRingBuffer *pIPCBuffer = pIPC->pRingBuffer;
     pIPCBuffer->pRingBuffer[pIPCBuffer->head] = target;
-    memcpy(pIPCBuffer->pRingBuffer + pIPCBuffer->head + FBR_IPC_HEADER_SIZE, param, fbrIPCTargetParamSize(target));
-    pIPCBuffer->head = pIPCBuffer->head + FBR_IPC_HEADER_SIZE + fbrIPCTargetParamSize(target);
+    memcpy(pIPCBuffer->pRingBuffer + pIPCBuffer->head + FBR_IPC_RING_HEADER_SIZE, param, fbrIPCTargetParamSize(target));
+    pIPCBuffer->head = pIPCBuffer->head + FBR_IPC_RING_HEADER_SIZE + fbrIPCTargetParamSize(target);
 }
 
-int fbrCreateProducerIPC(FbrIPC **ppAllocIPC) {
-    FBR_LOG_DEBUG("Creating Producer IPC", FBR_IPC_BUFFER_SIZE, FBR_IPC_BUFFER_COUNT);
+int fbrCreateProducerIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC)
+{
+    FBR_LOG_DEBUG("Creating Producer IPC Ring", FBR_IPC_RING_BUFFER_SIZE, FBR_IPC_RING_BUFFER_COUNT);
 
-    HANDLE hMapFile;
-    LPVOID pBuf;
+    *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
+    FbrIPCRingBuffer *pIPC = *ppAllocIPC;
 
-    hMapFile = CreateFileMapping(
-            INVALID_HANDLE_VALUE,    // use paging file
-            NULL,                    // default security
-            PAGE_READWRITE,          // read/write access
-            0,                       // maximum object size (high-order DWORD)
-            FBR_IPC_BUFFER_SIZE,                // maximum object size (low-order DWORD)
-            sharedMemoryName);                 // name of mapping object
-
-    if (hMapFile == NULL) {
-        FBR_LOG_DEBUG("Could not create file mapping object (%lu)", GetLastError());
-        return 1;
-    }
-    pBuf = MapViewOfFile(hMapFile,
-                         FILE_MAP_ALL_ACCESS,
-                         0,
-                         0,
-                         FBR_IPC_BUFFER_SIZE);
-
-    memset(pBuf, 0, FBR_IPC_BUFFER_SIZE);
-
-    if (pBuf == NULL) {
-        printf(TEXT("Could not map view of file (%lu).\n"), GetLastError());
-        CloseHandle(hMapFile);
-        return 1;
-    }
-
-    *ppAllocIPC = calloc(1, sizeof(FbrIPC));
-    FbrIPC *pIPC = *ppAllocIPC;
-
-    pIPC->hMapFile = hMapFile;
-    pIPC->pIPCBuffer = pBuf;
+    createIPCBuffer(FBR_IPC_RING_BUFFER_SIZE, sharedMemoryName, &pIPC->hMapFile, (void **) &pIPC->pRingBuffer);
 
     return 0;
 }
 
-int fbrCreateReceiverIPC(FbrIPC **ppAllocIPC) {
-    HANDLE hMapFile;
-    LPVOID pBuf;
+int fbrCreateReceiverIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC)
+{
+    FBR_LOG_DEBUG("Creating Receiver IPC Ring", FBR_IPC_RING_BUFFER_SIZE, FBR_IPC_RING_BUFFER_COUNT);
 
-    hMapFile = OpenFileMapping(
-            FILE_MAP_ALL_ACCESS,   // read/write access
-            FALSE,                 // do not inherit the name
-            sharedMemoryName);               // name of mapping object
+    *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
+    FbrIPCRingBuffer *pIPC = *ppAllocIPC;
 
-    if (hMapFile == NULL) {
-        FBR_LOG_DEBUG("Could not create file mapping object", GetLastError());
-        return 1;
-    }
-
-    pBuf = MapViewOfFile(hMapFile,
-                                  FILE_MAP_ALL_ACCESS,
-                                  0,
-                                  0,
-                         FBR_IPC_BUFFER_SIZE);
-
-    if (pBuf == NULL) {
-        FBR_LOG_DEBUG("Could not map view of file", GetLastError());
-        CloseHandle(hMapFile);
-        return 1;
-    }
-
-    *ppAllocIPC = calloc(1, sizeof(FbrIPC));
-    FbrIPC *pIPC = *ppAllocIPC;
-
-    pIPC->hMapFile = hMapFile;
-    pIPC->pIPCBuffer = pBuf;
+    createImportIPCBuffer(FBR_IPC_RING_BUFFER_SIZE, sharedMemoryName, &pIPC->hMapFile, (void **) &pIPC->pRingBuffer);
 
     fbrIPCSetTargets(pIPC);
 
     return 0;
 }
 
-void fbrDestroyIPC(FbrIPC *pIPC) {
-    UnmapViewOfFile(pIPC->pIPCBuffer);
+int fbrCreateIPCBuffer(FbrIPCBuffer **ppAllocIPC, int bufferSize)
+{
+    FBR_LOG_DEBUG("Creating Producer IPC", bufferSize);
+
+    *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
+    FbrIPCBuffer *pIPC = *ppAllocIPC;
+
+    createIPCBuffer(bufferSize, sharedTempCamMemoryName, &pIPC->hMapFile, &pIPC->pBuffer);
+
+    return 0;
+}
+
+int fbrImportIPCBuffer(FbrIPCBuffer **ppAllocIPC,  int bufferSize)
+{
+    FBR_LOG_DEBUG("Creating Receiver IPC", bufferSize);
+
+    *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
+    FbrIPCBuffer *pIPC = *ppAllocIPC;
+
+    createImportIPCBuffer(bufferSize, sharedTempCamMemoryName, &pIPC->hMapFile, &pIPC->pBuffer);
+
+    return 0;
+}
+
+void fbrDestroyIPCBuffer(FbrIPCBuffer *pIPC)
+{
+    UnmapViewOfFile(pIPC->pBuffer);
+    CloseHandle(pIPC->hMapFile);
+    free(pIPC);
+}
+
+void fbrDestroyIPCRingBuffer(FbrIPCRingBuffer *pIPC)
+{
+    UnmapViewOfFile(pIPC->pRingBuffer);
     CloseHandle(pIPC->hMapFile);
     free(pIPC);
 }

@@ -8,20 +8,22 @@
 typedef struct FbrNodeParent {
     FbrTransform *pTransform;
 
-    FbrIPC *pReceiverIPC;
+    FbrIPCRingBuffer *pReceiverIPC;
 
 //    FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
     FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
 
     FbrTimelineSemaphore *pParentSemaphore;
     FbrTimelineSemaphore *pChildSemaphore;
-    FbrCamera *pCamera;
+//    FbrCamera *pCamera;
+
+    FbrIPCBuffer *pCameraIPCBuffer;
 
     Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
 
 } FbrNodeParent;
 
-void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int dynamicCameraIndex, int timelineSwitch, FbrNodeParent *pNode);
+void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNodeParent *pNode);
 
 void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent);
 
@@ -40,7 +42,7 @@ typedef struct FbrIPCParamImportNodeParent {
     HANDLE depthFramebuffer1ExternalHandle;
     HANDLE vertexUBO0ExternalHandle;
     HANDLE vertexUBO1ExternalHandle;
-    HANDLE cameraExternalHandle;
+//    HANDLE cameraExternalHandle;
     HANDLE parentSemaphoreExternalHandle;
     HANDLE childSemaphoreExternalHandle;
 } FbrIPCParamImportNodeParent;

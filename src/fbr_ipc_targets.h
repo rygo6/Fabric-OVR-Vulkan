@@ -12,6 +12,6 @@ typedef enum FbrIPCTargetType {
 
 int fbrIPCTargetParamSize(int target);
 
-void fbrIPCSetTargets(FbrIPC *pIPC);
+void fbrIPCSetTargets(FbrIPCRingBuffer *pIPC);
 
 #endif //FABRIC_IPC_TARGETS_H

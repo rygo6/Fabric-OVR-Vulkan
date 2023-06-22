@@ -24,28 +24,6 @@ static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
-static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout)
-{
-    VkDescriptorSetLayoutBinding bindings[] = {
-            {
-                    .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_COMPUTE_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            }
-    };
-    FBR_ACK(createDescriptorSetLayout(pVulkan,
-                                      1,
-                                      bindings,
-                                      pSetLayout));
-
-    return FBR_SUCCESS;
-}
-
 static FBR_RESULT createSetLayoutPass(const FbrVulkan *pVulkan, FbrSetLayoutPass *pSetLayout)
 {
     VkDescriptorSetLayoutBinding bindings[] = {
@@ -121,7 +99,28 @@ static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
-VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
+static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGlobal *pSetLayout)
+{
+    VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_COMPUTE_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    FBR_ACK(createDescriptorSetLayout(pVulkan,
+                                      1,
+                                      bindings,
+                                      pSetLayout));
+    return FBR_SUCCESS;
+}
+
+FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                             FbrSetLayoutGlobal setLayout,
                             const FbrCamera *pCamera,
                             FbrSetGlobal *pSet)
@@ -133,7 +132,7 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pCamera->pUBO->uniformBuffer,
             .offset = 0,
-            .range = sizeof(FbrCameraUBO),
+            .range = sizeof(FbrCameraBuffer),
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
             {
@@ -143,7 +142,7 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .pImageInfo = NULL,
                     .pBufferInfo = &bufferInfo,
                     .pTexelBufferView = NULL,
@@ -154,7 +153,7 @@ VkResult fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                            pDescriptorWrites,
                            0,
                            NULL);
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
 VkResult fbrCreateSetPass(const FbrVulkan *pVulkan,
@@ -279,7 +278,7 @@ static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode
             },
             {// camera rendered from ubo
                     .binding = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                                 VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -377,7 +376,7 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                     .dstBinding = 1,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .pImageInfo = NULL,
                     .pBufferInfo = &cameraBufferInfo,
                     .pTexelBufferView = NULL,
