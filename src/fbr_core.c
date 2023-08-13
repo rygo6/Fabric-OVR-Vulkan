@@ -218,9 +218,15 @@ static void beginFrameCommandBuffer(FbrVulkan *pVulkan, VkExtent2D extent) {
     vkCmdSetScissor(pVulkan->graphicsCommandBuffer, 0, 1, &scissor);
 }
 
-static void childMainLoop(FbrApp *pApp) {
-    double lastFrameTime = glfwGetTime();
+static void updateTime(FbrTime *pTime)
+{
+    pTime->currentTime = glfwGetTime();
+    pTime->deltaTime = pTime->currentTime - pTime->lastTime;
+    pTime->lastTime = pTime->currentTime;
+}
 
+static void childMainLoop(FbrApp *pApp)
+{
     // does the pointer indirection here actually cause issue!?
     FbrVulkan *pVulkan = pApp->pVulkan;
     FbrTimelineSemaphore *pParentSemaphore = pApp->pNodeParent->pParentSemaphore;
@@ -241,18 +247,15 @@ static void childMainLoop(FbrApp *pApp) {
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
 //        FBR_LOG_DEBUG("Child FPS", 1.0 / pApp->pTime->deltaTime);
 
-        // Update Time
-        pTime->currentTime = glfwGetTime();
-        pTime->deltaTime = pTime->currentTime - lastFrameTime;
-        lastFrameTime = pTime->currentTime;
+        updateTime(pTime);
 
         // Update to current parent time, don't let it go faster than parent allows.
         vkGetSemaphoreCounterValue(pVulkan->device, pParentSemaphore->semaphore, &pParentSemaphore->waitValue);
 
         beginFrameCommandBuffer(pVulkan, pApp->pFramebuffers[timelineSwitch]->pColorTexture->extent);
 
+        //send cam position over CPU IPC and copy to GPU in child node as synchronization is easier
         memcpy(&pCamera->bufferData, pApp->pNodeParent->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
-        FBR_LOG_DEBUG("cam", pCamera->bufferData.trs[0][0]);
         fbrUpdateCameraUBO(pCamera);
 
         // Acquire Framebuffer Ownership
@@ -466,18 +469,7 @@ static void childMainLoop(FbrApp *pApp) {
     }
 }
 
-static void setHighPriority(){
-    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
-#define THREAD_PRIORITY_MOST_URGENT 15
-    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
-    SetPriorityClass(GetCurrentThread(), REALTIME_PRIORITY_CLASS);
-}
-
-static void parentMainLoop(FbrApp *pApp) {
-    setHighPriority();
-
-    double lastFrameTime = glfwGetTime();
-
+static void parentMainLoopComputeSSDM(FbrApp *pApp) {
     FbrVulkan *pVulkan = pApp->pVulkan;
     FbrSwap *pSwap = pApp->pSwap;
     FbrTimelineSemaphore *pMainTimelineSemaphore = pVulkan->pMainTimelineSemaphore;
@@ -496,90 +488,18 @@ static void parentMainLoop(FbrApp *pApp) {
     while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
 //        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
 
-        // Timing !
-        // todo switch to vulkan timing primitives
-        pTime->currentTime = glfwGetTime();
-        pTime->deltaTime = pApp->pTime->currentTime - lastFrameTime;
-        lastFrameTime = pTime->currentTime;
+        updateTime(pTime);
 
-        // Input !
         processInputFrame(pApp);
 
-        // Begin Graphics Commands
-        FBR_ACK_EXIT(vkResetCommandBuffer(pVulkan->graphicsCommandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT));
-        const VkCommandBufferBeginInfo beginInfo = {
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        };
-        FBR_ACK_EXIT(vkBeginCommandBuffer(pVulkan->graphicsCommandBuffer, &beginInfo));
+        beginFrameCommandBuffer(pVulkan, extents);
 
         fbrUpdateCameraUBO(pCamera);
 
-        // Acquire Parent Framebuffers
-//        FBR_LOG_DEBUG("pAcquireFrameBufferBarrier");
-        const VkImageMemoryBarrier pAcquireFrameBufferBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-        };
-        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT ,
-                             0,
-                             0, NULL,
-                             0, NULL,
-                             COUNT(pAcquireFrameBufferBarrier), pAcquireFrameBufferBarrier);
-        const VkImageMemoryBarrier pAcquireDepthFrameBufferBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->image,
-                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
-                },
-        };
-        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT ,
-                             0,
-                             0, NULL,
-                             0, NULL,
-                             COUNT(pAcquireDepthFrameBufferBarrier), pAcquireDepthFrameBufferBarrier);
+        fbrAcquireFramebufferIgnoreSrc(pVulkan, pApp->pFramebuffers[mainFrameBufferIndex]);
 
-
+        // -------------------------------------------------------------------------------------------------------------
+        // Retrieve semaphore timeline value of child node to see if rendering is complete
         //TODO is reading the semaphore slower than just sharing CPU memory?
         vkGetSemaphoreCounterValue(pVulkan->device,
                                    pTestNode->pChildSemaphore->semaphore,
@@ -589,58 +509,7 @@ static void parentMainLoop(FbrApp *pApp) {
             testNodeTimelineSwitch = (testNodeTimelineSwitch + 1) % 2;
 
             // Acquire Child Framebuffer Ownership
-            const VkImageMemoryBarrier pAcquireChildColorFrameBufferBarrier[] = {
-                    {
-                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                            .srcAccessMask = 0,
-                            .dstAccessMask = 0,
-                            .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-                            .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                            .image = pTestNode->pFramebuffers[testNodeTimelineSwitch]->pColorTexture->image,
-                            FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                    },
-                    {
-                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                            .srcAccessMask = 0,
-                            .dstAccessMask = 0,
-                            .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-                            .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                            .image = pTestNode->pFramebuffers[testNodeTimelineSwitch]->pNormalTexture->image,
-                            FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                    },
-            };
-            vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                 VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                 0,
-                                 0, NULL,
-                                 0, NULL,
-                                 COUNT(pAcquireChildColorFrameBufferBarrier), pAcquireChildColorFrameBufferBarrier);
-            const VkImageMemoryBarrier pAcquireChildDepthFrameBufferBarrier[] = {
-                    {
-                            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                            .srcAccessMask = 0,
-                            .dstAccessMask = 0,
-                            .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
-                            .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                            .image = pTestNode->pFramebuffers[testNodeTimelineSwitch]->pDepthTexture->image,
-                            FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
-                    }
-            };
-            vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                 VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                 0,
-                                 0, NULL,
-                                 0, NULL,
-                                 COUNT(pAcquireChildDepthFrameBufferBarrier), pAcquireChildDepthFrameBufferBarrier);
-//            FBR_LOG_DEBUG("parent switch", testNodeTimelineSwitch, pTestNode->pChildSemaphore->waitValue);
+            fbrAcquireFramebufferFromExternal(pVulkan, pTestNode->pFramebuffers[testNodeTimelineSwitch]);
 
             // camera ipc to parent camera ubo, then update camera ipc to latest parent ubo
             memcpy(&pTestNode->pCamera->bufferData, pTestNode->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
@@ -648,21 +517,7 @@ static void parentMainLoop(FbrApp *pApp) {
             memcpy( pTestNode->pCameraIPCBuffer->pBuffer, &pCamera->bufferData, sizeof(FbrCameraBuffer));
         }
 
-        // Being Parent Render Pass
-        const VkViewport viewport = {
-                .x = 0.0f,
-                .y = 0.0f,
-                .width = (float) extents.width,
-                .height = (float) extents.height,
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f,
-        };
-        vkCmdSetViewport(pVulkan->graphicsCommandBuffer, 0, 1, &viewport);
-        const VkRect2D scissor = {
-                .offset = {0, 0},
-                .extent = extents,
-        };
-        vkCmdSetScissor(pVulkan->graphicsCommandBuffer, 0, 1, &scissor);
+        // Begin Parent Render Pass
         beginRenderPassImageless(pVulkan,
                                  pApp->pFramebuffers[mainFrameBufferIndex],
                                  pVulkan->renderPass,
@@ -746,75 +601,10 @@ static void parentMainLoop(FbrApp *pApp) {
         vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
         // End of Graphics Commands
 
-        // Release Framebuffer
-        const VkImageMemoryBarrier pReleaseFrameBufferBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-        };
-        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT ,
-                             0,
-                             0, NULL,
-                             0, NULL,
-                             COUNT(pReleaseFrameBufferBarrier), pReleaseFrameBufferBarrier);
-        const VkImageMemoryBarrier pReleaseDepthFrameBufferBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->image,
-                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
-                },
-        };
-        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT ,
-                             0,
-                             0, NULL,
-                             0, NULL,
-                             COUNT(pReleaseDepthFrameBufferBarrier), pReleaseDepthFrameBufferBarrier);
-
+        fbrReleaseFramebufferToCompute(pVulkan, pApp->pFramebuffers[mainFrameBufferIndex]);
 
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->graphicsCommandBuffer));
         // End Command Buffer
-
-
 
         // Submit Graphics
         const uint64_t waitValue = pMainTimelineSemaphore->waitValue;
@@ -855,11 +645,6 @@ static void parentMainLoop(FbrApp *pApp) {
                                    VK_NULL_HANDLE));
         // End Submit Graphics
 
-        if (pVulkan->enableValidationLayers) {
-            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->graphicsQueue));
-        }
-
-
         // Acquire Compute Swap
         uint32_t swapIndex;
         FBR_ACK_EXIT(vkAcquireNextImageKHR(pVulkan->device,
@@ -876,53 +661,9 @@ static void parentMainLoop(FbrApp *pApp) {
         };
         FBR_ACK_EXIT(vkBeginCommandBuffer(pVulkan->computeCommandBuffer, &computeBeginInfo));
 
-
-//        FBR_LOG_DEBUG("pTransitionBlitBarrier");
+        // Acquire framebuffers
+        fbrAcquireFramebufferForCompute(pVulkan, pApp->pFramebuffers[mainFrameBufferIndex]);
         const VkImageMemoryBarrier pTransitionBlitBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pGBufferTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                        .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->computeQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pDepthTexture->image,
-                        FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
-                },
                 {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                         .srcAccessMask = 0,
@@ -943,8 +684,7 @@ static void parentMainLoop(FbrApp *pApp) {
                              0, NULL,
                              COUNT(pTransitionBlitBarrier), pTransitionBlitBarrier);
 
-
-
+        // Set descriptor sets
         FbrSetComposite setComposite;
         fbrCreateSetComposite(pApp->pVulkan,
                               pApp->pDescriptors->setLayoutComposite,
@@ -974,15 +714,13 @@ static void parentMainLoop(FbrApp *pApp) {
                                 0,
                                 NULL);
 
+        // Dispatch compute timing queries
         vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, 2);
-
         vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 0);
         const int localSize = 32;
         vkCmdDispatch(pVulkan->computeCommandBuffer, (extents.width / localSize), (extents.height / localSize), 1);
         vkCmdWriteTimestamp(pVulkan->computeCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, pVulkan->queryPool, 1);
 
-
-//        FBR_LOG_DEBUG("pTransitionEndBlitBarrier");
         const VkImageMemoryBarrier pTransitionEndBlitBarrier[] = {
                 {
                     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1007,7 +745,6 @@ static void parentMainLoop(FbrApp *pApp) {
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->computeCommandBuffer));
         // End Compute Command Buffer
 
-        
         // Submit Compute
         const VkSemaphore pComputeWaitSemaphores[] = {
                 pApp->pFramebuffers[mainFrameBufferIndex]->renderCompleteSemaphore,
@@ -1052,7 +789,6 @@ static void parentMainLoop(FbrApp *pApp) {
                                    VK_NULL_HANDLE));
         // End Submit Compute
 
-
         // Submit Present
         // TODO want to use id+wait ? Doesn't work on Quest 2.
         // https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VK_KHR_present_id.html
@@ -1067,7 +803,6 @@ static void parentMainLoop(FbrApp *pApp) {
         };
         FBR_ACK_EXIT(vkQueuePresentKHR(pVulkan->computeQueue, &presentInfo));
         // End Submit Present
-
 
         // Wait!
         const VkSemaphoreWaitInfo semaphoreWaitInfo = {
@@ -1087,25 +822,31 @@ static void parentMainLoop(FbrApp *pApp) {
             FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->computeQueue));
         }
 
+        // log measured compute time
 //        uint64_t timestamps[2];
 //        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, 2, sizeof(uint64_t) * 2, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
 //        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
 //        FBR_LOG_DEBUG("Compute: ", ms);
 
-
         vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &setComposite);
 
         mainFrameBufferIndex = !mainFrameBufferIndex;
-
-//        Sleep(100);
     }
+}
+
+static void setHighPriority(){
+    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
+#define THREAD_PRIORITY_MOST_URGENT 15
+    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
+    SetPriorityClass(GetCurrentThread(), REALTIME_PRIORITY_CLASS);
 }
 
 void fbrMainLoop(FbrApp *pApp) {
     FBR_LOG_DEBUG("mainloop starting!");
 
     if (!pApp->isChild) {
-        parentMainLoop(pApp);
+        setHighPriority();
+        parentMainLoopComputeSSDM(pApp);
     } else {
         childMainLoop(pApp);
     }

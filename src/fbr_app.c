@@ -45,6 +45,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
     fbrCreatePipelines(pVulkan, pApp->pDescriptors, &pApp->pPipelines);
 
     if (!pApp->isChild) {
+
         fbrCreateCamera(pVulkan,
                         &pApp->pCamera);
         fbrCreateSetGlobal(pApp->pVulkan,
@@ -279,6 +280,8 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
     *ppAllocApp = calloc(1, sizeof(FbrApp));
     FbrApp *pApp = *ppAllocApp;
     pApp->pTime = calloc(1, sizeof(FbrTime));
+    pApp->pTime->currentTime =  glfwGetTime();
+    pApp->pTime->lastTime =  glfwGetTime();
     pApp->isChild = isChild;
 
     initWindow(pApp);
@@ -298,6 +301,7 @@ void fbrCreateApp(FbrApp **ppAllocApp, bool isChild, long long externalTextureTe
         for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
             fbrCreateFrameBuffer(pApp->pVulkan, false, FBR_COLOR_BUFFER_FORMAT, extent, &pApp->pFramebuffers[i]);
         }
+        fbrCreateTexture(pApp->pVulkan, VK_FORMAT_R16G16B16A16_SFLOAT /*todo change this?*/, extent, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, false, &pApp->pComputeTexture);
         fbrInitInput(pApp);
     }
 

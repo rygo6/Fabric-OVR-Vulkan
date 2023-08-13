@@ -38,6 +38,18 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
                                    VkImage image,
                                    FbrFramebuffer **ppAllocFramebuffer);
 
+void fbrReleaseFramebufferToCompute(const FbrVulkan *pVulkan,
+                                    const FbrFramebuffer *pFramebuffer);
+
+void fbrAcquireFramebufferForCompute(const FbrVulkan *pVulkan,
+                                     const FbrFramebuffer *pFramebuffer);
+
+void fbrAcquireFramebufferFromExternal(const FbrVulkan *pVulkan,
+                                       const FbrFramebuffer *pFramebuffer);
+
+void fbrAcquireFramebufferIgnoreSrc(const FbrVulkan *pVulkan,
+                                    const FbrFramebuffer *pFramebuffer);
+
 void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
                           bool external,
                           VkFormat colorFormat,

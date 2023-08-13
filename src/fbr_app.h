@@ -29,15 +29,29 @@ typedef struct FbrSwap FbrSwap;
 
 typedef enum FbrIPCTargetType FbrIPCTargetType;
 
-typedef struct FbrTimeState {
+typedef struct FbrTime {
     double currentTime;
     double deltaTime;
+    double lastTime;
 } FbrTime;
+
+typedef enum FbrReprojectionGeometry {
+    None,
+    TessellationShader,
+    ComputeSSDM,
+    MeshShader
+} FbrReprojectionGeometry;
+
+typedef struct FbrSettings {
+    bool isChild;
+    FbrReprojectionGeometry reprojectionGeometry;
+} FbrSettings;
 
 typedef struct FbrApp {
     bool exiting;
-
     bool isChild;
+
+    FbrSettings settings;
 
     GLFWwindow *pWindow;
     FbrVulkan *pVulkan;
@@ -46,10 +60,7 @@ typedef struct FbrApp {
     FbrTime *pTime;
 
     FbrFramebuffer *pFramebuffers[FBR_FRAMEBUFFER_COUNT];
-
-//    int cameraCount;
-//    FbrCamera *pCameras;
-
+    FbrTexture *pComputeTexture;
 
     // go in a fbr_scene?
     FbrMesh *pTestQuadMesh;

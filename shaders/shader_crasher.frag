@@ -13,11 +13,6 @@ void main() {
 
     //infinite loop test
     vec4 sum = vec4(0);
-	
-	[[unroll, dependency_length(2)]]
-	for (int i = 0; i < 8; ++i) {
-    }
-
     for (int i = 1; i != 2; i += 2) {
         sum += vec4(0.1, 0.1, 0.1, 0.1);
     }
