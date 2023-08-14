@@ -47,17 +47,17 @@ void main()
     float alphaValue = texture(color, outUV).a;
     float depthValue = texture(depth, outUV).r;
 
-    vec4 clipPos = vec4(outUV * 2.0 - 1.0,  depthValue, 1.0);
+    // Calculate clip space coordinates
+    vec4 clipPos = vec4(outUV * 2.0 - 1.0, depthValue, 1.0);
+    // Convert clip space coordinates to eye space coordinates
     vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
+    // Divide by w component to obtain normalized device coordinates
     vec3 ndcPos = eyePos.xyz / eyePos.w;
+    // Convert NDC coordinates to world space coordinates
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
-//    gl_Position = alphaValue > 0 ?
-//        globalUBO.proj * globalUBO.view * worldPos :
-//        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+//    gl_Position = globalUBO.proj * globalUBO.view * worldPos;
+    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
 
-    gl_Position = globalUBO.proj * globalUBO.view * worldPos;
-//    gl_Position = globalUBO.proj * globalUBO.view * objectUBO.model * pos;
-
-    outWorldPos = worldPos;
+//    outWorldPos = worldPos;
 }

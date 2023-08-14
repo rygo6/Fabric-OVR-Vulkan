@@ -10,10 +10,10 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(const FbrVulkan *pVulkan)
     VkSurfaceFormatKHR formats[formatCount];
     FBR_VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(pVulkan->physicalDevice, pVulkan->surface, &formatCount, (VkSurfaceFormatKHR *) &formats));
 
-    // Favor sRGB if it's available why?
+    // Favor sRGB if it's available, otherwise you have to do manu color conversion
     for (int i = 0; i < formatCount; ++i) {
-//        if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB || formats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
-        if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM) {
+        if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB || formats[i].format == VK_FORMAT_R8G8B8A8_SRGB) {
+//        if (formats[i].format == VK_FORMAT_B8G8R8A8_UNORM) {
             return formats[i];
         }
     }
@@ -109,12 +109,12 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
 //        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
 //    }
 
-    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT)) {
-        FBR_LOG_DEBUG("Swap support VK_IMAGE_USAGE_STORAGE_BIT adding!");
-        pSwap->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-    } else {
-        FBR_LOG_ERROR("Vulkan Swap does not support VK_IMAGE_USAGE_STORAGE_BIT!");
-    }
+//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT)) {
+//        FBR_LOG_DEBUG("Swap support VK_IMAGE_USAGE_STORAGE_BIT adding!");
+//        pSwap->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+//    } else {
+//        FBR_LOG_ERROR("Vulkan Swap does not support VK_IMAGE_USAGE_STORAGE_BIT!");
+//    }
 
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
