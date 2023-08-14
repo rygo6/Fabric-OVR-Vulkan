@@ -101,8 +101,8 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
         FBR_LOG_DEBUG("FBR_SWAP_COUNT is less than minImageCount", FBR_SWAP_COUNT, capabilities.minImageCount);
     }
 
-//    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
-    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
+//    pSwap->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT; // OBS is adding VK_IMAGE_USAGE_TRANSFER_SRC_BIT is there a way to detect that!?
 //    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
 //        pVulkan->swapUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 //    } else {

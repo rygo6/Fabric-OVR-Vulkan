@@ -6,7 +6,7 @@ layout (set = 0, binding = 0) uniform GlobalUBO {
 } globalUBO;
 
 layout (set = 3, binding = 1) uniform NodeUBO {
-    mat4 view;
+    mat4 vieaww;
     mat4 proj;
 } nodeUBO;
 

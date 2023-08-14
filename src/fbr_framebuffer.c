@@ -270,7 +270,139 @@ static void initialImportColorLayoutTransition(const FbrVulkan *pVulkan, FbrText
                                       VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void fbrReleaseFramebufferToCompute(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
+void fbrReleaseFramebufferFromGraphicsAttachToExternalRead(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
+{
+    const VkImageMemoryBarrier pReleaseColorImageMemoryBarriers[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask = 0,
+                    .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .image = pFramebuffer->pColorTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask = 0,
+                    .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .image = pFramebuffer->pNormalTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask = 0,
+                    .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .image = pFramebuffer->pGBufferTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            }
+    };
+    vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                         0,
+                         0, NULL,
+                         0, NULL,
+                         COUNT(pReleaseColorImageMemoryBarriers), pReleaseColorImageMemoryBarriers);
+    const VkImageMemoryBarrier pReleaseDepthImageMemoryBarriers[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .dstAccessMask = 0,
+                    .oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .image = pFramebuffer->pDepthTexture->image,
+                    FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
+            }
+    };
+    vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
+                         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                         0,
+                         0, NULL,
+                         0, NULL,
+                         COUNT(pReleaseDepthImageMemoryBarriers), pReleaseDepthImageMemoryBarriers);
+}
+
+void fbrAcquireFramebufferFromExternalToGraphicsAttach(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
+{
+    const VkImageMemoryBarrier pAcquireColorImageMemoryBarriers[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = 0,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .image = pFramebuffer->pColorTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = 0,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .image = pFramebuffer->pNormalTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = 0,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .image = pFramebuffer->pGBufferTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            }
+    };
+    vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         0,
+                         0, NULL,
+                         0, NULL,
+                         COUNT(pAcquireColorImageMemoryBarriers), pAcquireColorImageMemoryBarriers);
+    const VkImageMemoryBarrier pAcquireDepthImageMemoryBarriers[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = 0,
+                    .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .image = pFramebuffer->pDepthTexture->image,
+                    FBR_DEFAULT_DEPTH_SUBRESOURCE_RANGE
+            }
+    };
+    vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
+                         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                         0,
+                         0, NULL,
+                         0, NULL,
+                         1, pAcquireDepthImageMemoryBarriers);
+}
+
+void fbrReleaseFramebufferFromGraphicsAttachToComputeRead(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
 {
     const VkImageMemoryBarrier pReleaseFrameBufferBarrier[] = {
             {
@@ -336,7 +468,7 @@ void fbrReleaseFramebufferToCompute(const FbrVulkan *pVulkan, const FbrFramebuff
                          COUNT(pReleaseDepthFrameBufferBarrier), pReleaseDepthFrameBufferBarrier);
 }
 
-void fbrAcquireFramebufferForCompute(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
+void fbrAcquireFramebufferFromGraphicsAttachToComputeRead(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
 {
     const VkImageMemoryBarrier pTransitionBlitBarrier[] = {
             {
@@ -393,7 +525,7 @@ void fbrAcquireFramebufferForCompute(const FbrVulkan *pVulkan, const FbrFramebuf
                          COUNT(pTransitionBlitBarrier), pTransitionBlitBarrier);
 }
 
-void fbrAcquireFramebufferFromExternal(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
+void fbrAcquireFramebufferFromExternalAttachToGraphicsRead(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
 {
     const VkImageMemoryBarrier pAcquireChildColorFrameBufferBarrier[] = {
             {
@@ -459,7 +591,7 @@ void fbrAcquireFramebufferFromExternal(const FbrVulkan *pVulkan, const FbrFrameb
                          COUNT(pAcquireChildDepthFrameBufferBarrier), pAcquireChildDepthFrameBufferBarrier);
 }
 
-void fbrAcquireFramebufferIgnoreSrc(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
+void fbrTransitionFramebufferFromIgnoredReadToGraphicsAttach(const FbrVulkan *pVulkan, const FbrFramebuffer *pFramebuffer)
 {
     const VkImageMemoryBarrier pAcquireFrameBufferBarrier[] = {
             {
