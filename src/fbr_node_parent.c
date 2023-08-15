@@ -16,8 +16,8 @@ const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
 
 void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNodeParent *pNode)
 {
-    memcpy(&pCamera->bufferData, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraBuffer));
-    glm_mat4_copy(pCamera->bufferData.trs, pCamera->pTransform->uboData.model);
+//    memcpy(&pCamera->bufferData, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraBuffer));
+//    glm_mat4_copy(pCamera->bufferData.trs, pCamera->pTransform->uboData.model);
 
 //    printf("child\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
 //           pCamera->transform.matrix[0][0],pCamera->transform.matrix[0][1],pCamera->transform.matrix[0][2],pCamera->transform.matrix[0][3],

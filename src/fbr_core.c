@@ -255,6 +255,7 @@ static void childMainLoop(FbrApp *pApp)
 
         //send cam position over CPU IPC and copy to GPU in child node as synchronization is easier
         memcpy(&pCamera->bufferData, pApp->pNodeParent->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
+        glm_mat4_copy(pCamera->bufferData.trs, pCamera->pTransform->uboData.model);
         fbrUpdateCameraUBO(pCamera);
 
         // Acquire Framebuffer Ownership

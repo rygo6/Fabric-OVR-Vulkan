@@ -423,7 +423,7 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
                            pDescriptorWrites,
                            0,
                            NULL);
-    return VK_SUCCESS;
+    return FBR_SUCCESS;
 }
 
 static FBR_RESULT createSetLayoutComposite(const FbrVulkan *pVulkan, FbrSetLayoutComposite *pSetLayout)

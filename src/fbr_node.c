@@ -16,54 +16,54 @@ const uint16_t nodeIndices[] = {
 };
 
 void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraBuffer camUboData, versor camRot, int timelineSwitch, FbrNode *pNode) {
-    mat4 viewProj;
-    glm_mat4_mul(camUboData.proj, camUboData.view, viewProj);
-    mat4 mvp;
-    glm_mat4_mul(viewProj, pNode->pTransform->uboData.model, mvp);
-
-    vec4 viewport = {0.0f, 0.0f, 1.0f, 1.0f};
-
-    vec3 up = {0.0f, 1.0f, 0.0f};
-    glm_quat_rotatev(camRot, up, up);
-    glm_vec3_scale(up, 0.5f, up);
-
-    vec3 right = {1.0f, 0.0f, 0.0f};
-    glm_quat_rotatev(camRot, right, right);
-    glm_vec3_scale(right, 0.5f, right);
-
-    vec3 ll;
-    glm_vec3_sub(GLM_VEC3_ZERO, up,ll);
-    glm_vec3_sub(ll, right,ll);
-    glm_vec3_copy(ll, pNode->nodeVerticesBuffer[0].pos);
-    vec3 llScreen;
-    glm_project(ll, mvp, viewport, llScreen);
-    glm_vec2_copy(llScreen, pNode->nodeVerticesBuffer[0].uv);
-
-    vec3 lr;
-    glm_vec3_sub(GLM_VEC3_ZERO, up,lr);
-    glm_vec3_add(lr, right,lr);
-    glm_vec3_copy(lr, pNode->nodeVerticesBuffer[1].pos);
-    vec3 lrScreen;
-    glm_project(lr, mvp, viewport, lrScreen);
-    glm_vec2_copy(lrScreen, pNode->nodeVerticesBuffer[1].uv);
-
-    vec3 ur;
-    glm_vec3_add(GLM_VEC3_ZERO, up,ur);
-    glm_vec3_add(ur, right,ur);
-    glm_vec3_copy(ur, pNode->nodeVerticesBuffer[2].pos);
-    vec3 urScreen;
-    glm_project(ur, mvp, viewport, urScreen);
-    glm_vec2_copy(urScreen, pNode->nodeVerticesBuffer[2].uv);
-
-    vec3 ul;
-    glm_vec3_add(GLM_VEC3_ZERO, up,ul);
-    glm_vec3_sub(ul, right,ul);
-    glm_vec3_copy(ul, pNode->nodeVerticesBuffer[3].pos);
-    vec3 ulScreen;
-    glm_project(ul, mvp, viewport, ulScreen);
-    glm_vec2_copy(ulScreen, pNode->nodeVerticesBuffer[3].uv);
-
-    memcpy(pNode->pVertexUBOs[timelineSwitch]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
+//    mat4 viewProj;
+//    glm_mat4_mul(camUboData.proj, camUboData.view, viewProj);
+//    mat4 mvp;
+//    glm_mat4_mul(viewProj, pNode->pTransform->uboData.model, mvp);
+//
+//    vec4 viewport = {0.0f, 0.0f, 1.0f, 1.0f};
+//
+//    vec3 up = {0.0f, 1.0f, 0.0f};
+//    glm_quat_rotatev(camRot, up, up);
+//    glm_vec3_scale(up, 0.5f, up);
+//
+//    vec3 right = {1.0f, 0.0f, 0.0f};
+//    glm_quat_rotatev(camRot, right, right);
+//    glm_vec3_scale(right, 0.5f, right);
+//
+//    vec3 ll;
+//    glm_vec3_sub(GLM_VEC3_ZERO, up,ll);
+//    glm_vec3_sub(ll, right,ll);
+//    glm_vec3_copy(ll, pNode->nodeVerticesBuffer[0].pos);
+//    vec3 llScreen;
+//    glm_project(ll, mvp, viewport, llScreen);
+//    glm_vec2_copy(llScreen, pNode->nodeVerticesBuffer[0].uv);
+//
+//    vec3 lr;
+//    glm_vec3_sub(GLM_VEC3_ZERO, up,lr);
+//    glm_vec3_add(lr, right,lr);
+//    glm_vec3_copy(lr, pNode->nodeVerticesBuffer[1].pos);
+//    vec3 lrScreen;
+//    glm_project(lr, mvp, viewport, lrScreen);
+//    glm_vec2_copy(lrScreen, pNode->nodeVerticesBuffer[1].uv);
+//
+//    vec3 ur;
+//    glm_vec3_add(GLM_VEC3_ZERO, up,ur);
+//    glm_vec3_add(ur, right,ur);
+//    glm_vec3_copy(ur, pNode->nodeVerticesBuffer[2].pos);
+//    vec3 urScreen;
+//    glm_project(ur, mvp, viewport, urScreen);
+//    glm_vec2_copy(urScreen, pNode->nodeVerticesBuffer[2].uv);
+//
+//    vec3 ul;
+//    glm_vec3_add(GLM_VEC3_ZERO, up,ul);
+//    glm_vec3_sub(ul, right,ul);
+//    glm_vec3_copy(ul, pNode->nodeVerticesBuffer[3].pos);
+//    vec3 ulScreen;
+//    glm_project(ul, mvp, viewport, ulScreen);
+//    glm_vec2_copy(ulScreen, pNode->nodeVerticesBuffer[3].uv);
+//
+//    memcpy(pNode->pVertexUBOs[timelineSwitch]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
 VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode) {
