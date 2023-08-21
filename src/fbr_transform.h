@@ -27,7 +27,7 @@ typedef struct FbrEntity {
 
 void fbrInitTransform(FbrTransform *pTransform); // should this be pointer? prolly
 
-void fbrUpdateTransformMatrix(FbrTransform *pTransform);
+void fbrUpdateTransformUBO(FbrTransform *pTransform);
 
 void fbrTransformUp(FbrTransform *pTransform, vec3 dest);
 

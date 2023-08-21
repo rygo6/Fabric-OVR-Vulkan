@@ -16,22 +16,6 @@ const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
 
 void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNodeParent *pNode)
 {
-//    memcpy(&pCamera->bufferData, pCamera->pUBO->pUniformBufferMapped, sizeof(FbrCameraBuffer));
-//    glm_mat4_copy(pCamera->bufferData.trs, pCamera->pTransform->uboData.model);
-
-//    printf("child\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
-//           pCamera->transform.matrix[0][0],pCamera->transform.matrix[0][1],pCamera->transform.matrix[0][2],pCamera->transform.matrix[0][3],
-//           pCamera->transform.matrix[1][0],pCamera->transform.matrix[1][1],pCamera->transform.matrix[1][2],pCamera->transform.matrix[1][3],
-//           pCamera->transform.matrix[2][0],pCamera->transform.matrix[2][1],pCamera->transform.matrix[2][2],pCamera->transform.matrix[2][3],
-//           pCamera->transform.matrix[3][0],pCamera->transform.matrix[3][1],pCamera->transform.matrix[3][2],pCamera->transform.matrix[3][3]);
-
-    vec4 pos;
-    mat4 rot;
-    vec3 scale;
-    glm_decompose(pCamera->pTransform->uboData.model, pos, rot, scale);
-    glm_mat4_quat(rot, pCamera->pTransform->rot);
-    glm_vec3_copy(pos, pCamera->pTransform->pos);
-
     mat4 viewProj;
     glm_mat4_mul(pCamera->bufferData.proj, pCamera->bufferData.view, viewProj);
     mat4 mvp;
@@ -39,13 +23,15 @@ void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int t
 
     vec4 viewport = {0.0f, 0.0f, 1.0f, 1.0f};
 
+    float offsetFromCenter = 0.5f;
+
     vec3 up = {0.0f, 1.0f, 0.0f};
     glm_quat_rotatev(pCamera->pTransform->rot, up, up);
-    glm_vec3_scale(up, 0.5f, up);
+    glm_vec3_scale(up, offsetFromCenter, up);
 
     vec3 right = {1.0f, 0.0f, 0.0f};
     glm_quat_rotatev(pCamera->pTransform->rot, right, right);
-    glm_vec3_scale(right, 0.5f, right);
+    glm_vec3_scale(right, offsetFromCenter, right);
 
     vec3 forward = {0.0f, 0.0f, 1.0f};
     glm_quat_rotatev(pCamera->pTransform->rot, forward, forward);

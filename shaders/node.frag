@@ -34,6 +34,7 @@ void main()
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
     outColor = color;
+//    outColor = vec4(nodeDepth,nodeDepth,nodeDepth,1);
 
     // Is this right?! https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/subpasses/gbuffer.frag
     vec3 N = normalize(inNormal);

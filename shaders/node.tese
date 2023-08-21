@@ -47,6 +47,28 @@ void main()
     float alphaValue = texture(color, outUV).a;
     float depthValue = texture(depth, outUV).r;
 
+//    float alphaEdgeTest = alphaValue;
+//    float span = 1.0 / 64.0;
+//    vec2 uvStep[8] = vec2[](
+//    vec2(outUV.x, outUV.y + span), //N
+//    vec2(outUV.x + span, outUV.y + span), //NE
+//    vec2(outUV.x + span, outUV.y), //E
+//    vec2(outUV.x + span, outUV.y - span), //SE
+//    vec2(outUV.x, outUV.y - span), //S
+//    vec2(outUV.x - span, outUV.y - span), //SW
+//    vec2(outUV.x - span, outUV.y), //W
+//    vec2(outUV.x - span, outUV.y + span)//NW
+//    );
+//
+//    bool zeroAlphaFound = false;
+//    for (int i = 0; i < 8; ++i) {
+//        float subAlpha = texture(color, uvStep[i]).a;
+//        alphaEdgeTest += subAlpha;
+//        if (subAlpha == 0) {
+//            zeroAlphaFound = true;
+//        }
+//    }
+
     // Calculate clip space coordinates
     vec4 clipPos = vec4(outUV * 2.0 - 1.0, depthValue, 1.0);
     // Convert clip space coordinates to eye space coordinates
@@ -56,9 +78,11 @@ void main()
     // Convert NDC coordinates to world space coordinates
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
-    gl_Position = alphaValue > 0 ?
-        globalUBO.proj * globalUBO.view * worldPos :
-        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+//    gl_Position = !zeroAlphaFound ?
+//        globalUBO.proj * globalUBO.view * worldPos :
+//        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+
+    gl_Position = globalUBO.proj * globalUBO.view * worldPos;
 
     outWorldPos = worldPos;
 }

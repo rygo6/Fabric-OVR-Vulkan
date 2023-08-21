@@ -52,6 +52,7 @@ typedef struct FbrVulkan {
     // todo none of these should be here?
     int screenWidth;
     int screenHeight;
+    float screenFOV;
     bool isChild;
     bool enableValidationLayers;
 
@@ -81,7 +82,8 @@ typedef struct FbrVulkan {
     VkCommandPool computeCommandPool;
     VkCommandBuffer computeCommandBuffer;
 
-    VkSampler sampler;
+    VkSampler linearSampler;
+    VkSampler nearestSampler;
 
     VkPhysicalDeviceProperties  physicalDeviceProperties;
     VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;

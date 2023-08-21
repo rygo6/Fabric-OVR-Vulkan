@@ -168,7 +168,7 @@ VkResult fbrCreateSetPass(const FbrVulkan *pVulkan,
     const VkDescriptorImageInfo normalImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pNormalTexture->imageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
             {
@@ -204,7 +204,7 @@ VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
     const VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pTexture->imageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
             {
@@ -344,17 +344,17 @@ VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
     const VkDescriptorImageInfo colorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pColorTexture->imageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkDescriptorImageInfo normalImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pNormalTexture->imageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkDescriptorImageInfo depthImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pDepthTexture->imageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
             {// transform UBO
@@ -490,27 +490,27 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
     const VkDescriptorImageInfo inputColorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputColorImageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkDescriptorImageInfo inputNormalImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputNormalImageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkDescriptorImageInfo inputGBufferImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputGBufferImageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkDescriptorImageInfo inputDepthImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputDepthImageView,
-            .sampler = pVulkan->sampler,
+            .sampler = pVulkan->linearSampler,
     };
     const VkDescriptorImageInfo outputColorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
             .imageView = outputColorImageView,
-//            .sampler = pVulkan->sampler,
+//            .linearSampler = pVulkan->linearSampler,
     };
     const VkWriteDescriptorSet pDescriptorWrites[] = {
             // input color

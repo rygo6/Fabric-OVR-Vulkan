@@ -33,7 +33,7 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             glm_quat_rotatev(pCamera->pTransform->rot, deltaPos, deltaPos);
             glm_vec3_add(pCamera->pTransform->pos, deltaPos, pCamera->pTransform->pos);
 
-            fbrUpdateTransformMatrix(pCamera->pTransform);
+            fbrUpdateTransformUBO(pCamera->pTransform);
 
             glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
             glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
@@ -45,7 +45,7 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             glm_quatv(rotQ, glm_rad(yRot), GLM_YUP);
             glm_quat_mul(pCamera->pTransform->rot, rotQ, pCamera->pTransform->rot);
 
-            fbrUpdateTransformMatrix(pCamera->pTransform);
+            fbrUpdateTransformUBO(pCamera->pTransform);
 
             glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
             glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
@@ -64,16 +64,17 @@ void fbrIPCTargetImportCamera(FbrApp *pApp, FbrIPCParamImportCamera *pParam) {
 }
 
 FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
-                     HANDLE externalMemory,
-                     FbrCamera **ppAllocCameraState) {
+                           HANDLE externalMemory,
+                           FbrCamera **ppAllocCameraState)
+{
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
 
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
-    fbrUpdateTransformMatrix(pCamera->pTransform);
+    glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
+    fbrUpdateTransformUBO(pCamera->pTransform);
 
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -86,15 +87,16 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
 }
 
 FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
-                           FbrCamera **ppAllocCameraState) {
+                           FbrCamera **ppAllocCameraState)
+{
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
 
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
-    glm_perspective(90, 1, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
-    fbrUpdateTransformMatrix(pCamera->pTransform);
+    glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
+    fbrUpdateTransformUBO(pCamera->pTransform);
 
     FBR_ACK(fbrCreateUBO(pVulkan,
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

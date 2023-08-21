@@ -122,7 +122,7 @@ void fbrCreateSphereMesh(const FbrVulkan *pVulkan, FbrMesh **ppAllocMeshState) {
     const int nStack = 32;
     int vertexCount = generateSphereVertexCount(nSlices, nStack);
     Vertex pVertices[vertexCount];
-    generateSphere(nSlices, nStack, 0.4f, pVertices);
+    generateSphere(nSlices, nStack, 0.5f, pVertices);
     int indexCount = generateSphereIndexCount(nSlices, nStack);
     uint16_t pIndices[indexCount];
     generateSphereIndices(nSlices, nStack, pIndices);

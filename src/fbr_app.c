@@ -62,9 +62,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                       &pApp->pTestQuadMesh);
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
-//        glm_vec3_add(pApp->pTestQuadTransform->pos,
-//                     (vec3) {1, 0, 0},
-//                     pApp->pTestQuadTransform->pos);
+        glm_vec3_add(pApp->pTestQuadTransform->pos,
+                     (vec3) {1, 0, 0},
+                     pApp->pTestQuadTransform->pos);
+        fbrUpdateTransformUBO(pApp->pTestQuadTransform);
+
         fbrCreateTextureFromFile(pVulkan,
                                  false,
                                  "textures/test.jpg",
@@ -80,9 +82,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
         // Comp Node Quad
         fbrCreateNode(pApp, "TestNode", &pApp->pTestNode);
-        glm_vec3_add(pApp->pTestNode->pTransform->pos,
-                     (vec3) {1, 0, 0},
-                     pApp->pTestNode->pTransform->pos);
+//        glm_vec3_add(pApp->pTestNode->pTransform->pos,
+//                     (vec3) {1, 0, 0},
+//                     pApp->pTestNode->pTransform->pos);
+        fbrUpdateTransformUBO(pApp->pTestNode->pTransform);
         for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors->setLayoutNode,
@@ -237,10 +240,10 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateCamera(pVulkan,
                         &pApp->pCamera);
         fbrCreateNodeParent(pVulkan, &pApp->pNodeParent);
-        glm_vec3_add(pApp->pNodeParent->pTransform->pos,
-                     (vec3) {1, 0, 0},
-                     pApp->pNodeParent->pTransform->pos);
-        fbrUpdateTransformMatrix(pApp->pNodeParent->pTransform);
+//        glm_vec3_add(pApp->pNodeParent->pTransform->pos,
+//                     (vec3) {1, 0, 0},
+//                     pApp->pNodeParent->pTransform->pos);
+        fbrUpdateTransformUBO(pApp->pNodeParent->pTransform);
 
         // for debugging ipc now, wait for camera
         while(fbrIPCPollDeque(pApp, pApp->pNodeParent->pReceiverIPC) != 0) {
@@ -258,9 +261,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateSphereMesh(pApp->pVulkan, &pApp->pTestQuadMesh);
         fbrCreateTransform(pVulkan,
                            &pApp->pTestQuadTransform);
-        glm_vec3_add(pApp->pTestQuadTransform->pos,
-                     (vec3) {1, 0, 0.0f},
-                     pApp->pTestQuadTransform->pos);
+//        glm_vec3_add(pApp->pTestQuadTransform->pos,
+//                     (vec3) {1, 0, 0.0f},
+//                     pApp->pTestQuadTransform->pos);
+        fbrUpdateTransformUBO(pApp->pTestQuadTransform);
+
         fbrCreateTextureFromFile(pVulkan,
                                  false,
                                  "textures/uvgrid.jpg",

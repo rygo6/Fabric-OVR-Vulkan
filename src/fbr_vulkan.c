@@ -653,13 +653,13 @@ static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
 static void createTextureSampler(FbrVulkan *pVulkan){
     FBR_LOG_DEBUG("Max Anisotropy!", pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy);
 
-    VkSamplerCreateInfo samplerInfo = {
+    VkSamplerCreateInfo linearSamplerInfo = {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .magFilter = VK_FILTER_LINEAR,
             .minFilter = VK_FILTER_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             .anisotropyEnable = VK_TRUE,
             .maxAnisotropy = pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
@@ -671,8 +671,27 @@ static void createTextureSampler(FbrVulkan *pVulkan){
             .minLod = 0.0f,
             .maxLod = 0.0f,
     };
+    FBR_VK_CHECK(vkCreateSampler(pVulkan->device, &linearSamplerInfo, FBR_ALLOCATOR, &pVulkan->linearSampler));
 
-    FBR_VK_CHECK(vkCreateSampler(pVulkan->device, &samplerInfo, NULL, &pVulkan->sampler));
+    VkSamplerCreateInfo nearestSamplerInfo = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .magFilter = VK_FILTER_LINEAR,
+            .minFilter = VK_FILTER_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE,
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+            .mipLodBias = 0.0f,
+            .minLod = 0.0f,
+            .maxLod = 0.0f,
+    };
+    FBR_VK_CHECK(vkCreateSampler(pVulkan->device, &nearestSamplerInfo, FBR_ALLOCATOR, &pVulkan->nearestSampler));
 }
 
 static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
@@ -700,6 +719,7 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     FBR_LOG_DEBUG("Max Compute Work Group Size Y: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[1]);
     FBR_LOG_DEBUG("Max Compute Work Group Size Z: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[2]);
     FBR_LOG_DEBUG("Max Compute Work Group Invocations: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupInvocations);
+    FBR_LOG_DEBUG("Max Tessellation Generation Level: ", pVulkan->physicalDeviceProperties.limits.maxTessellationGenerationLevel);
 
     const VkQueryPoolCreateInfo queryPoolCreateInfo =  {
         .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
@@ -734,6 +754,7 @@ void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWi
     pVulkan->enableValidationLayers = enableValidationLayers;
     pVulkan->screenWidth = screenWidth;
     pVulkan->screenHeight = screenHeight;
+    pVulkan->screenFOV = (float)pVulkan->screenWidth / (float)pVulkan->screenHeight;
     initVulkan(pApp, pVulkan);
 }
 
@@ -759,7 +780,7 @@ void fbrCleanupVulkan(FbrVulkan *pVulkan) {
     vkDestroyCommandPool(pVulkan->device, pVulkan->graphicsCommandPool, FBR_ALLOCATOR);
     vkDestroyCommandPool(pVulkan->device, pVulkan->computeCommandPool, FBR_ALLOCATOR);
 
-    vkDestroySampler(pVulkan->device, pVulkan->sampler, FBR_ALLOCATOR);
+    vkDestroySampler(pVulkan->device, pVulkan->linearSampler, FBR_ALLOCATOR);
 
     vkDestroyDevice(pVulkan->device, FBR_ALLOCATOR);
 

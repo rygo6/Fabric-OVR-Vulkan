@@ -6,7 +6,7 @@ void fbrInitTransform(FbrTransform *pTransform) {
     glm_mat4_identity(pTransform->uboData.model);
 }
 
-void fbrUpdateTransformMatrix(FbrTransform *pTransform) {
+void fbrUpdateTransformUBO(FbrTransform *pTransform) {
     glm_translate_to(GLM_MAT4_IDENTITY, pTransform->pos, pTransform->uboData.model);
     glm_quat_rotate(pTransform->uboData.model, pTransform->rot, pTransform->uboData.model);
     memcpy(pTransform->pUBO->pUniformBufferMapped, &pTransform->uboData, sizeof(FbrTransform));
@@ -39,6 +39,7 @@ VkResult fbrCreateTransform(const FbrVulkan *pVulkan, FbrTransform **ppAllocTran
                          &pTransform->pUBO));
 
     fbrInitTransform(pTransform);
+    fbrUpdateTransformUBO(pTransform);
 }
 
 VkResult fbrDestroyTransform(const FbrVulkan *pVulkan, FbrTransform *pTransform) {
