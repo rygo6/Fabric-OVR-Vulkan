@@ -69,20 +69,17 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
 {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
-
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
-    glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
-    glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
+    glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
+    glm_quatv(pCamera->pTransform->rot, glm_rad(180), GLM_YUP);
     glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
-    fbrUpdateTransformUBO(pCamera->pTransform);
-
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                  sizeof(FbrCamera),
                  externalMemory,
                  &pCamera->pUBO);
-
+    fbrUpdateTransformUBO(pCamera->pTransform);
     return FBR_SUCCESS;
 }
 
@@ -91,22 +88,18 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
 {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
-
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
-    glm_vec3_copy((vec3){0, 0, -1}, pCamera->pTransform->pos);
+    glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
     glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
-    fbrUpdateTransformUBO(pCamera->pTransform);
-
     FBR_ACK(fbrCreateUBO(pVulkan,
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                          sizeof(FbrCamera),
                          false,
                          &pCamera->pUBO));
-
+    fbrUpdateTransformUBO(pCamera->pTransform);
     fbrUpdateCameraUBO(pCamera);
-
     return FBR_SUCCESS;
 }
 
