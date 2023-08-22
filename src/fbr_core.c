@@ -768,6 +768,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
             vec3 viewPosition;
             glm_mat4_mulv3(pCamera->bufferData.view, pTestNode->pTransform->pos, 1, viewPosition);
             float viewDistanceToCenter = -viewPosition[2];
+            float offset = 0.5f;
             float nearZ = viewDistanceToCenter - offset;
             float farZ = viewDistanceToCenter + offset;
             if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
