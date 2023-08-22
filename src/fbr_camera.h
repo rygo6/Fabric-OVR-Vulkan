@@ -5,6 +5,7 @@
 #include "fbr_input.h"
 #include "fbr_transform.h"
 #include "fbr_buffer.h"
+#include "fbr_cglm.h"
 
 #define FBR_CAMERA_NEAR_DEPTH 0.0001f
 #define FBR_CAMERA_FAR_DEPTH 100.0f

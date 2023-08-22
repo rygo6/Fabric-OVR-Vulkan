@@ -11,8 +11,7 @@
 #include "fbr_descriptors.h"
 #include "fbr_swap.h"
 #include "fbr_ipc.h"
-
-#include "cglm/cglm.h"
+#include "fbr_cglm.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -769,17 +768,14 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
             vec3 viewPosition;
             glm_mat4_mulv3(pCamera->bufferData.view, pTestNode->pTransform->pos, 1, viewPosition);
             float viewDistanceToCenter = -viewPosition[2];
-            FBR_LOG_DEBUG("distanceToCenter", distanceToCenter, viewDistanceToCenter);
-            float offset = 0.5f;
-            float nearZ = viewDistanceToCenter - offset*2;
+            float nearZ = viewDistanceToCenter - offset;
             float farZ = viewDistanceToCenter + offset;
             if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
                 nearZ = FBR_CAMERA_NEAR_DEPTH;
             }
             glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, cameraBuffer.proj);
 
-
-
+            FBR_LOG_DEBUG("distanceToCenter", distanceToCenter, viewDistanceToCenter, nearZ, farZ);
 
             // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
             memcpy( pTestNode->pCameraIPCBuffer->pBuffer, &cameraBuffer, sizeof(FbrCameraBuffer));

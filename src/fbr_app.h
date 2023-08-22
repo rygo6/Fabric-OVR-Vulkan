@@ -1,7 +1,6 @@
 #ifndef FABRIC_APP_H
 #define FABRIC_APP_H
 
-#include <cglm/cglm.h>
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 #include <stdbool.h>

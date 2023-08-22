@@ -4,8 +4,7 @@
 #include "fbr_app.h"
 #include "fbr_buffer.h"
 #include "fbr_vulkan.h"
-
-#include <cglm/cglm.h>
+#include "fbr_cglm.h"
 
 typedef struct FbrComponent {
 } FbrComponent;
