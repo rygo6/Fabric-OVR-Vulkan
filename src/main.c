@@ -70,8 +70,8 @@ bool setupRTPrivileges(){
 }
 
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char *argv[])
+{
 //    setupRTPrivileges();
 
     bool isChild = false;

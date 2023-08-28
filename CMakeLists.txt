@@ -2,7 +2,7 @@ project(Fabric)
 
 set(TARGET_NAME fabric)
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 
 file(GLOB SRC_FILES
         src/*.c
@@ -20,7 +20,7 @@ if (WIN32)
 
     add_compile_definitions(WIN32)
 
-    set(VULKAN_SDK_PATH "C:/VulkanSDK/1.3.239.0")
+    set(VULKAN_SDK_PATH "C:/VulkanSDK/1.3.261.0")
     set(GLFW_SDK_PATH "C:/Developer/glfw-3.3.8.bin.WIN64")
     set(CGLM_SDK_PATH "C:/Developer/cglm")
 
