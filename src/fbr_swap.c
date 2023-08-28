@@ -59,7 +59,7 @@ static VkPresentModeKHR chooseSwapPresentMode(const FbrVulkan *pVulkan)
     // but not in VR we probably want to use FIFO to go in hz of monitor
     swapChainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
-    FBR_LOG_DEBUG("Selected Present Mode", swapChainPresentMode);
+    FBR_LOG_DEBUG(swapChainPresentMode);
 
     return swapChainPresentMode;
 }
@@ -78,7 +78,7 @@ static VkExtent2D chooseSwapExtent(const FbrVulkan *pVulkan, const VkSurfaceCapa
         extents = capabilities.currentExtent;
     }
 
-    FBR_LOG_DEBUG("SwapChain Extents", extents.width, extents.height);
+    FBR_LOG_DEBUG(extents.width, extents.height);
 
     return extents;
 }
@@ -94,7 +94,7 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
     pSwap->format = surfaceFormat.format;
     pSwap->extent = chooseSwapExtent(pVulkan, capabilities);
 
-    FBR_LOG_DEBUG("Swap Surface: ", pSwap->format);
+    FBR_LOG_DEBUG(pSwap->format);
 
     // I am setting this to 2 on the premise you get the least latency in VR.
     if (FBR_SWAP_COUNT < capabilities.minImageCount) {
@@ -184,7 +184,7 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
         FBR_ACK(vkCreateImageView(pVulkan->device, &viewInfo, FBR_ALLOCATOR, &pSwap->pSwapImageViews[i]));
     }
 
-    FBR_LOG_DEBUG("Swap created.", swapCount, surfaceFormat.format, pSwap->extent.width, pSwap->extent.height);
+    FBR_LOG_DEBUG(swapCount, surfaceFormat.format, pSwap->extent.width, pSwap->extent.height);
 
     return VK_SUCCESS;
 }

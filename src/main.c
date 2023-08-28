@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
     if (isChild) {
         Sleep(1000);
-        FBR_LOG_DEBUG("Is Child Process", isChild);
+        FBR_LOG_MESSAGE("Is Child Process", isChild);
     }
 
     FbrApp *pApp;

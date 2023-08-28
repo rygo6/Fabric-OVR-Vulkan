@@ -18,7 +18,7 @@ void fbrCreateProcess(FbrProcess **ppAllocProcess) {
     char buf[256];
 
     snprintf(buf, sizeof(buf), "fabric.exe -child");
-    FBR_LOG_DEBUG("Process Command", buf);
+    FBR_LOG_MESSAGE("Process Command", buf);
 
     if (!CreateProcess(NULL,   // No module name (use command line)
                        buf,        // Command line

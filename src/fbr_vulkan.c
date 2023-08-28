@@ -695,7 +695,7 @@ static void createTextureSampler(FbrVulkan *pVulkan){
 }
 
 static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
-    FBR_LOG_DEBUG("initializing vulkan!");
+    FBR_LOG_MESSAGE("initializing vulkan!");
 
     // app
     createInstance(pVulkan);
