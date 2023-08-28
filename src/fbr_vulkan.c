@@ -21,7 +21,6 @@ const char *pRequiredInstanceLayers[] = {
         "VK_LAYER_KHRONOS_validation"
 };
 
-const uint32_t requiredInstanceExtensionCount = 4;
 const char *pRequiredInstanceExtensions[] = {
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
@@ -29,7 +28,6 @@ const char *pRequiredInstanceExtensions[] = {
         VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
 };
 
-const uint32_t requiredDeviceExtensionCount = 11;
 const char *pRequiredDeviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
@@ -37,8 +35,8 @@ const char *pRequiredDeviceExtensions[] = {
         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-        VK_EXT_MESH_SHADER_EXTENSION_NAME,
-        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+//        VK_EXT_MESH_SHADER_EXTENSION_NAME,
+//        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
 #ifdef WIN32
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
@@ -59,7 +57,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
                                                     void *pUserData)
 {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        FBR_LOG_DEBUG(isChild ? "Child Validation Layer" : "Parent Validation Layer", pCallbackData->pMessage);
+        printf("%s\n%s\n", isChild ? "Child" : "Parent", pCallbackData->pMessage);
     }
     return VK_FALSE;
 }
@@ -80,7 +78,7 @@ static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensio
     uint32_t glfwExtensionCount = 0;
     const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    *extensionCount = glfwExtensionCount + requiredInstanceExtensionCount + (pVulkan->enableValidationLayers ? 1 : 0);
+    *extensionCount = glfwExtensionCount + COUNT(pRequiredInstanceExtensions) + (pVulkan->enableValidationLayers ? 1 : 0);
 
     if (pExtensions == NULL) {
         return;
@@ -174,9 +172,9 @@ static VkResult createInstance(FbrVulkan *pVulkan)
     const char *extensions[extensionCount];
     getRequiredInstanceExtensions(pVulkan, &extensionCount, extensions);
 
-    FBR_LOG_DEBUG("Required Instance Extension Count: ", extensionCount);
+    FBR_LOG_DEBUG(extensionCount);
     for (int i = 0; i < extensionCount; ++i){
-        FBR_LOG_DEBUG("Required Instance Extension",extensions[i]);
+        FBR_LOG_DEBUG(extensions[i]);
     }
 
     createInfo.enabledExtensionCount = extensionCount;
@@ -226,7 +224,7 @@ static void pickPhysicalDevice(FbrVulkan *pVulkan)
     uint32_t deviceCount = 0;
     FBR_VK_CHECK(vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, NULL));
     if (deviceCount == 0) {
-        FBR_LOG_DEBUG("failed to find GPUs with Vulkan support!");
+        FBR_LOG_MESSAGE("Failed to find GPUs with Vulkan support!");
     }
     VkPhysicalDevice devices[deviceCount];
     FBR_VK_CHECK(vkEnumeratePhysicalDevices(pVulkan->instance, &deviceCount, devices));
@@ -258,7 +256,7 @@ static void findQueueFamilies(FbrVulkan *pVulkan)
                                               queueFamilies);
 
     if (queueFamilyCount == 0) {
-        FBR_LOG_DEBUG("Failed to get graphicsQueue properties.");
+        FBR_LOG_MESSAGE("Failed to get graphicsQueue properties.");
     }
 
     bool foundGraphics = false;
@@ -288,7 +286,7 @@ static void findQueueFamilies(FbrVulkan *pVulkan)
             }
             pVulkan->computeQueueFamilyIndex = i;
             foundCompute = true;
-            FBR_LOG_DEBUG("Compute Queue", pVulkan->computeQueueFamilyIndex);
+            FBR_LOG_DEBUG(pVulkan->computeQueueFamilyIndex);
         }
     }
 
@@ -435,9 +433,9 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan)
     }
 #endif
 
-    FBR_LOG_DEBUG("Required Device Extension Count: ", requiredDeviceExtensionCount);
-    for (int i = 0; i < requiredDeviceExtensionCount; ++i){
-        FBR_LOG_DEBUG("Required Device Extension",pRequiredDeviceExtensions[i]);
+    FBR_LOG_DEBUG(COUNT(pRequiredDeviceExtensions));
+    for (int i = 0; i < COUNT(pRequiredDeviceExtensions); ++i){
+        FBR_LOG_DEBUG(pRequiredDeviceExtensions[i]);
     }
 
     const VkDeviceCreateInfo createInfo = {
@@ -446,7 +444,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan)
             .queueCreateInfoCount = 2,
             .pQueueCreateInfos = pQueueCreateInfos,
             .pEnabledFeatures = NULL,
-            .enabledExtensionCount = requiredDeviceExtensionCount,
+            .enabledExtensionCount = COUNT(pRequiredDeviceExtensions),
             .ppEnabledExtensionNames = pRequiredDeviceExtensions,
             .ppEnabledLayerNames = pVulkan->enableValidationLayers ? pRequiredInstanceLayers : NULL,
             .enabledLayerCount = pVulkan->enableValidationLayers ? requiredInstanceLayerCount : 0,
