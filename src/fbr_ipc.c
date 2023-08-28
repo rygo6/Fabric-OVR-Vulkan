@@ -20,7 +20,7 @@ static int createIPCBuffer(int bufferSize, const char *pSharedMemoryName, HANDLE
             pSharedMemoryName);                 // name of mapping object
 
     if (hMapFile == NULL) {
-        FBR_LOG_DEBUG("Could not create file mapping object (%lu)", GetLastError());
+        FBR_LOG_MESSAGE("Could not create file mapping object (%lu)", GetLastError());
         return 1;
     }
     pBuf = MapViewOfFile(hMapFile,
@@ -55,7 +55,7 @@ int createImportIPCBuffer(int bufferSize, const char *pSharedMemoryName, HANDLE 
             pSharedMemoryName);               // name of mapping object
 
     if (hMapFile == NULL) {
-        FBR_LOG_DEBUG("Could not create file mapping object", GetLastError());
+        FBR_LOG_MESSAGE("Could not create file mapping object", GetLastError());
         return 1;
     }
 
@@ -66,7 +66,7 @@ int createImportIPCBuffer(int bufferSize, const char *pSharedMemoryName, HANDLE 
                          bufferSize);
 
     if (pBuf == NULL) {
-        FBR_LOG_DEBUG("Could not map view of file", GetLastError());
+        FBR_LOG_MESSAGE("Could not map view of file", GetLastError());
         CloseHandle(hMapFile);
         return 1;
     }
@@ -86,7 +86,7 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPCRingBuffer *pIPC)
     if (pIPCBuffer->head == pIPCBuffer->tail)
         return 1;
 
-    FBR_LOG_DEBUG("IPC Polling.", pIPCBuffer->head, pIPCBuffer->tail);
+    FBR_LOG_MESSAGE("IPC Polling.", pIPCBuffer->head, pIPCBuffer->tail);
 
     FbrIPCTargetType target = pIPCBuffer->pRingBuffer[pIPCBuffer->tail];
 
@@ -101,7 +101,7 @@ int fbrIPCPollDeque(FbrApp *pApp, FbrIPCRingBuffer *pIPC)
         FBR_LOG_ERROR("IPC BYTE ARRAY REACHED END!!!");
     }
 
-    FBR_LOG_DEBUG("Calling IPC Target", target);
+    FBR_LOG_MESSAGE("Calling IPC Target", target);
     pIPC->pTargetFuncs[target](pApp, param);
 
     pIPCBuffer->tail = pIPCBuffer->tail + FBR_IPC_RING_HEADER_SIZE + fbrIPCTargetParamSize(target);
@@ -119,7 +119,7 @@ void fbrIPCEnque(FbrIPCRingBuffer *pIPC, FbrIPCTargetType target, void *param)
 
 int fbrCreateProducerIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC)
 {
-    FBR_LOG_DEBUG("Creating Producer IPC Ring", FBR_IPC_RING_BUFFER_SIZE, FBR_IPC_RING_BUFFER_COUNT);
+    FBR_LOG_MESSAGE("Creating Producer IPC Ring", FBR_IPC_RING_BUFFER_SIZE, FBR_IPC_RING_BUFFER_COUNT);
 
     *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
     FbrIPCRingBuffer *pIPC = *ppAllocIPC;
@@ -131,7 +131,7 @@ int fbrCreateProducerIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC)
 
 int fbrCreateReceiverIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC)
 {
-    FBR_LOG_DEBUG("Creating Receiver IPC Ring", FBR_IPC_RING_BUFFER_SIZE, FBR_IPC_RING_BUFFER_COUNT);
+    FBR_LOG_MESSAGE("Creating Receiver IPC Ring", FBR_IPC_RING_BUFFER_SIZE, FBR_IPC_RING_BUFFER_COUNT);
 
     *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
     FbrIPCRingBuffer *pIPC = *ppAllocIPC;
@@ -145,7 +145,7 @@ int fbrCreateReceiverIPCRingBuffer(FbrIPCRingBuffer **ppAllocIPC)
 
 int fbrCreateIPCBuffer(FbrIPCBuffer **ppAllocIPC, int bufferSize)
 {
-    FBR_LOG_DEBUG("Creating Producer IPC", bufferSize);
+    FBR_LOG_MESSAGE("Creating Producer IPC", bufferSize);
 
     *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
     FbrIPCBuffer *pIPC = *ppAllocIPC;
@@ -157,7 +157,7 @@ int fbrCreateIPCBuffer(FbrIPCBuffer **ppAllocIPC, int bufferSize)
 
 int fbrImportIPCBuffer(FbrIPCBuffer **ppAllocIPC,  int bufferSize)
 {
-    FBR_LOG_DEBUG("Creating Receiver IPC", bufferSize);
+    FBR_LOG_MESSAGE("Creating Receiver IPC", bufferSize);
 
     *ppAllocIPC = calloc(1, sizeof(FbrIPCRingBuffer));
     FbrIPCBuffer *pIPC = *ppAllocIPC;

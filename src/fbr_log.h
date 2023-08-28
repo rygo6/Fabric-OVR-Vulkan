@@ -31,21 +31,20 @@
 // https://renenyffenegger.ch/notes/development/languages/C-C-plus-plus/preprocessor/macros/__VA_ARGS__/count-arguments
 #define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
 #define COUNT_ARGUMENTS(...) ELEVENTH_ARGUMENT(dummy, ## __VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#define FBR_LOG_DEBUG(...) EXPAND_CONCAT(FBR_LOG_DEBUG_, COUNT_ARGUMENTS(__VA_ARGS__))(FBR_FILE_NO_PATH, __FUNCTION__, __LINE__, ##__VA_ARGS__)
-#define FBR_LOG_DEBUG_1(m0, m1, m2, i0) \
-    printf("- %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_DEBUG_1(f0, f1, i0) \
+    printf("(%s:%d) ", f0, f1), \
     printf("%s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0), \
     printf("\n")
-#define FBR_LOG_DEBUG_2(m0, m1, m2, i0, i1) \
-    printf("- %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_DEBUG_2(f0, f1, i0, i1) \
+    printf("(%s:%d) ", f0, f1), \
     printf("%s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
     printf(" | %s: ", #i1), \
     printf(FBR_LOG_TYPE_SPECIFIER(i1), i1), \
     printf("\n")
-#define FBR_LOG_DEBUG_3(m0, m1, m2, i0, i1, i2) \
-    printf("- %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_DEBUG_3(f0, f1, i0, i1, i2) \
+    printf("(%s:%d) ", f0, f1), \
     printf(" | %s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
     printf(" | %s: ", #i1), \
@@ -53,8 +52,8 @@
     printf(" | %s: ", #i2), \
     printf(FBR_LOG_TYPE_SPECIFIER(i2), i2), \
     printf("\n")
-#define FBR_LOG_DEBUG_4(m0, m1, m2, i0, i1, i2, i3) \
-    printf("- %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_DEBUG_4(f0, f1, i0, i1, i2, i3) \
+    printf("(%s:%d) ", f0, f1), \
     printf("%s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
     printf(" | %s: ", #i1), \
@@ -64,8 +63,8 @@
     printf(" | %s: ", #i3), \
     printf(FBR_LOG_TYPE_SPECIFIER(i3), i3), \
     printf("\n")
-#define FBR_LOG_DEBUG_5(m0, m1, m2, i0, i1, i2, i3, i4) \
-    printf("- %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_DEBUG_5(f0, f1, i0, i1, i2, i3, i4) \
+    printf("(%s:%d) ", f0, f1), \
     printf("%s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
     printf(" | %s: ", #i1), \
@@ -77,15 +76,30 @@
     printf(" | %s: ", #i4), \
     printf(FBR_LOG_TYPE_SPECIFIER(i4), i4), \
     printf("\n")
-#define FBR_LOG_MESSAGE(m) FBR_LOG_MESSAGE_1(FBR_FILE_NO_PATH, __FUNCTION__, __LINE__, m)
-#define FBR_LOG_MESSAGE_1(m0, m1, m2, i0) \
-    printf("- %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_DEBUG(...) EXPAND_CONCAT(FBR_LOG_DEBUG_, COUNT_ARGUMENTS(__VA_ARGS__))(FBR_FILE_NO_PATH, __LINE__, ##__VA_ARGS__)
+#define FBR_LOG_MESSAGE_0(f0, f1, m) \
+    printf("(%s:%d) ", f0, f1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(m), m), \
+    printf("\n")
+#define FBR_LOG_MESSAGE_1(f0, f1, m, i0) \
+    printf("(%s:%d) ", f0, f1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(m), m), \
+    printf(" | %s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0), \
     printf("\n")
-#define FBR_LOG_ERROR(e) FBR_LOG_ERROR_1(FBR_FILE_NO_PATH, __FUNCTION__, __LINE__, e)
-#define FBR_LOG_ERROR_1(m0, m1, m2, e) \
-    printf("###ERRROR### %s:%s:%d: ", m0, m1, m2), \
+#define FBR_LOG_MESSAGE_2(f0, f1, m, i0, i1) \
+    printf("(%s:%d) ", f0, f1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(m), m), \
+    printf(" | %s: ", #i0), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),      \
+    printf(" | %s: ", #i1), \
+    printf(FBR_LOG_TYPE_SPECIFIER(i1), i1), \
+    printf("\n")
+#define FBR_LOG_MESSAGE(m, ...) EXPAND_CONCAT(FBR_LOG_MESSAGE_, COUNT_ARGUMENTS(__VA_ARGS__))(FBR_FILE_NO_PATH, __LINE__, m, ##__VA_ARGS__)
+#define FBR_LOG_ERROR_1(f0, f1, f2, e) \
+    printf("###ERRROR### %s:%s:%d: ", f0, f1, f2), \
     printf(FBR_LOG_TYPE_SPECIFIER(e), e), \
     printf("\n")
+#define FBR_LOG_ERROR(e) FBR_LOG_ERROR_1(FBR_FILE_NO_PATH, __FUNCTION__, __LINE__, e)
 
 #endif //FABRIC_LOG_H

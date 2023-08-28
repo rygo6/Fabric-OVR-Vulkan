@@ -105,10 +105,13 @@ void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) 
     fbrDestroyIPCBuffer(pNodeParent->pCameraIPCBuffer);
 }
 
-void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pParam) {
+void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pParam)
+{
     FbrNodeParent *pNodeParent = pApp->pNodeParent;
     FbrVulkan *pVulkan = pApp->pVulkan;
     VkFormat swapFormat = chooseSwapSurfaceFormat(pVulkan).format;
+
+    FBR_LOG_MESSAGE("Importing Node Parent");
 
 //    FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
 //    fbrImportCamera(pVulkan,
@@ -117,9 +120,9 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
     fbrImportIPCBuffer(&pNodeParent->pCameraIPCBuffer,
                        sizeof(FbrCameraBuffer));
 
-    FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->colorFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
-    FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->normalFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
-    FBR_LOG_DEBUG("Importing Framebuffer0.", pParam->depthFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->colorFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->normalFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->depthFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
                          pParam->colorFramebuffer0ExternalHandle,
                          pParam->normalFramebuffer0ExternalHandle,
@@ -127,9 +130,9 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pApp->pFramebuffers[0]);
-    FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->colorFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
-    FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->normalFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
-    FBR_LOG_DEBUG("Importing Framebuffer1.", pParam->depthFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->colorFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->normalFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->depthFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
                          pParam->colorFramebuffer1ExternalHandle,
                          pParam->normalFramebuffer1ExternalHandle,
@@ -138,7 +141,7 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pApp->pFramebuffers[1]);
 
-    FBR_LOG_DEBUG("Importing pVertexUBOs.", pParam->vertexUBO0ExternalHandle);
+    FBR_LOG_DEBUG(pParam->vertexUBO0ExternalHandle);
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -147,7 +150,7 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                  &pNodeParent->pVertexUBOs[0]);
     fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[0], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 
-    FBR_LOG_DEBUG("Importing pVertexUBOs.", pParam->vertexUBO1ExternalHandle);
+    FBR_LOG_DEBUG(pParam->vertexUBO1ExternalHandle);
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -156,13 +159,13 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                  &pNodeParent->pVertexUBOs[1]);
     fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[1], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 
-    FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->parentSemaphoreExternalHandle);
+    FBR_LOG_DEBUG(pParam->parentSemaphoreExternalHandle);
     fbrImportTimelineSemaphore(pVulkan,
                                true,
                                pParam->parentSemaphoreExternalHandle,
                                &pNodeParent->pParentSemaphore);
 
-    FBR_LOG_DEBUG("ImportTimelineSemaphore", pParam->childSemaphoreExternalHandle);
+    FBR_LOG_DEBUG(pParam->childSemaphoreExternalHandle);
     fbrImportTimelineSemaphore(pVulkan,
                                false,
                                pParam->childSemaphoreExternalHandle,

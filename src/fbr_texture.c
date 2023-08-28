@@ -128,11 +128,10 @@ static void checkPreferredDedicated(const FbrVulkan *pVulkan, const FbrTexture *
     };
     PFN_vkGetImageMemoryRequirements2KHR getImageMemoryRequirements2 = (PFN_vkGetImageMemoryRequirements2KHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetImageMemoryRequirements2KHR");
     if (getImageMemoryRequirements2 == NULL) {
-        FBR_LOG_DEBUG("Failed to get PFN_vkGetImageMemoryRequirements2KHR!");
+        FBR_LOG_ERROR("Failed to get PFN_vkGetImageMemoryRequirements2KHR!");
     }
     getImageMemoryRequirements2(pVulkan->device, &memoryRequirementsInfo, &memRequirements2);
-    FBR_LOG_DEBUG("prefersDedicatedAllocation", memoryDedicatedRequirements.prefersDedicatedAllocation);
-    FBR_LOG_DEBUG("requiresDedicatedAllocation", memoryDedicatedRequirements.requiresDedicatedAllocation);
+    FBR_LOG_DEBUG(memoryDedicatedRequirements.prefersDedicatedAllocation, memoryDedicatedRequirements.requiresDedicatedAllocation);
 }
 
 static void createExternalTexture(const FbrVulkan *pVulkan,
@@ -195,7 +194,7 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
 
-    FBR_LOG_DEBUG("Allocated Framebuffer of size: ", memRequirements.size);
+    FBR_LOG_DEBUG(memRequirements.size);
 
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0));
 
@@ -210,10 +209,10 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     // TODO move to preloaded refs
     PFN_vkGetMemoryWin32HandleKHR getMemoryWin32HandleFunc = (PFN_vkGetMemoryWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetMemoryWin32HandleKHR");
     if (getMemoryWin32HandleFunc == NULL) {
-        FBR_LOG_DEBUG("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+        FBR_LOG_ERROR("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
     }
     if (getMemoryWin32HandleFunc(pVulkan->device, &memoryInfo, &pTexture->externalMemory) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("Failed to get external handle!");
+        FBR_LOG_ERROR("Failed to get external handle!");
     }
 #endif
 
@@ -284,7 +283,7 @@ static void createTextureView(const FbrVulkan *pVulkan, VkFormat format, VkImage
     };
 
     if (vkCreateImageView(pVulkan->device, &viewInfo, NULL, &pTexture->imageView) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create pTestTexture image view!");
+        FBR_LOG_ERROR("failed to create pTestTexture image view!");
     }
 }
 
@@ -295,10 +294,11 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
     stbi_uc *pixels = stbi_load(filename, &width, &height, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageBufferSize = width * height * 4;
 
-    FBR_LOG_DEBUG("Loading pTestTexture from file.", filename, width, height, texChannels);
+    FBR_LOG_MESSAGE("Loading pTestTexture from file.");
+    FBR_LOG_DEBUG(filename, width, height, texChannels);
 
     if (!pixels) {
-        FBR_LOG_DEBUG("Failed to load pTestTexture image!");
+        FBR_LOG_ERROR("Failed to load pTestTexture image!");
     }
 
     VkExtent2D extent = {width, height};

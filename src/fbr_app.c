@@ -15,7 +15,7 @@
 #include "fbr_swap.h"
 
 static void initWindow(FbrApp *pApp) {
-    FBR_LOG_DEBUG("initializing window!");
+    FBR_LOG_MESSAGE("initWindow");
 
     glfwInit();
 
@@ -37,7 +37,7 @@ static void initWindow(FbrApp *pApp) {
 }
 
 static void initEntities(FbrApp *pApp, long long externalTextureTest) {
-    FBR_LOG_DEBUG("initializing vulkan!");
+    FBR_LOG_MESSAGE("initEntities");
 
     FbrVulkan *pVulkan = pApp->pVulkan;
 

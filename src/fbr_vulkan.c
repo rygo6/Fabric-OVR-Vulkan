@@ -277,7 +277,7 @@ static void findQueueFamilies(FbrVulkan *pVulkan)
             }
             pVulkan->graphicsQueueFamilyIndex = i;
             foundGraphics = true;
-            FBR_LOG_DEBUG("Graphics Queue", pVulkan->graphicsQueueFamilyIndex);
+            FBR_LOG_DEBUG(pVulkan->graphicsQueueFamilyIndex);
         }
 
         if (!foundCompute && computeSupport && presentSupport && !graphicsSupport) {
@@ -646,12 +646,12 @@ static FBR_RESULT createCommandBuffers(FbrVulkan *pVulkan) {
 
 static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
     if (glfwCreateWindowSurface(pVulkan->instance, pApp->pWindow, NULL, &pVulkan->surface) != VK_SUCCESS) {
-        FBR_LOG_DEBUG("failed to create window surface!");
+        FBR_LOG_MESSAGE("failed to create window surface!");
     }
 }
 
 static void createTextureSampler(FbrVulkan *pVulkan){
-    FBR_LOG_DEBUG("Max Anisotropy!", pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy);
 
     VkSamplerCreateInfo linearSamplerInfo = {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -714,12 +714,12 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     if (!pVulkan->physicalDeviceProperties.limits.timestampComputeAndGraphics) {
         FBR_LOG_ERROR("Does Not support timestampComputeAndGraphics!");
     }
-    FBR_LOG_DEBUG("Timestamp Period: ", pVulkan->physicalDeviceProperties.limits.timestampPeriod);
-    FBR_LOG_DEBUG("Max Compute Work Group Size X: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[0]);
-    FBR_LOG_DEBUG("Max Compute Work Group Size Y: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[1]);
-    FBR_LOG_DEBUG("Max Compute Work Group Size Z: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[2]);
-    FBR_LOG_DEBUG("Max Compute Work Group Invocations: ", pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupInvocations);
-    FBR_LOG_DEBUG("Max Tessellation Generation Level: ", pVulkan->physicalDeviceProperties.limits.maxTessellationGenerationLevel);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.timestampPeriod);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[0]);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[1]);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[2]);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupInvocations);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxTessellationGenerationLevel);
 
     const VkQueryPoolCreateInfo queryPoolCreateInfo =  {
         .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
