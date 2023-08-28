@@ -29,7 +29,7 @@ const char *pRequiredInstanceExtensions[] = {
         VK_KHR_EXTERNAL_FENCE_CAPABILITIES_EXTENSION_NAME
 };
 
-const uint32_t requiredDeviceExtensionCount = 9;
+const uint32_t requiredDeviceExtensionCount = 11;
 const char *pRequiredDeviceExtensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
@@ -37,6 +37,8 @@ const char *pRequiredDeviceExtensions[] = {
         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+        VK_EXT_MESH_SHADER_EXTENSION_NAME,
+        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
 #ifdef WIN32
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,

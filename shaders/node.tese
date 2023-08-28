@@ -78,11 +78,11 @@ void main()
     // Convert NDC coordinates to world space coordinates
     vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
-//    gl_Position = !zeroAlphaFound ?
-//        globalUBO.proj * globalUBO.view * worldPos :
-//        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
+    gl_Position = alphaValue > 0 ?
+        globalUBO.proj * globalUBO.view * worldPos :
+        globalUBO.proj * globalUBO.view * objectUBO.model * pos;
 
-    gl_Position = globalUBO.proj * globalUBO.view * worldPos;
+//    gl_Position = globalUBO.proj * globalUBO.view * worldPos;
 
     outWorldPos = worldPos;
 }

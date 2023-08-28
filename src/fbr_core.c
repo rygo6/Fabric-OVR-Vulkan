@@ -776,7 +776,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
             }
             glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, cameraBuffer.proj);
 
-            FBR_LOG_DEBUG("distanceToCenter", distanceToCenter, viewDistanceToCenter, nearZ, farZ);
+            FBR_LOG_DEBUG(distanceToCenter, viewDistanceToCenter, nearZ, farZ);
 
             // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
             memcpy( pTestNode->pCameraIPCBuffer->pBuffer, &cameraBuffer, sizeof(FbrCameraBuffer));
