@@ -106,10 +106,12 @@ static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan, FbrSetLayoutGl
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .descriptorCount = 1,
+                    // figure someway to selectively enable/disable these as needed?
                     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                                   VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                                   VK_SHADER_STAGE_COMPUTE_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                                  VK_SHADER_STAGE_FRAGMENT_BIT |
+                                  VK_SHADER_STAGE_MESH_BIT_EXT,
                     .pImmutableSamplers = NULL,
             }
     };

@@ -30,9 +30,35 @@ static FBR_RESULT createPipeLayoutStandard(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
-static FBR_RESULT createPipeLayoutNode(const FbrVulkan *pVulkan,
-                                       const FbrDescriptors *pDescriptors,
-                                       FbrPipeLayoutNodeTess *pPipeLayout)
+static FBR_RESULT createPipeLayoutNodeTess(const FbrVulkan *pVulkan,
+                                           const FbrDescriptors *pDescriptors,
+                                           FbrPipeLayoutNodeTess *pPipeLayout)
+{
+    const VkDescriptorSetLayout pSetLayouts[] = {
+            pDescriptors->setLayoutGlobal,
+            pDescriptors->setLayoutPass,
+            pDescriptors->setLayoutMaterial,
+            pDescriptors->setLayoutNode
+    };
+    const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = NULL,
+            .setLayoutCount = COUNT(pSetLayouts),
+            .pSetLayouts = pSetLayouts,
+            .pPushConstantRanges = NULL,
+            .pushConstantRangeCount  = 0
+    };
+    FBR_ACK(vkCreatePipelineLayout(pVulkan->device,
+                                   &pipelineLayoutInfo,
+                                   FBR_ALLOCATOR,
+                                   pPipeLayout));
+
+    return FBR_SUCCESS;
+}
+
+static FBR_RESULT createPipeLayoutNodeMesh(const FbrVulkan *pVulkan,
+                                           const FbrDescriptors *pDescriptors,
+                                           FbrPipeLayoutNodeTess *pPipeLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
             pDescriptors->setLayoutGlobal,
@@ -87,9 +113,12 @@ static FBR_RESULT createPipelineLayouts(const FbrVulkan *pVulkan,
     FBR_ACK(createPipeLayoutStandard(pVulkan,
                                       pDescriptors,
                                       &pPipelines->graphicsPipeLayoutStandard));
-    FBR_ACK(createPipeLayoutNode(pVulkan,
-                                      pDescriptors,
-                                      &pPipelines->graphicsPipeLayoutNode));
+    FBR_ACK(createPipeLayoutNodeTess(pVulkan,
+                                     pDescriptors,
+                                     &pPipelines->graphicsPipeLayoutNodeTess));
+    FBR_ACK(createPipeLayoutNodeMesh(pVulkan,
+                                     pDescriptors,
+                                     &pPipelines->graphicsPipeLayoutNodeMesh));
     FBR_ACK(createPipeLayoutComposite(pVulkan,
                                       pDescriptors,
                                       &pPipelines->computePipeLayoutComposite));
@@ -99,8 +128,8 @@ static FBR_RESULT createPipelineLayouts(const FbrVulkan *pVulkan,
 
 
 static FBR_RESULT allocReadFile(const char *filename,
-                              uint32_t *length,
-                              char **ppContents)
+                                uint32_t *length,
+                                char **ppContents)
 {
     FILE *file = fopen(filename, "rb");
 
@@ -124,8 +153,8 @@ static FBR_RESULT allocReadFile(const char *filename,
 }
 
 static FBR_RESULT createShaderModule(const FbrVulkan *pVulkan,
-                                   const char *pShaderPath,
-                                   VkShaderModule *pShaderModule)
+                                     const char *pShaderPath,
+                                     VkShaderModule *pShaderModule)
 {
     uint32_t codeLength;
     char *pShaderCode;
@@ -148,55 +177,16 @@ static FBR_RESULT createShaderModule(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
-static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
-                                         VkPipelineLayout layout,
-                                         VkPrimitiveTopology topology,
-                                         uint32_t stageCount,
-                                         const VkPipelineShaderStageCreateInfo *pStages,
-                                         const VkPipelineTessellationStateCreateInfo *pTessellationState,
-                                         VkPipeline *pPipe)
+static FBR_RESULT createOpaquePipe(const FbrVulkan *pVulkan,
+                                   VkPipelineLayout layout,
+                                   VkPrimitiveTopology topology,
+                                   uint32_t stageCount,
+                                   const VkPipelineShaderStageCreateInfo *pStages,
+                                   const VkPipelineVertexInputStateCreateInfo *pVertexInputState,
+                                   const VkPipelineInputAssemblyStateCreateInfo *pInputAssemblyState,
+                                   const VkPipelineTessellationStateCreateInfo *pTessellationState,
+                                   VkPipeline *pPipe)
 {
-    // Vertex Input
-    const VkVertexInputBindingDescription pVertexBindingDescriptions[1] = {
-            {
-                    .binding = 0,
-                    .stride = sizeof(Vertex),
-                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-            },
-    };
-    const VkVertexInputAttributeDescription pVertexAttributeDescriptions[3] = {
-            {
-                    .binding = 0,
-                    .location = 0,
-                    .format = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset = offsetof(Vertex, pos),
-            },
-            {
-                    .binding = 0,
-                    .location = 1,
-                    .format = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset = offsetof(Vertex, normal),
-            },
-            {
-                    .binding = 0,
-                    .location = 2,
-                    .format = VK_FORMAT_R32G32_SFLOAT,
-                    .offset = offsetof(Vertex, uv),
-            }
-    };
-    const VkPipelineVertexInputStateCreateInfo vertexInputState = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .vertexBindingDescriptionCount = 1,
-            .pVertexBindingDescriptions = pVertexBindingDescriptions,
-            .vertexAttributeDescriptionCount = 3,
-            .pVertexAttributeDescriptions = pVertexAttributeDescriptions
-    };
-    const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            .topology = topology,
-            .primitiveRestartEnable = VK_FALSE,
-    };
-
     // Fragment
     const VkPipelineColorBlendAttachmentState pPipelineColorBlendAttachmentStates[] = {
             {
@@ -306,8 +296,8 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
             .flags = 0,
             .stageCount = stageCount,
             .pStages = pStages,
-            .pVertexInputState = &vertexInputState,
-            .pInputAssemblyState = &inputAssemblyState,
+            .pVertexInputState = pVertexInputState,
+            .pInputAssemblyState = pInputAssemblyState,
             .pTessellationState = pTessellationState,
             .pViewportState = &viewportState,
             .pRasterizationState = &rasterizationState,
@@ -331,8 +321,69 @@ static FBR_RESULT createOpaqueTrianglePipe(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
+static FBR_RESULT createVertexInputOpaquePipe(const FbrVulkan *pVulkan,
+                                              VkPipelineLayout layout,
+                                              VkPrimitiveTopology topology,
+                                              uint32_t stageCount,
+                                              const VkPipelineShaderStageCreateInfo *pStages,
+                                              const VkPipelineTessellationStateCreateInfo *pTessellationState,
+                                              VkPipeline *pPipe)
+{
+    // Vertex Input
+    const VkVertexInputBindingDescription pVertexBindingDescriptions[1] = {
+            {
+                    .binding = 0,
+                    .stride = sizeof(Vertex),
+                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+            },
+    };
+    const VkVertexInputAttributeDescription pVertexAttributeDescriptions[3] = {
+            {
+                    .binding = 0,
+                    .location = 0,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex, pos),
+            },
+            {
+                    .binding = 0,
+                    .location = 1,
+                    .format = VK_FORMAT_R32G32B32_SFLOAT,
+                    .offset = offsetof(Vertex, normal),
+            },
+            {
+                    .binding = 0,
+                    .location = 2,
+                    .format = VK_FORMAT_R32G32_SFLOAT,
+                    .offset = offsetof(Vertex, uv),
+            }
+    };
+    const VkPipelineVertexInputStateCreateInfo vertexInputState = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            .vertexBindingDescriptionCount = 1,
+            .pVertexBindingDescriptions = pVertexBindingDescriptions,
+            .vertexAttributeDescriptionCount = 3,
+            .pVertexAttributeDescriptions = pVertexAttributeDescriptions
+    };
+    const VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+            .topology = topology,
+            .primitiveRestartEnable = VK_FALSE,
+    };
+    FBR_ACK(createOpaquePipe(pVulkan,
+                             layout,
+                             topology,
+                             stageCount,
+                             pStages,
+                             &vertexInputState,
+                             &inputAssemblyState,
+                             pTessellationState,
+                             pPipe));
+
+    return FBR_SUCCESS;
+}
+
 FBR_RESULT createPipeStandard(const FbrVulkan *pVulkan,
-                              FbrPipeLayoutStandard layout,
+                              const FbrPipelines *pPipes,
                               const char *pVertShaderPath,
                               const char *pFragShaderPath,
                               FbrPipeStandard *pPipe)
@@ -359,42 +410,38 @@ FBR_RESULT createPipeStandard(const FbrVulkan *pVulkan,
                     .pName = "main",
             }
     };
-    FBR_ACK(createOpaqueTrianglePipe(pVulkan,
-                                     layout,
-                                     VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-                                     COUNT(pStages),
-                                     pStages,
-                                     NULL,
-                                     pPipe));
-    vkDestroyShaderModule(pVulkan->device, vertShaderModule, NULL);
-    vkDestroyShaderModule(pVulkan->device, fragShaderModule, NULL);
+    FBR_ACK(createVertexInputOpaquePipe(pVulkan,
+                                        pPipes->graphicsPipeLayoutStandard,
+                                        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                                        COUNT(pStages),
+                                        pStages,
+                                        NULL,
+                                        pPipe));
+    vkDestroyShaderModule(pVulkan->device, vertShaderModule, FBR_ALLOCATOR);
+    vkDestroyShaderModule(pVulkan->device, fragShaderModule, FBR_ALLOCATOR);
 
     return FBR_SUCCESS;
 }
 
 FBR_RESULT createGraphicsPipeNodeTess(const FbrVulkan *pVulkan,
-                                      FbrPipeLayoutNodeTess layout,
-                                      const char *pVertShaderPath,
-                                      const char *pFragShaderPath,
-                                      const char *pTessCShaderPath,
-                                      const char *pTessEShaderPath,
+                                      const FbrPipelines *pPipes,
                                       FbrPipeNodeTess *pPipe)
 {
     VkShaderModule vertShaderModule;
     FBR_ACK(createShaderModule(pVulkan,
-                                pVertShaderPath,
+                               "./shaders/node_tess_vert.spv",
                                 &vertShaderModule));
     VkShaderModule fragShaderModule;
     FBR_ACK(createShaderModule(pVulkan,
-                                pFragShaderPath,
+                               "./shaders/node_tess_frag.spv",
                                 &fragShaderModule));
     VkShaderModule tessCShaderModule;
     FBR_ACK(createShaderModule(pVulkan,
-                                pTessCShaderPath,
+                               "./shaders/node_tess_tesc.spv",
                                 &tessCShaderModule));
     VkShaderModule tessEShaderModule;
     FBR_ACK(createShaderModule(pVulkan,
-                                pTessEShaderPath,
+                               "./shaders/node_tess_tese.spv",
                                 &tessEShaderModule));
     const VkPipelineShaderStageCreateInfo pStages[] = {
             {
@@ -428,23 +475,75 @@ FBR_RESULT createGraphicsPipeNodeTess(const FbrVulkan *pVulkan,
             .flags = 0,
             .patchControlPoints = 4,
     };
-    FBR_ACK(createOpaqueTrianglePipe(pVulkan,
-                                     layout,
-                                     VK_PRIMITIVE_TOPOLOGY_PATCH_LIST,
-                                     COUNT(pStages),
-                                     pStages,
-                                     &pipelineTessellationStateCreateInfo,
-                                     pPipe));
-    vkDestroyShaderModule(pVulkan->device, vertShaderModule, NULL);
-    vkDestroyShaderModule(pVulkan->device, fragShaderModule, NULL);
-    vkDestroyShaderModule(pVulkan->device, tessCShaderModule, NULL);
-    vkDestroyShaderModule(pVulkan->device, tessEShaderModule, NULL);
+    FBR_ACK(createVertexInputOpaquePipe(pVulkan,
+                                        pPipes->graphicsPipeLayoutNodeTess,
+                                        VK_PRIMITIVE_TOPOLOGY_PATCH_LIST,
+                                        COUNT(pStages),
+                                        pStages,
+                                        &pipelineTessellationStateCreateInfo,
+                                        pPipe));
+    vkDestroyShaderModule(pVulkan->device, vertShaderModule, FBR_ALLOCATOR);
+    vkDestroyShaderModule(pVulkan->device, fragShaderModule, FBR_ALLOCATOR);
+    vkDestroyShaderModule(pVulkan->device, tessCShaderModule, FBR_ALLOCATOR);
+    vkDestroyShaderModule(pVulkan->device, tessEShaderModule, FBR_ALLOCATOR);
+
+    return FBR_SUCCESS;
+}
+
+FBR_RESULT createGraphicsPipeNodeMesh(const FbrVulkan *pVulkan,
+                                       const FbrPipelines *pPipes,
+                                       FbrPipeNodeTess *pPipe)
+{
+    VkShaderModule taskShaderModule;
+    FBR_ACK(createShaderModule(pVulkan,
+                               "./shaders/node_mesh_task.spv",
+                               &taskShaderModule));
+    VkShaderModule meshShaderModule;
+    FBR_ACK(createShaderModule(pVulkan,
+                               "./shaders/node_mesh_mesh.spv",
+                               &meshShaderModule));
+    VkShaderModule fragShaderModule;
+    FBR_ACK(createShaderModule(pVulkan,
+                               "./shaders/node_mesh_frag.spv",
+                               &fragShaderModule));
+    const VkPipelineShaderStageCreateInfo pStages[] = {
+            {
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .stage = VK_SHADER_STAGE_TASK_BIT_EXT,
+                    .module = taskShaderModule,
+                    .pName = "main",
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .stage = VK_SHADER_STAGE_MESH_BIT_EXT,
+                    .module = meshShaderModule,
+                    .pName = "main",
+            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .module = fragShaderModule,
+                    .pName = "main",
+            },
+    };
+    FBR_ACK(createOpaquePipe(pVulkan,
+                             pPipes->graphicsPipeLayoutNodeMesh,
+                             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                             COUNT(pStages),
+                             pStages,
+                             NULL,
+                             NULL,
+                             NULL,
+                             pPipe));
+    vkDestroyShaderModule(pVulkan->device, taskShaderModule, FBR_ALLOCATOR);
+    vkDestroyShaderModule(pVulkan->device, meshShaderModule, FBR_ALLOCATOR);
+    vkDestroyShaderModule(pVulkan->device, fragShaderModule, FBR_ALLOCATOR);
 
     return FBR_SUCCESS;
 }
 
 FBR_RESULT createComputePipeComposite(const FbrVulkan *pVulkan,
-                                      FbrComputePipeLayoutComposite layout,
+                                      const FbrPipelines *pPipes,
                                       const char *pCompositeShaderPath,
                                       FbrComputePipeComposite *pPipe)
 {
@@ -460,7 +559,7 @@ FBR_RESULT createComputePipeComposite(const FbrVulkan *pVulkan,
     };
     const VkComputePipelineCreateInfo pipelineInfo = {
             .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-            .layout = layout,
+            .layout = pPipes->computePipeLayoutComposite,
             .stage = stage,
     };
     FBR_ACK(vkCreateComputePipelines(pVulkan->device,
@@ -474,31 +573,23 @@ FBR_RESULT createComputePipeComposite(const FbrVulkan *pVulkan,
 }
 
 static FBR_RESULT createPipes(const FbrVulkan *pVulkan,
-                            FbrPipelines *pPipes)
+                              FbrPipelines *pPipes)
 {
     FBR_ACK(createPipeStandard(pVulkan,
-                               pPipes->graphicsPipeLayoutStandard,
+                               pPipes,
                                "./shaders/vert.spv",
 //                                  pVulkan->isChild ?
 //                                  "./shaders/frag_crasher.spv":
                                "./shaders/frag.spv",
                                &pPipes->graphicsPipeStandard));
     FBR_ACK(createGraphicsPipeNodeTess(pVulkan,
-                                       pPipes->graphicsPipeLayoutNode,
-                                       "./shaders/node_tess_vert.spv",
-                                       "./shaders/node_tess_frag.spv",
-                                       "./shaders/node_tess_tesc.spv",
-                                       "./shaders/node_tess_tese.spv",
-                                       &pPipes->graphicsPipeNode));
-//    FBR_ACK(createGraphicsPipeNodeMesh(pVulkan,
-//                                       pPipes->graphicsPipeLayoutNode,
-//                                       "./shaders/node_tess_vert.spv",
-//                                       "./shaders/node_tess_frag.spv",
-//                                       "./shaders/node_tess_tesc.spv",
-//                                       "./shaders/node_tess_tese.spv",
-//                                       &pPipes->graphicsPipeNode));
+                                       pPipes,
+                                       &pPipes->graphicsPipeNodeTess));
+    FBR_ACK(createGraphicsPipeNodeMesh(pVulkan,
+                                       pPipes,
+                                       &pPipes->graphicsPipeNodeMesh));
     FBR_ACK(createComputePipeComposite(pVulkan,
-                                       pPipes->computePipeLayoutComposite,
+                                       pPipes,
                                        "./shaders/composite_depthoffset_comp.spv",
                                        &pPipes->computePipeComposite));
 
@@ -522,11 +613,11 @@ void fbrDestroyPipelines(const FbrVulkan *pVulkan,
                          FbrPipelines *pPipelines)
 {
     vkDestroyPipelineLayout(pVulkan->device, pPipelines->graphicsPipeLayoutStandard, FBR_ALLOCATOR);
-    vkDestroyPipelineLayout(pVulkan->device, pPipelines->graphicsPipeLayoutNode, FBR_ALLOCATOR);
+    vkDestroyPipelineLayout(pVulkan->device, pPipelines->graphicsPipeLayoutNodeTess, FBR_ALLOCATOR);
     vkDestroyPipelineLayout(pVulkan->device, pPipelines->computePipeLayoutComposite, FBR_ALLOCATOR);
 
     vkDestroyPipeline(pVulkan->device, pPipelines->graphicsPipeStandard, FBR_ALLOCATOR);
-    vkDestroyPipeline(pVulkan->device, pPipelines->graphicsPipeNode, FBR_ALLOCATOR);
+    vkDestroyPipeline(pVulkan->device, pPipelines->graphicsPipeNodeTess, FBR_ALLOCATOR);
     vkDestroyPipeline(pVulkan->device, pPipelines->computePipeComposite, FBR_ALLOCATOR);
 
     free(pPipelines);

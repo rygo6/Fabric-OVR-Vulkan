@@ -1,12 +1,14 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 
-layout (binding = 0) uniform UBO
-{
-	mat4 projection;
-	mat4 model;
+layout (set = 0, binding = 0) uniform GlobalUBO {
 	mat4 view;
-} ubo;
+	mat4 proj;
+} globalUBO;
+
+//layout(set = 3, binding = 0) uniform ObjectUBO {
+//	mat4 model;
+//} objectUBO;
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 3, max_primitives = 1) out;

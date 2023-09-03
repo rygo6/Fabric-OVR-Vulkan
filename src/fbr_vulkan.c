@@ -16,7 +16,6 @@
 
 //#define FBR_LOG_VULKAN_CAPABILITIES
 
-const uint32_t requiredInstanceLayerCount = 1;
 const char *pRequiredInstanceLayers[] = {
         "VK_LAYER_KHRONOS_validation"
 };
@@ -35,8 +34,10 @@ const char *pRequiredDeviceExtensions[] = {
         VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-//        VK_EXT_MESH_SHADER_EXTENSION_NAME,
-//        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        VK_EXT_MESH_SHADER_EXTENSION_NAME,
+        VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        // Required by VK_KHR_spirv_1_4 - https://github.com/SaschaWillems/Vulkan/blob/master/examples/meshshader/meshshader.cpp
+        VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 #ifdef WIN32
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
         VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME,
@@ -99,7 +100,7 @@ static void getRequiredInstanceExtensions(FbrVulkan *pVulkan, uint32_t *extensio
 
 static bool checkValidationLayerSupport(VkLayerProperties availableLayers[], uint32_t availableLayerCount)
 {
-    for (int i = 0; i < requiredInstanceLayerCount; ++i) {
+    for (int i = 0; i < COUNT(pRequiredInstanceLayers); ++i) {
         bool layerFound = false;
 
         for (int j = 0; j < availableLayerCount; ++j) {
@@ -182,7 +183,7 @@ static VkResult createInstance(FbrVulkan *pVulkan)
     createInfo.enabledLayerCount = 0;
 
     if (pVulkan->enableValidationLayers) {
-        createInfo.enabledLayerCount = requiredInstanceLayerCount;
+        createInfo.enabledLayerCount = COUNT(pRequiredInstanceLayers);
         createInfo.ppEnabledLayerNames = pRequiredInstanceLayers;
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = debugMessengerCreateInfo();
@@ -326,8 +327,12 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan)
     };
 
     // TODO come up with something better for this
+    VkPhysicalDeviceMeshShaderFeaturesEXT supportedPhysicalDeviceMeshShaderFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+    };
     VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT supportedPhysicalDeviceGlobalPriorityQueryFeatures = {
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT,
+            .pNext = &supportedPhysicalDeviceMeshShaderFeatures,
     };
     VkPhysicalDeviceRobustness2FeaturesEXT supportedPhysicalDeviceRobustness2Features = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
@@ -370,10 +375,19 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan)
         FBR_LOG_ERROR("shaderTerminateInvocation no support!");
     if (!supportedPhysicalDeviceGlobalPriorityQueryFeatures.globalPriorityQuery)
         FBR_LOG_ERROR("globalPriorityQuery no support!");
+    if (!supportedPhysicalDeviceMeshShaderFeatures.taskShader)
+        FBR_LOG_ERROR("taskShader no support!");
+    if (!supportedPhysicalDeviceMeshShaderFeatures.meshShader)
+        FBR_LOG_ERROR("meshShader no support!");
 
-
+    VkPhysicalDeviceMeshShaderFeaturesEXT physicalDeviceMeshShaderFeatures = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+            .meshShader = true,
+            .taskShader = true,
+    };
     VkPhysicalDeviceGlobalPriorityQueryFeaturesEXT physicalDeviceGlobalPriorityQueryFeatures = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT,
+            .pNext = &physicalDeviceMeshShaderFeatures,
             .globalPriorityQuery = true,
     };
     VkPhysicalDeviceRobustness2FeaturesEXT physicalDeviceRobustness2Features = {
@@ -433,7 +447,6 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan)
     }
 #endif
 
-    FBR_LOG_DEBUG(COUNT(pRequiredDeviceExtensions));
     for (int i = 0; i < COUNT(pRequiredDeviceExtensions); ++i){
         FBR_LOG_DEBUG(pRequiredDeviceExtensions[i]);
     }
@@ -447,7 +460,7 @@ VkResult createLogicalDevice(FbrVulkan *pVulkan)
             .enabledExtensionCount = COUNT(pRequiredDeviceExtensions),
             .ppEnabledExtensionNames = pRequiredDeviceExtensions,
             .ppEnabledLayerNames = pVulkan->enableValidationLayers ? pRequiredInstanceLayers : NULL,
-            .enabledLayerCount = pVulkan->enableValidationLayers ? requiredInstanceLayerCount : 0,
+            .enabledLayerCount = pVulkan->enableValidationLayers ? COUNT(pRequiredInstanceLayers) : 0,
 
     };
     FBR_ACK(vkCreateDevice(pVulkan->physicalDevice, &createInfo, NULL, &pVulkan->device));

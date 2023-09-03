@@ -457,10 +457,10 @@ static void childMainLoop(FbrApp *pApp)
 //            fbrUpdateTransformUBO(pTestNode->pTransform);
 //            vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
 //                              VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                              pPipelines->graphicsPipeNode);
+//                              pPipelines->graphicsPipeNodeTess);
 //            vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                    pPipelines->graphicsPipeLayoutNode,
+//                                    pPipelines->graphicsPipeLayoutNodeTess,
 //                                    FBR_GLOBAL_SET_INDEX,
 //                                    1,
 //                                    &pDescriptors->setGlobal,
@@ -468,7 +468,7 @@ static void childMainLoop(FbrApp *pApp)
 //                                    NULL);
 //            vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                    pPipelines->graphicsPipeLayoutNode,
+//                                    pPipelines->graphicsPipeLayoutNodeTess,
 //                                    FBR_NODE_SET_INDEX,
 //                                    1,
 //                                    &pApp->pCompMaterialSets[testNodeTimelineSwitch],
@@ -839,10 +839,10 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
         if (pTestNode != NULL) {
             vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pPipelines->graphicsPipeNode);
+                              pPipelines->graphicsPipeNodeTess);
             vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->graphicsPipeLayoutNode,
+                                    pPipelines->graphicsPipeLayoutNodeTess,
                                     FBR_GLOBAL_SET_INDEX,
                                     1,
                                     &pDescriptors->setGlobal,
@@ -850,7 +850,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                                     NULL);
             vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->graphicsPipeLayoutNode,
+                                    pPipelines->graphicsPipeLayoutNodeTess,
                                     FBR_NODE_SET_INDEX,
                                     1,
                                     &pApp->pCompMaterialSets[testNodeTimelineSwitch],

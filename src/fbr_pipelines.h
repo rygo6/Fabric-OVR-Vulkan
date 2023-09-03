@@ -10,6 +10,9 @@ typedef VkPipeline FbrPipeStandard;
 typedef VkPipelineLayout FbrPipeLayoutNodeTess;
 typedef VkPipeline FbrPipeNodeTess;
 
+typedef VkPipelineLayout FbrPipeLayoutNodeMesh;
+typedef VkPipeline FbrPipeNodeMesh;
+
 typedef VkPipelineLayout FbrComputePipeLayoutComposite;
 typedef VkPipeline FbrComputePipeComposite;
 
@@ -17,8 +20,11 @@ typedef struct FbrPipelines {
     VkPipelineLayout graphicsPipeLayoutStandard;
     FbrPipeStandard graphicsPipeStandard;
 
-    VkPipelineLayout graphicsPipeLayoutNode;
-    FbrPipeNodeTess graphicsPipeNode;
+    VkPipelineLayout graphicsPipeLayoutNodeTess;
+    FbrPipeNodeTess graphicsPipeNodeTess;
+
+    VkPipelineLayout graphicsPipeLayoutNodeMesh;
+    FbrPipeNodeMesh graphicsPipeNodeMesh;
 
     VkPipelineLayout computePipeLayoutComposite;
     FbrComputePipeComposite computePipeComposite;
