@@ -45,7 +45,7 @@
     printf("\n")
 #define FBR_LOG_DEBUG_3(f0, f1, i0, i1, i2) \
     printf("(%s:%d) ", f0, f1), \
-    printf(" | %s: ", #i0), \
+    printf("%s: ", #i0), \
     printf(FBR_LOG_TYPE_SPECIFIER(i0), i0),\
     printf(" | %s: ", #i1), \
     printf(FBR_LOG_TYPE_SPECIFIER(i1), i1), \

@@ -273,13 +273,13 @@ static void childMainLoop(FbrApp *pApp)
                                  pApp->pFramebuffers[timelineSwitch],
                                  pVulkan->renderPass,
                                  (VkClearColorValue) {{0.0f, 0.0f, 0.0f, 0.0f}});
-        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->pipeStandard);
+        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pPipelines->graphicsPipeStandard);
 
         // Global
 //        uint32_t zeroOffset = 0;
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
+                                pPipelines->graphicsPipeLayoutStandard,
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
@@ -288,7 +288,7 @@ static void childMainLoop(FbrApp *pApp)
 //        // Pass
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutStandard,
+//                                pPipelines->graphicsPipeLayoutStandard,
 //                                FBR_PASS_SET_INDEX,
 //                                1,
 //                                &pDescriptors->setPass,
@@ -297,7 +297,7 @@ static void childMainLoop(FbrApp *pApp)
         // Material
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
+                                pPipelines->graphicsPipeLayoutStandard,
                                 FBR_MATERIAL_SET_INDEX,
                                 1,
                                 &pApp->testQuadMaterialSet,
@@ -306,7 +306,7 @@ static void childMainLoop(FbrApp *pApp)
         //cube 1
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
+                                pPipelines->graphicsPipeLayoutStandard,
                                 FBR_OBJECT_SET_INDEX,
                                 1,
                                 &pApp->testQuadObjectSet,
@@ -409,11 +409,11 @@ static void childMainLoop(FbrApp *pApp)
 //        // Begin Render Commands
 //        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
 //                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                          pPipelines->pipeStandard);
+//                          pPipelines->graphicsPipeStandard);
 //        // Global
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutStandard,
+//                                pPipelines->graphicsPipeLayoutStandard,
 //                                FBR_GLOBAL_SET_INDEX,
 //                                1,
 //                                &pDescriptors->setGlobal,
@@ -422,7 +422,7 @@ static void childMainLoop(FbrApp *pApp)
 ////        // Pass
 ////        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 ////                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-////                                pPipelines->pipeLayoutStandard,
+////                                pPipelines->graphicsPipeLayoutStandard,
 ////                                FBR_PASS_SET_INDEX,
 ////                                1,
 ////                                &pDescriptors->setPass,
@@ -431,7 +431,7 @@ static void childMainLoop(FbrApp *pApp)
 //        // Material
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutStandard,
+//                                pPipelines->graphicsPipeLayoutStandard,
 //                                FBR_MATERIAL_SET_INDEX,
 //                                1,
 //                                &pApp->testQuadMaterialSet,
@@ -442,7 +442,7 @@ static void childMainLoop(FbrApp *pApp)
 //        fbrUpdateTransformUBO(pApp->pTestQuadTransform);
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutStandard,
+//                                pPipelines->graphicsPipeLayoutStandard,
 //                                FBR_OBJECT_SET_INDEX,
 //                                1,
 //                                &pApp->testQuadObjectSet,
@@ -457,10 +457,10 @@ static void childMainLoop(FbrApp *pApp)
 //            fbrUpdateTransformUBO(pTestNode->pTransform);
 //            vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
 //                              VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                              pPipelines->pipeNode);
+//                              pPipelines->graphicsPipeNode);
 //            vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                    pPipelines->pipeLayoutNode,
+//                                    pPipelines->graphicsPipeLayoutNode,
 //                                    FBR_GLOBAL_SET_INDEX,
 //                                    1,
 //                                    &pDescriptors->setGlobal,
@@ -468,7 +468,7 @@ static void childMainLoop(FbrApp *pApp)
 //                                    NULL);
 //            vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                    pPipelines->pipeLayoutNode,
+//                                    pPipelines->graphicsPipeLayoutNode,
 //                                    FBR_NODE_SET_INDEX,
 //                                    1,
 //                                    &pApp->pCompMaterialSets[testNodeTimelineSwitch],
@@ -794,11 +794,11 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
         // Begin Render Commands
         vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          pPipelines->pipeStandard);
+                          pPipelines->graphicsPipeStandard);
         // Global
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
+                                pPipelines->graphicsPipeLayoutStandard,
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
@@ -807,7 +807,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
 //        // Pass
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->pipeLayoutStandard,
+//                                pPipelines->graphicsPipeLayoutStandard,
 //                                FBR_PASS_SET_INDEX,
 //                                1,
 //                                &pDescriptors->setPass,
@@ -816,7 +816,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
         // Material
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
+                                pPipelines->graphicsPipeLayoutStandard,
                                 FBR_MATERIAL_SET_INDEX,
                                 1,
                                 &pApp->testQuadMaterialSet,
@@ -826,7 +826,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
         //cube 1
         vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->pipeLayoutStandard,
+                                pPipelines->graphicsPipeLayoutStandard,
                                 FBR_OBJECT_SET_INDEX,
                                 1,
                                 &pApp->testQuadObjectSet,
@@ -839,10 +839,10 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
         if (pTestNode != NULL) {
             vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pPipelines->pipeNode);
+                              pPipelines->graphicsPipeNode);
             vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->pipeLayoutNode,
+                                    pPipelines->graphicsPipeLayoutNode,
                                     FBR_GLOBAL_SET_INDEX,
                                     1,
                                     &pDescriptors->setGlobal,
@@ -850,7 +850,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                                     NULL);
             vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->pipeLayoutNode,
+                                    pPipelines->graphicsPipeLayoutNode,
                                     FBR_NODE_SET_INDEX,
                                     1,
                                     &pApp->pCompMaterialSets[testNodeTimelineSwitch],

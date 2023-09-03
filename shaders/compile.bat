@@ -7,7 +7,9 @@ C:/VulkanSDK/1.3.261.0/Bin/glslc.exe node_tess.tese -o node_tess_tese.spv
 C:/VulkanSDK/1.3.261.0/Bin/glslc.exe node_tess.tesc -o node_tess_tesc.spv
 C:/VulkanSDK/1.3.261.0/Bin/glslc.exe composite.comp -o composite_comp.spv
 C:/VulkanSDK/1.3.261.0/Bin/glslc.exe composite_depthoffset.comp -o composite_depthoffset_comp.spv
+copy node_mesh.task.comp node_mesh.task
 C:/VulkanSDK/1.3.261.0/Bin/glslc.exe node_mesh.task --target-spv=spv1.4 -o node_mesh_task.spv
+copy node_mesh.mesh.comp node_mesh.mesh
 C:/VulkanSDK/1.3.261.0/Bin/glslc.exe node_mesh.mesh --target-spv=spv1.4 -o node_mesh_mesh.spv
 copy C:\Developer\Fabric-OVR-Vulkan\shaders\* C:\Developer\Fabric-OVR-Vulkan\cmake-build-debug\shaders\
 pause

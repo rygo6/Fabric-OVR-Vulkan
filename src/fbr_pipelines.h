@@ -7,37 +7,26 @@
 typedef VkPipelineLayout FbrPipeLayoutStandard;
 typedef VkPipeline FbrPipeStandard;
 
-typedef VkPipelineLayout FbrPipeLayoutNode;
-typedef VkPipeline FbrPipeNode;
+typedef VkPipelineLayout FbrPipeLayoutNodeTess;
+typedef VkPipeline FbrPipeNodeTess;
 
 typedef VkPipelineLayout FbrComputePipeLayoutComposite;
 typedef VkPipeline FbrComputePipeComposite;
 
 typedef struct FbrPipelines {
-    FbrPipeLayoutStandard pipeLayoutStandard;
-    FbrPipeStandard pipeStandard;
+    VkPipelineLayout graphicsPipeLayoutStandard;
+    FbrPipeStandard graphicsPipeStandard;
 
-    FbrPipeLayoutNode pipeLayoutNode;
-    FbrPipeNode pipeNode;
+    VkPipelineLayout graphicsPipeLayoutNode;
+    FbrPipeNodeTess graphicsPipeNode;
 
-    FbrComputePipeLayoutComposite computePipeLayoutComposite;
+    VkPipelineLayout computePipeLayoutComposite;
     FbrComputePipeComposite computePipeComposite;
 } FbrPipelines;
 
-VkResult fbrCreatePipeStandard(const FbrVulkan *pVulkan,
-                               VkPipelineLayout layout,
-                               const char *pVertShaderPath,
-                               const char *pFragShaderPath,
-                               VkPipeline *pPipe);
-
-VkResult fbrCreatePipelines(const FbrVulkan *pVulkan,
-                            const FbrDescriptors *pDescriptors,
-                            FbrPipelines **ppAllocPipes);
-
-FBR_RESULT fbrCreateComputePipeComposite(const FbrVulkan *pVulkan,
-                                         FbrComputePipeLayoutComposite layout,
-                                         const char *pCompositeShaderPath,
-                                         FbrComputePipeComposite *pPipe);
+FBR_RESULT fbrCreatePipelines(const FbrVulkan *pVulkan,
+                              const FbrDescriptors *pDescriptors,
+                              FbrPipelines **ppAllocPipes);
 
 void fbrDestroyPipelines(const FbrVulkan *pVulkan,
                                  FbrPipelines *pPipelines);
