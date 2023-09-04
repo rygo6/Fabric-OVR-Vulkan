@@ -194,8 +194,6 @@ static void createExternalTexture(const FbrVulkan *pVulkan,
     };
     FBR_VK_CHECK(vkAllocateMemory(pVulkan->device, &allocInfo, NULL, &pTexture->deviceMemory));
 
-    FBR_LOG_DEBUG(memRequirements.size);
-
     FBR_VK_CHECK(vkBindImageMemory(pVulkan->device, pTexture->image, pTexture->deviceMemory, 0));
 
 #if WIN32

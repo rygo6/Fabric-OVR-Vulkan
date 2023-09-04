@@ -2,8 +2,16 @@
 #define FABRIC_VULKAN_H
 
 #include "fbr_app.h"
-#include "windows.h"
 #include "fbr_timeline_semaphore.h"
+
+#include <vulkan/vulkan.h>
+
+#if WIN32
+// this should import in vulkan.h?!
+#include "windows.h"
+#include <vulkan/vulkan_win32.h>
+#endif
+
 //#include "vulkan/vk_enum_string_helper.h"
 
 typedef enum FbrResultFlags {
@@ -48,6 +56,11 @@ typedef enum FbrResultFlags {
         } \
     } while (0)
 
+typedef struct FbrVulkanFunctions {
+    PFN_vkGetMemoryWin32HandleKHR getMemoryWin32Handle;
+    PFN_vkCmdDrawMeshTasksEXT cmdDrawMeshTasks;
+} FbrVulkanFunctions;
+
 typedef struct FbrVulkan {
     // todo none of these should be here?
     int screenWidth;
@@ -89,6 +102,8 @@ typedef struct FbrVulkan {
     VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 
     VkQueryPool queryPool;
+
+    FbrVulkanFunctions functions;
 
 } FbrVulkan;
 

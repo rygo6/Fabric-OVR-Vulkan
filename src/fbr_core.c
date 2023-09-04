@@ -863,6 +863,20 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
 //            FBR_LOG_DEBUG("Displaying: ", testNodeTimelineSwitch, childWaitValue);
         }
 
+        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pPipelines->graphicsPipeNodeMesh);
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutNodeMesh,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                0,
+                                NULL);
+        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
+
+
         vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
         // End of Graphics Commands
 

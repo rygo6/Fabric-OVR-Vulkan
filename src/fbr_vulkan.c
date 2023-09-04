@@ -707,7 +707,20 @@ static void createTextureSampler(FbrVulkan *pVulkan){
     FBR_VK_CHECK(vkCreateSampler(pVulkan->device, &nearestSamplerInfo, FBR_ALLOCATOR, &pVulkan->nearestSampler));
 }
 
-static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
+static void loadFunctionPointers(FbrVulkan *pVulkan)
+{
+    pVulkan->functions.getMemoryWin32Handle = (PFN_vkGetMemoryWin32HandleKHR) vkGetInstanceProcAddr(pVulkan->instance, "vkGetMemoryWin32HandleKHR");
+    if (pVulkan->functions.getMemoryWin32Handle == NULL) {
+        FBR_LOG_ERROR("Failed to get PFN_vkGetMemoryWin32HandleKHR!");
+    }
+    pVulkan->functions.cmdDrawMeshTasks = (PFN_vkCmdDrawMeshTasksEXT) vkGetInstanceProcAddr(pVulkan->instance, "vkCmdDrawMeshTasksEXT");
+    if (pVulkan->functions.cmdDrawMeshTasks == NULL) {
+        FBR_LOG_ERROR("Failed to get PFN_vkCmdDrawMeshTasksEXT!");
+    }
+}
+
+static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan)
+{
     FBR_LOG_MESSAGE("initializing vulkan!");
 
     // app
@@ -754,6 +767,8 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan) {
     if (!pApp->isChild) {
         fbrCreateTimelineSemaphore(pVulkan, true, true, &pVulkan->pMainTimelineSemaphore);
     }
+
+    loadFunctionPointers(pVulkan);
 }
 
 void fbrCreateVulkan(const FbrApp *pApp, FbrVulkan **ppAllocVulkan, int screenWidth, int screenHeight, bool enableValidationLayers) {
