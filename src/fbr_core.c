@@ -874,8 +874,22 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                                 &pDescriptors->setGlobal,
                                 0,
                                 NULL);
-        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
 
+//        const int queryCount = 6;
+//        vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, queryCount);
+//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 0);
+//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
+//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,  pVulkan->queryPool, 2);
+//        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
+//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 3);
+//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,  pVulkan->queryPool, 4);
+//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,  pVulkan->queryPool, 5);
+
+        const int queryCount = 2;
+        vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, queryCount);
+        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 0);
+        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
+        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
 
         vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
         // End of Graphics Commands
@@ -991,6 +1005,11 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                 .pValues = &pMainTimelineSemaphore->waitValue,
         };
         FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
+
+        uint64_t timestamps[queryCount];
+        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, queryCount, sizeof(uint64_t) * queryCount, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
+        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
+        FBR_LOG_MESSAGE("Task/Mesh: ", ms);
 
         mainFrameBufferIndex = !mainFrameBufferIndex;
 

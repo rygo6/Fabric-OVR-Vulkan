@@ -3,5 +3,11 @@
 
 void main()
 {
-	EmitMeshTasksEXT(3, 1, 1);
+	uint xPixels = 1920;
+	uint yPixels = 1080;
+	uint xGroups = xPixels / 8;
+	uint yGroups = yPixels / 8;
+	uint totalGroups = xGroups * yGroups;
+
+	EmitMeshTasksEXT(totalGroups, 1, 1);
 }

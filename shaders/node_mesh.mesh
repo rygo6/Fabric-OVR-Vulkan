@@ -1,28 +1,22 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 
+#define VERTEX_DIMENSION_COUNT 8
+#define VERTEX_COUNT 64
+#define PRIMITIVE_COUNT 128
+#define INDEX_COUNT 378
+
 layout (set = 0, binding = 0) uniform GlobalUBO {
 	mat4 view;
 	mat4 proj;
 } globalUBO;
 
-//layout(set = 3, binding = 0) uniform ObjectUBO {
-//	mat4 model;
-//} objectUBO;
-
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 3, max_primitives = 1) out;
+layout(triangles, max_vertices = 64, max_primitives = 128) out;
 
-layout(location = 0) out VertexOutput
-{
+layout(location = 0) out VertexOutput {
 	vec4 color;
 } vertexOutput[];
-
-const vec4[3] positions = {
-	vec4( 0.0, -1.0, 0.0, 1.0),
-	vec4(-1.0,  1.0, 0.0, 1.0),
-	vec4( 1.0,  1.0, 0.0, 1.0)
-};
 
 const vec4[3] colors = {
 	vec4(0.0, 1.0, 0.0, 1.0),
@@ -32,18 +26,44 @@ const vec4[3] colors = {
 
 void main()
 {
-	uint iid = gl_LocalInvocationID.x;
+	float zOffset = gl_GlobalInvocationID.x * .00001;
 
-	vec4 offset = vec4(0.0, 0.0, gl_GlobalInvocationID.x, 0.0);
+	int primitiveCount = (VERTEX_DIMENSION_COUNT - 1) * (VERTEX_DIMENSION_COUNT - 1) * 2;
+	SetMeshOutputsEXT(VERTEX_COUNT, primitiveCount);
 
-	SetMeshOutputsEXT(3, 1);
-//	mat4 mvp = ubo.projection * ubo.view * ubo.model;
 	mat4 mvp = globalUBO.proj * globalUBO.view;
-	gl_MeshVerticesEXT[0].gl_Position = mvp * (positions[0] + offset);
-	gl_MeshVerticesEXT[1].gl_Position = mvp * (positions[1] + offset);
-	gl_MeshVerticesEXT[2].gl_Position = mvp * (positions[2] + offset);
-	vertexOutput[0].color = colors[0];
-	vertexOutput[1].color = colors[1];
-	vertexOutput[2].color = colors[2];
-	gl_PrimitiveTriangleIndicesEXT[gl_LocalInvocationIndex] =  uvec3(0, 1, 2);
+
+	float dimensionStep = 1.0 / float(VERTEX_DIMENSION_COUNT);
+	uint vi = 0;
+	for (uint y = 0; y < VERTEX_DIMENSION_COUNT; ++y) {
+		for (uint x = 0; x < VERTEX_DIMENSION_COUNT; ++x) {
+			vec4 pos = vec4(float(x) * dimensionStep, float(y) * dimensionStep, zOffset, 1.0);
+			gl_MeshVerticesEXT[vi].gl_Position = mvp * pos;
+			vertexOutput[vi].color = vec4(float(x) / VERTEX_DIMENSION_COUNT, float(y) / VERTEX_DIMENSION_COUNT, 0.0, 1.0);
+			vi++;
+		}
+	}
+
+	uint pi = 0;
+	for (uint y = 0; y < VERTEX_DIMENSION_COUNT - 1; ++y) {
+		for (uint x = 0; x < VERTEX_DIMENSION_COUNT - 1; ++x) {
+			uint yOffset = y * VERTEX_DIMENSION_COUNT;
+			uint offsetX = x + yOffset;
+			gl_PrimitiveTriangleIndicesEXT[pi++] = uvec3(offsetX, offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT);
+			gl_PrimitiveTriangleIndicesEXT[pi++] = uvec3(offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT + 1, offsetX + VERTEX_DIMENSION_COUNT);
+		}
+	}
+
+	//	uint vi = (y * VERTEX_DIMENSION_COUNT) + x;
+	//	vec4 pos = vec4(float(x) * dimensionStep, float(y) * dimensionStep, zOffset, 1.0);
+	//	gl_MeshVerticesEXT[vi].gl_Position = mvp * pos;
+	//	vertexOutput[vi].color = vec4(float(x) / VERTEX_DIMENSION_COUNT, float(y) / VERTEX_DIMENSION_COUNT, 0.0, 1.0);
+
+	//	if (y < VERTEX_DIMENSION_COUNT - 1 && x < VERTEX_DIMENSION_COUNT - 1) {
+	//		uint yOffset = y * VERTEX_DIMENSION_COUNT;
+	//		uint offsetX = x + yOffset;
+	//		uint pi = (y * VERTEX_DIMENSION_COUNT) + x;
+	//		gl_PrimitiveTriangleIndicesEXT[pi] = uvec3(offsetX, offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT);
+	////		gl_PrimitiveTriangleIndicesEXT[pi + PRIMITIVE_COUNT] = uvec3(offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT + 1, offsetX + VERTEX_DIMENSION_COUNT);
+	//	}
 }
