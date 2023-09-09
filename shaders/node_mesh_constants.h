@@ -1,8 +1,8 @@
 /* https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/
 	"We recommend using up to 64 vertices and 126 primitives"
 */
-#define SCREEN_X 1920
-#define SCREEN_Y 1080
+//#define SCREEN_X 1920
+//#define SCREEN_Y 1080
 #define VERTEX_DIMENSION_COUNT 8
 #define QUAD_DIMENSION_COUNT 7 // 8 -1
 #define VERTEX_DIMENSION_STEP 0.0001

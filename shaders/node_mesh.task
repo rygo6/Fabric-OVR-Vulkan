@@ -3,9 +3,26 @@
 
 #include "node_mesh_constants.h"
 
+layout (set = 0, binding = 0) uniform GlobalUBO {
+	mat4 view;
+	mat4 proj;
+	mat4 trs;
+	uvec2 screenSize;
+} globalUBO;
+
+layout (set = 0, binding = 1) uniform SourceUBO {
+	mat4 view;
+	mat4 proj;
+	mat4 model;
+} sourceUBO;
+
+layout (set = 3, binding = 2) uniform sampler2D sourceColor;
+layout (set = 3, binding = 3) uniform sampler2D sourceCormal;
+layout (set = 3, binding = 4) uniform sampler2D sourceDepth;
+
 void main()
 {
-	uint xGroups = SCREEN_X / (QUAD_DIMENSION_COUNT * SCALE);
-	uint yGroups = SCREEN_Y / (QUAD_DIMENSION_COUNT * SCALE);
+	uint xGroups = globalUBO.screenSize.x / (QUAD_DIMENSION_COUNT * SCALE);
+	uint yGroups = globalUBO.screenSize.y / (QUAD_DIMENSION_COUNT * SCALE);
 	EmitMeshTasksEXT(xGroups, yGroups, 1);
 }

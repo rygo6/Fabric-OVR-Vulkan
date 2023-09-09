@@ -9,6 +9,8 @@
 layout (set = 0, binding = 0) uniform GlobalUBO {
 	mat4 view;
 	mat4 proj;
+	mat4 trs;
+	uvec2 screenSize;
 } globalUBO;
 
 layout(local_size_x = VERTEX_DIMENSION_COUNT, local_size_y = VERTEX_DIMENSION_COUNT, local_size_z = 1) in;
@@ -25,7 +27,7 @@ void main()
 	const float zOffset = gl_GlobalInvocationID.x * .00001;
 	const mat4 mvp = globalUBO.proj * globalUBO.view;
 
-	const vec3 screenSize = vec3(SCREEN_X, SCREEN_Y, 1);
+	const vec3 screenSize = vec3(globalUBO.screenSize.x, globalUBO.screenSize.y, 1);
 	const vec3 coord = ((gl_GlobalInvocationID - gl_WorkGroupID) * SCALE) / screenSize;
 //	const vec4 pos = vec4(float(coord.x) * VERTEX_DIMENSION_STEP, float(coord.y) * VERTEX_DIMENSION_STEP, zOffset, 1.0);
 //	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = mvp * pos;

@@ -69,6 +69,7 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
 {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
+    pCamera->bufferData.screenSize = (uvec2) {pVulkan->screenWidth, pVulkan->screenHeight };
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(180), GLM_YUP);
@@ -88,6 +89,7 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
 {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
+    pCamera->bufferData.screenSize = (uvec2) {pVulkan->screenWidth, pVulkan->screenHeight };
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);

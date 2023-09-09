@@ -106,9 +106,10 @@ FBR_SET_LAYOUT_BEGIN(Global)
                                           VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                                           VK_SHADER_STAGE_COMPUTE_BIT |
                                           VK_SHADER_STAGE_FRAGMENT_BIT |
-                                          VK_SHADER_STAGE_MESH_BIT_EXT,
+                                          VK_SHADER_STAGE_MESH_BIT_EXT |
+                                          VK_SHADER_STAGE_TASK_BIT_EXT,
                             .pImmutableSamplers = NULL,
-                    }
+                    },
 FBR_SET_LAYOUT_END
 
 FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
@@ -179,7 +180,7 @@ FBR_SET_LAYOUT_BEGIN(Material)
                             .descriptorCount = 1,
                             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                             .pImmutableSamplers = NULL,
-                    }
+                    },
 FBR_SET_LAYOUT_END
 
 FBR_RESULT fbrCreateSetObject(const FbrVulkan *pVulkan,
@@ -215,7 +216,7 @@ FBR_SET_LAYOUT_BEGIN(Object)
                             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                                           VK_SHADER_STAGE_FRAGMENT_BIT,
                             .pImmutableSamplers = NULL,
-                    }
+                    },
 FBR_SET_LAYOUT_END
 
 FBR_RESULT fbrCreateSetNode(const FbrVulkan *pVulkan,
