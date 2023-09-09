@@ -6,87 +6,74 @@
 #include "fbr_swap.h"
 #include <vulkan/vulkan.h>
 
-// Standard Pipeline
+#define FBR_DEFINE_DESCRIPTOR(name) \
+    typedef VkDescriptorSetLayout FbrSetLayout##name; \
+    typedef VkDescriptorSet FbrSet##name; \
+
 #define FBR_GLOBAL_SET_INDEX 0
-typedef VkDescriptorSetLayout FbrSetLayoutGlobal;
-//typedef struct FbrGlobalSet { // Not used but should I?
-//    FbrCamera camera;
-//} FbrGlobalSet;
-typedef VkDescriptorSet FbrSetGlobal;
+FBR_DEFINE_DESCRIPTOR(Global)
 
 #define FBR_PASS_SET_INDEX 1
-typedef VkDescriptorSetLayout FbrSetLayoutPass;
-typedef VkDescriptorSet FbrSetPass;
+FBR_DEFINE_DESCRIPTOR(Pass)
 
 #define FBR_MATERIAL_SET_INDEX 2
-typedef VkDescriptorSetLayout FbrSetLayoutMaterial;
-typedef VkDescriptorSet FbrSetMaterial;
+FBR_DEFINE_DESCRIPTOR(Material)
 
 #define FBR_OBJECT_SET_INDEX 3
-typedef VkDescriptorSetLayout FbrSetLayoutObject;
-typedef VkDescriptorSet FbrSetObject;
+FBR_DEFINE_DESCRIPTOR(Object)
 
 #define FBR_NODE_SET_INDEX 3
-typedef VkDescriptorSetLayout FbrSetLayoutNode;
-typedef VkDescriptorSet FbrSetNode;
+FBR_DEFINE_DESCRIPTOR(Node)
 
 #define FBR_COMPOSITE_SET_INDEX 1
-typedef VkDescriptorSetLayout FbrSetLayoutComposite;
-typedef VkDescriptorSet FbrSetComposite;
+FBR_DEFINE_DESCRIPTOR(Composite)
 
+#define FBR_STRUCT_DESCRIPTOR(name) \
+    FbrSetLayout##name setLayout##name; \
+    int setLayout##name##Count; \
+    FbrSet##name set##name;
 
 typedef struct FbrDescriptors {
-    FbrSetLayoutGlobal setLayoutGlobal;
-    FbrSetGlobal setGlobal;
-
-
-    FbrSetLayoutPass setLayoutPass;
-    FbrSetPass setPass;
-
-
-    FbrSetLayoutMaterial setLayoutMaterial;
-    FbrSetLayoutObject setLayoutObject;
-
-
-    FbrSetLayoutNode setLayoutNode;
-
-
-    FbrSetLayoutComposite setLayoutComposite;
-//    FbrSetComposite setComposite;
+    FBR_STRUCT_DESCRIPTOR(Global)
+    FBR_STRUCT_DESCRIPTOR(Pass)
+    FBR_STRUCT_DESCRIPTOR(Material)
+    FBR_STRUCT_DESCRIPTOR(Object)
+    FBR_STRUCT_DESCRIPTOR(Node)
+    FBR_STRUCT_DESCRIPTOR(Composite)
 
 } FbrDescriptors;
 
 FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
-                            FbrSetLayoutGlobal setLayout,
-                            const FbrCamera *pCamera,
-                            FbrSetGlobal *pSet);
+                              const FbrDescriptors *pDescriptors,
+                              const FbrCamera *pCamera,
+                              FbrSetGlobal *pSet);
 
-VkResult fbrCreateSetPass(const FbrVulkan *pVulkan,
-                          FbrSetLayoutPass setLayout,
-                          const FbrTexture *pNormalTexture,
-                          FbrSetPass *pSet);
+FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
+                            const FbrDescriptors *pDescriptors,
+                            const FbrTexture *pNormalTexture,
+                            FbrSetPass *pSet);
 
-VkResult fbrCreateSetMaterial(const FbrVulkan *pVulkan,
-                              FbrSetLayoutMaterial setLayout,
-                              const FbrTexture *pTexture,
-                              FbrSetMaterial *pSet);
+FBR_RESULT fbrCreateSetMaterial(const FbrVulkan *pVulkan,
+                                const FbrDescriptors *pDescriptors,
+                                const FbrTexture *pTexture,
+                                FbrSetMaterial *pSet);
 
-VkResult fbrCreateSetObject(const FbrVulkan *pVulkan,
-                            FbrSetLayoutObject setLayout,
+FBR_RESULT fbrCreateSetObject(const FbrVulkan *pVulkan,
+                              const FbrDescriptors *pDescriptors,
+                              const FbrTransform *pTransform,
+                              FbrSetObject *pSet);
+
+FBR_RESULT fbrCreateSetNode(const FbrVulkan *pVulkan,
+                            const FbrDescriptors *pDescriptors,
                             const FbrTransform *pTransform,
-                            FbrSetObject *pSet);
-
-VkResult fbrCreateSetNode(const FbrVulkan *pVulkan,
-                          FbrSetLayoutNode setLayout,
-                          const FbrTransform *pTransform,
-                          const FbrCamera *pCamera,
-                          const FbrTexture *pColorTexture,
-                          const FbrTexture *pNormalTexture,
-                          const FbrTexture *pDepthTexture,
-                          FbrSetNode *pSet);
+                            const FbrCamera *pCamera,
+                            const FbrTexture *pColorTexture,
+                            const FbrTexture *pNormalTexture,
+                            const FbrTexture *pDepthTexture,
+                            FbrSetNode *pSet);
 
 FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
-                                 FbrSetLayoutComposite setLayout,
+                                 const FbrDescriptors *pDescriptors,
                                  VkImageView inputColorImageView,
                                  VkImageView inputNormalImageView,
                                  VkImageView inputGBufferImageView,
@@ -94,8 +81,10 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                                  VkImageView outputColorImageView,
                                  FbrSetComposite *pSet);
 
-VkResult fbrCreateDescriptors(const FbrVulkan *pVulkan, FbrDescriptors **ppAllocDescriptors_Std);
+FBR_RESULT fbrCreateDescriptors(const FbrVulkan *pVulkan,
+                                FbrDescriptors **ppAllocDescriptors);
 
-void fbrDestroyDescriptors(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors);
+void fbrDestroyDescriptors(const FbrVulkan *pVulkan,
+                           FbrDescriptors *pDescriptors);
 
 #endif //FABRIC_DESCRIPTOR_SET_H

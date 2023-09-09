@@ -1,69 +1,42 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 
-#define VERTEX_DIMENSION_COUNT 8
-#define VERTEX_COUNT 64
-#define PRIMITIVE_COUNT 128
-#define INDEX_COUNT 378
+/* https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/
+	"We recommend using up to 64 vertices and 126 primitives"
+*/
+#include "node_mesh_constants.h"
 
 layout (set = 0, binding = 0) uniform GlobalUBO {
 	mat4 view;
 	mat4 proj;
 } globalUBO;
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 64, max_primitives = 128) out;
+layout(local_size_x = VERTEX_DIMENSION_COUNT, local_size_y = VERTEX_DIMENSION_COUNT, local_size_z = 1) in;
+layout(triangles, max_vertices = VERTEX_COUNT, max_primitives = PRIMITIVE_COUNT) out;
 
 layout(location = 0) out VertexOutput {
 	vec4 color;
 } vertexOutput[];
 
-const vec4[3] colors = {
-	vec4(0.0, 1.0, 0.0, 1.0),
-	vec4(0.0, 0.0, 1.0, 1.0),
-	vec4(1.0, 0.0, 0.0, 1.0)
-};
-
 void main()
 {
-	float zOffset = gl_GlobalInvocationID.x * .00001;
+	SetMeshOutputsEXT(VERTEX_COUNT, PRIMITIVE_COUNT);
 
-	int primitiveCount = (VERTEX_DIMENSION_COUNT - 1) * (VERTEX_DIMENSION_COUNT - 1) * 2;
-	SetMeshOutputsEXT(VERTEX_COUNT, primitiveCount);
+	const float zOffset = gl_GlobalInvocationID.x * .00001;
+	const mat4 mvp = globalUBO.proj * globalUBO.view;
 
-	mat4 mvp = globalUBO.proj * globalUBO.view;
+	const vec3 screenSize = vec3(SCREEN_X, SCREEN_Y, 1);
+	const vec3 coord = ((gl_GlobalInvocationID - gl_WorkGroupID) * SCALE) / screenSize;
+//	const vec4 pos = vec4(float(coord.x) * VERTEX_DIMENSION_STEP, float(coord.y) * VERTEX_DIMENSION_STEP, zOffset, 1.0);
+//	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = mvp * pos;
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(vec2(1, -1) * (coord.xy * 2 - 1), 1, 1);
+	vertexOutput[gl_LocalInvocationIndex].color = vec4(float(gl_GlobalInvocationID.x) / 1920, float(gl_GlobalInvocationID.y) / 1080, 0.0, 1.0);
 
-	float dimensionStep = 1.0 / float(VERTEX_DIMENSION_COUNT);
-	uint vi = 0;
-	for (uint y = 0; y < VERTEX_DIMENSION_COUNT; ++y) {
-		for (uint x = 0; x < VERTEX_DIMENSION_COUNT; ++x) {
-			vec4 pos = vec4(float(x) * dimensionStep, float(y) * dimensionStep, zOffset, 1.0);
-			gl_MeshVerticesEXT[vi].gl_Position = mvp * pos;
-			vertexOutput[vi].color = vec4(float(x) / VERTEX_DIMENSION_COUNT, float(y) / VERTEX_DIMENSION_COUNT, 0.0, 1.0);
-			vi++;
-		}
+	if (gl_LocalInvocationID.x < VERTEX_DIMENSION_COUNT - 1 && gl_LocalInvocationID.y < VERTEX_DIMENSION_COUNT - 1) {
+		const uint yOffset = gl_LocalInvocationID.y * VERTEX_DIMENSION_COUNT;
+		const uint offsetX = gl_LocalInvocationID.x + yOffset;
+		const uint pi = (gl_LocalInvocationID.y * (VERTEX_DIMENSION_COUNT - 1)) + gl_LocalInvocationID.x;
+		gl_PrimitiveTriangleIndicesEXT[pi] = uvec3(offsetX, offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT);
+		gl_PrimitiveTriangleIndicesEXT[pi + HALF_PRIMITIVE_COUNT] = uvec3(offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT + 1, offsetX + VERTEX_DIMENSION_COUNT);
 	}
-
-	uint pi = 0;
-	for (uint y = 0; y < VERTEX_DIMENSION_COUNT - 1; ++y) {
-		for (uint x = 0; x < VERTEX_DIMENSION_COUNT - 1; ++x) {
-			uint yOffset = y * VERTEX_DIMENSION_COUNT;
-			uint offsetX = x + yOffset;
-			gl_PrimitiveTriangleIndicesEXT[pi++] = uvec3(offsetX, offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT);
-			gl_PrimitiveTriangleIndicesEXT[pi++] = uvec3(offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT + 1, offsetX + VERTEX_DIMENSION_COUNT);
-		}
-	}
-
-	//	uint vi = (y * VERTEX_DIMENSION_COUNT) + x;
-	//	vec4 pos = vec4(float(x) * dimensionStep, float(y) * dimensionStep, zOffset, 1.0);
-	//	gl_MeshVerticesEXT[vi].gl_Position = mvp * pos;
-	//	vertexOutput[vi].color = vec4(float(x) / VERTEX_DIMENSION_COUNT, float(y) / VERTEX_DIMENSION_COUNT, 0.0, 1.0);
-
-	//	if (y < VERTEX_DIMENSION_COUNT - 1 && x < VERTEX_DIMENSION_COUNT - 1) {
-	//		uint yOffset = y * VERTEX_DIMENSION_COUNT;
-	//		uint offsetX = x + yOffset;
-	//		uint pi = (y * VERTEX_DIMENSION_COUNT) + x;
-	//		gl_PrimitiveTriangleIndicesEXT[pi] = uvec3(offsetX, offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT);
-	////		gl_PrimitiveTriangleIndicesEXT[pi + PRIMITIVE_COUNT] = uvec3(offsetX + 1, offsetX + VERTEX_DIMENSION_COUNT + 1, offsetX + VERTEX_DIMENSION_COUNT);
-	//	}
 }

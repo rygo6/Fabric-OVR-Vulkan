@@ -49,7 +49,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrCreateCamera(pVulkan,
                         &pApp->pCamera);
         fbrCreateSetGlobal(pApp->pVulkan,
-                           pApp->pDescriptors->setLayoutGlobal,
+                           pApp->pDescriptors,
                            pApp->pCamera,
                            &pApp->pDescriptors->setGlobal);
 //        fbrCreateSetPass(pApp->pVulkan,
@@ -72,11 +72,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                                  "textures/test.jpg",
                                  &pApp->pTestQuadTexture);
         fbrCreateSetMaterial(pApp->pVulkan,
-                           pApp->pDescriptors->setLayoutMaterial,
+                           pApp->pDescriptors,
                            pApp->pTestQuadTexture,
                            &pApp->testQuadMaterialSet);
         fbrCreateSetObject(pApp->pVulkan,
-                             pApp->pDescriptors->setLayoutObject,
+                             pApp->pDescriptors,
                              pApp->pTestQuadTransform,
                              &pApp->testQuadObjectSet);
 
@@ -88,7 +88,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         fbrUpdateTransformUBO(pApp->pTestNode->pTransform);
         for (int i = 0; i < FBR_FRAMEBUFFER_COUNT; ++i) {
             fbrCreateSetNode(pApp->pVulkan,
-                             pApp->pDescriptors->setLayoutNode,
+                             pApp->pDescriptors,
                              pApp->pTestNode->pTransform,
                              pApp->pTestNode->pCamera,
                              pApp->pTestNode->pFramebuffers[i]->pColorTexture,
@@ -250,7 +250,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
             FBR_LOG_DEBUG("Wait Message", pApp->pNodeParent->pReceiverIPC->pRingBuffer->tail, pApp->pNodeParent->pReceiverIPC->pRingBuffer->head);
         }
         fbrCreateSetGlobal(pApp->pVulkan,
-                           pApp->pDescriptors->setLayoutGlobal,
+                           pApp->pDescriptors,
                            pApp->pCamera,
                            &pApp->pDescriptors->setGlobal);
 //        fbrCreateSetPass(pApp->pVulkan,
@@ -271,11 +271,11 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                                  "textures/uvgrid.jpg",
                                  &pApp->pTestQuadTexture);
         fbrCreateSetMaterial(pApp->pVulkan,
-                             pApp->pDescriptors->setLayoutMaterial,
+                             pApp->pDescriptors,
                              pApp->pTestQuadTexture,
                              &pApp->testQuadMaterialSet);
         fbrCreateSetObject(pApp->pVulkan,
-                           pApp->pDescriptors->setLayoutObject,
+                           pApp->pDescriptors,
                            pApp->pTestQuadTransform,
                            &pApp->testQuadObjectSet);
     }

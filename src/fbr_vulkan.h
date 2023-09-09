@@ -84,9 +84,6 @@ typedef struct FbrVulkan {
 
     VkRenderPass renderPass;
 
-    //todo should go elsewhere?
-    FbrTimelineSemaphore *pMainTimelineSemaphore;
-
     VkDescriptorPool descriptorPool;
 
     VkCommandPool graphicsCommandPool;
@@ -100,10 +97,12 @@ typedef struct FbrVulkan {
 
     VkPhysicalDeviceProperties  physicalDeviceProperties;
     VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-
     VkQueryPool queryPool;
 
     FbrVulkanFunctions functions;
+
+    // todo should be here?
+    FbrTimelineSemaphore *pMainTimelineSemaphore;
 
 } FbrVulkan;
 

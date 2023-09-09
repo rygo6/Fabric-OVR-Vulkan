@@ -1,13 +1,27 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 
+#include "node_mesh_constants.h"
+
+layout (set = 0, binding = 0) uniform GlobalUBO {
+	mat4 view;
+	mat4 proj;
+	uvec2 screenSize;
+} globalUBO;
+
+layout (set = 0, binding = 1) uniform SourceUBO {
+	mat4 view;
+	mat4 proj;
+	mat4 model;
+} sourceUBO;
+
+layout (set = 3, binding = 2) uniform sampler2D sourceColor;
+layout (set = 3, binding = 3) uniform sampler2D sourceCormal;
+layout (set = 3, binding = 4) uniform sampler2D sourceDepth;
+
 void main()
 {
-	uint xPixels = 1920;
-	uint yPixels = 1080;
-	uint xGroups = xPixels / 8;
-	uint yGroups = yPixels / 8;
-	uint totalGroups = xGroups * yGroups;
-
-	EmitMeshTasksEXT(totalGroups, 1, 1);
+	uint xGroups = SCREEN_X / (QUAD_DIMENSION_COUNT * SCALE);
+	uint yGroups = SCREEN_Y / (QUAD_DIMENSION_COUNT * SCALE);
+	EmitMeshTasksEXT(xGroups, yGroups, 1);
 }

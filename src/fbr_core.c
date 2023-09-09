@@ -889,7 +889,7 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
         vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, queryCount);
         vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 0);
         pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
-        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
+        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
 
         vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
         // End of Graphics Commands
