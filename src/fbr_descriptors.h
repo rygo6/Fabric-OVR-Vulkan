@@ -49,11 +49,13 @@ typedef struct FbrDescriptors {
 #define FBR_CREATE_DESCRIPTOR_PARAMS(name) \
     const FbrVulkan *pVulkan, \
     const FbrDescriptors *pDescriptors, \
-    FbrSet##name *pSet,
+    FbrSet##name *pSet, \
 
-FBR_RESULT fbrCreateSetGlobal(
-        FBR_CREATE_DESCRIPTOR_PARAMS(Global)
-        const FbrCamera *pCamera);
+
+FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
+                              const FbrDescriptors *pDescriptors,
+                              const FbrCamera *pCamera,
+                              FbrSetPass *pSet);
 
 FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
                             const FbrDescriptors *pDescriptors,

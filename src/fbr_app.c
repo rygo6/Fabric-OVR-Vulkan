@@ -50,8 +50,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         &pApp->pCamera);
         fbrCreateSetGlobal(pApp->pVulkan,
                            pApp->pDescriptors,
-                           &pApp->pDescriptors->setGlobal,
-                           pApp->pCamera);
+                           pApp->pCamera,
+                           &pApp->pDescriptors->setGlobal);
 //        fbrCreateSetPass(pApp->pVulkan,
 //                             pApp->pDescriptors->setLayoutPass,
 //                             pApp->pSwap->pFramebuffers[0]->pNormalTexture,
@@ -251,8 +251,8 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         }
         fbrCreateSetGlobal(pApp->pVulkan,
                            pApp->pDescriptors,
-                           &pApp->pDescriptors->setGlobal,
-                           pApp->pCamera);
+                           pApp->pCamera,
+                           &pApp->pDescriptors->setGlobal);
 //        fbrCreateSetPass(pApp->pVulkan,
 //                         pApp->pDescriptors->setLayoutPass,
 //                         pApp->pNodeParent->pFramebuffers[0]->pNormalTexture,
