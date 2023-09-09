@@ -4,17 +4,37 @@
 #include "fbr_texture.h"
 #include "fbr_macros.h"
 
+static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
+                                            int bindingsCount,
+                                            const VkDescriptorSetLayoutBinding *pBindings,
+                                            FbrSetLayout *pSetLayout)
+{
+    pSetLayout->bindingCount = bindingsCount;
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .bindingCount = pSetLayout->bindingCount,
+            .pBindings = pBindings,
+    };
+    FBR_ACK(vkCreateDescriptorSetLayout(pVulkan->device,
+                                        &layoutInfo,
+                                        NULL,
+                                        &pSetLayout->layout));
+
+    return FBR_SUCCESS;
+}
+
 static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
-                                        uint32_t descriptorSetCount,
-                                        const VkDescriptorSetLayout *pSetLayouts,
+                                        const FbrSetLayout *pSetLayout,
                                         VkDescriptorSet *pDescriptorSet)
 {
     const VkDescriptorSetAllocateInfo allocInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .pNext = NULL,
             .descriptorPool = pVulkan->descriptorPool,
-            .descriptorSetCount = descriptorSetCount,
-            .pSetLayouts = pSetLayouts,
+            .descriptorSetCount = 1,
+            .pSetLayouts = &pSetLayout->layout,
     };
     FBR_ACK(vkAllocateDescriptorSets(pVulkan->device,
                                      &allocInfo,
@@ -22,60 +42,54 @@ static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
-static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
-                                          uint32_t bindingCount,
-                                          const VkDescriptorSetLayoutBinding *pBindings,
-                                          VkDescriptorSetLayout *pSetLayout)
-{
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .pNext = NULL,
-            .flags = 0,
-            .bindingCount = bindingCount,
-            .pBindings = pBindings,
-    };
-    FBR_ACK(vkCreateDescriptorSetLayout(pVulkan->device,
-                                        &layoutInfo,
-                                        NULL,
-                                        pSetLayout));
+#define FBR_SET_LAYOUT_BEGIN(name) \
+static FBR_RESULT createSetLayout##name(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors) \
+{ \
+    FbrSetLayout *pSetLayout = &pDescriptors->setLayout##name; \
+    VkDescriptorSetLayoutBinding pBindings[] = {
 
-    return FBR_SUCCESS;
+#define FBR_SET_LAYOUT_END \
+    }; \
+    FBR_ACK(createDescriptorSetLayout(pVulkan, \
+        COUNT(pBindings), \
+        pBindings, \
+        pSetLayout)); \
+    return FBR_SUCCESS; \
 }
 
-static FBR_RESULT createSetLayoutGlobal(const FbrVulkan *pVulkan,
-                                        FbrDescriptors *pDescriptors)
-{
-    VkDescriptorSetLayoutBinding bindings[] = {
-            {
-                    .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    // figure someway to selectively enable/disable these as needed?
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_COMPUTE_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT |
-                                  VK_SHADER_STAGE_MESH_BIT_EXT,
-                    .pImmutableSamplers = NULL,
-            }
-    };
-    pDescriptors->setLayoutGlobalCount = COUNT(bindings);
-    FBR_ACK(createDescriptorSetLayout(pVulkan,
-                                      1,
-                                      bindings,
-                                      &pDescriptors->setLayoutGlobal));
-    return FBR_SUCCESS;
+#define FBR_CREATE_DESCRIPTOR_BEGIN(name) \
+{ \
+FBR_ACK(allocateDescriptorSet(pVulkan, \
+                              &pDescriptors->setLayout##name, \
+                              pSet));
+#define FBR_CREATE_DESCRIPTOR_END \
+    vkUpdateDescriptorSets(pVulkan->device, \
+        COUNT(pDescriptorWrites), \
+        pDescriptorWrites, \
+        0, \
+        NULL); \
+    return FBR_SUCCESS; \
 }
 
-FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
-                              const FbrDescriptors *pDescriptors,
-                              const FbrCamera *pCamera,
-                              FbrSetGlobal *pSet)
-{
-    FBR_ACK(allocateDescriptorSet(pVulkan,
-                                  1,
-                                  &pDescriptors->setLayoutGlobal,
-                                  pSet));
+FBR_SET_LAYOUT_BEGIN(Global)
+                    {
+                            .binding = 0,
+                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            .descriptorCount = 1,
+                            // figure someway to selectively enable/disable these as needed?
+                            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                          VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                          VK_SHADER_STAGE_COMPUTE_BIT |
+                                          VK_SHADER_STAGE_FRAGMENT_BIT |
+                                          VK_SHADER_STAGE_MESH_BIT_EXT,
+                            .pImmutableSamplers = NULL,
+                    }
+FBR_SET_LAYOUT_END
+
+FBR_RESULT fbrCreateSetGlobal(
+        FBR_CREATE_DESCRIPTOR_PARAMS(Global)
+        const FbrCamera *pCamera)
+FBR_CREATE_DESCRIPTOR_BEGIN(Global)
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pCamera->pUBO->uniformBuffer,
             .offset = 0,
@@ -95,18 +109,9 @@ FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                     .pTexelBufferView = NULL,
             },
     };
-    vkUpdateDescriptorSets(pVulkan->device,
-                           1,
-                           pDescriptorWrites,
-                           0,
-                           NULL);
-    return FBR_SUCCESS;
-}
+FBR_CREATE_DESCRIPTOR_END
 
-static FBR_RESULT createSetLayoutPass(const FbrVulkan *pVulkan,
-                                      FbrDescriptors *pDescriptors)
-{
-    VkDescriptorSetLayoutBinding bindings[] = {
+FBR_SET_LAYOUT_BEGIN(Pass)
             {// normal
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -115,13 +120,7 @@ static FBR_RESULT createSetLayoutPass(const FbrVulkan *pVulkan,
                                   VK_SHADER_STAGE_FRAGMENT_BIT,
                     .pImmutableSamplers = NULL,
             },
-    };
-    FBR_ACK(createDescriptorSetLayout(pVulkan,
-                                      1,
-                                      bindings,
-                                      &pDescriptors->setLayoutPass));
-    return FBR_SUCCESS;
-}
+FBR_SET_LAYOUT_END
 
 FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
                             const FbrDescriptors *pDescriptors,
@@ -129,7 +128,6 @@ FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
                             FbrSetPass *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
-                                  1,
                                   &pDescriptors->setLayoutPass,
                                   pSet));
     const VkDescriptorImageInfo normalImageInfo = {
@@ -152,7 +150,7 @@ FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
             },
     };
     vkUpdateDescriptorSets(pVulkan->device,
-                           1,
+                           COUNT(pDescriptorWrites),
                            pDescriptorWrites,
                            0,
                            NULL);
@@ -184,7 +182,6 @@ FBR_RESULT fbrCreateSetMaterial(const FbrVulkan *pVulkan,
                                 FbrSetMaterial *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
-                                  1,
                                   &pDescriptors->setLayoutMaterial,
                                   pSet));
     const VkDescriptorImageInfo imageInfo = {
@@ -217,7 +214,7 @@ FBR_RESULT fbrCreateSetMaterial(const FbrVulkan *pVulkan,
 static FBR_RESULT createSetLayoutObject(const FbrVulkan *pVulkan,
                                         FbrDescriptors *pDescriptors)
 {
-    VkDescriptorSetLayoutBinding bindings[] = {
+    VkDescriptorSetLayoutBinding pBindings[] = {
             {
                     .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -228,8 +225,8 @@ static FBR_RESULT createSetLayoutObject(const FbrVulkan *pVulkan,
             }
     };
     FBR_ACK(createDescriptorSetLayout(pVulkan,
-                                      1,
-                                      bindings,
+                                      COUNT(pBindings),
+                                      pBindings,
                                       &pDescriptors->setLayoutObject));
     return FBR_SUCCESS;
 }
@@ -240,7 +237,6 @@ FBR_RESULT fbrCreateSetObject(const FbrVulkan *pVulkan,
                               FbrSetObject *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
-                                  1,
                                   &pDescriptors->setLayoutObject,
                                   pSet));
     const VkDescriptorBufferInfo bufferInfo = {
@@ -333,7 +329,6 @@ FBR_RESULT fbrCreateSetNode(const FbrVulkan *pVulkan,
                             FbrSetNode *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
-                                  1,
                                   &pDescriptors->setLayoutNode,
                                   pSet));
     const VkDescriptorBufferInfo transformBufferInfo = {
@@ -489,7 +484,6 @@ FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
                                  FbrSetComposite *pSet)
 {
     FBR_ACK(allocateDescriptorSet(pVulkan,
-                                  1,
                                   &pDescriptors->setLayoutComposite,
                                   pSet));
 
@@ -617,12 +611,12 @@ FBR_RESULT fbrCreateDescriptors(const FbrVulkan *pVulkan,
 void fbrDestroyDescriptors(const FbrVulkan *pVulkan,
                            FbrDescriptors *pDescriptors)
 {
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutGlobal, NULL);
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutPass, NULL);
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutMaterial, NULL);
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutObject, NULL);
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutComposite, NULL);
-    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutNode, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutGlobal.layout, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutPass.layout, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutMaterial.layout, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutObject.layout, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutComposite.layout, NULL);
+    vkDestroyDescriptorSetLayout(pVulkan->device, pDescriptors->setLayoutNode.layout, NULL);
 
     vkFreeDescriptorSets(pVulkan->device, pVulkan->descriptorPool, 1, &pDescriptors->setGlobal);
     if (pDescriptors->setPass != NULL)

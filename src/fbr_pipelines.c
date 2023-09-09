@@ -9,10 +9,10 @@ static FBR_RESULT createPipeLayoutStandard(const FbrVulkan *pVulkan,
                                          FbrPipeLayoutStandard *pipelineLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
-            pDescriptors->setLayoutGlobal,
-            pDescriptors->setLayoutPass,
-            pDescriptors->setLayoutMaterial,
-            pDescriptors->setLayoutObject
+            pDescriptors->setLayoutGlobal.layout,
+            pDescriptors->setLayoutPass.layout,
+            pDescriptors->setLayoutMaterial.layout,
+            pDescriptors->setLayoutObject.layout
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -35,10 +35,10 @@ static FBR_RESULT createPipeLayoutNodeTess(const FbrVulkan *pVulkan,
                                            FbrPipeLayoutNodeTess *pPipeLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
-            pDescriptors->setLayoutGlobal,
-            pDescriptors->setLayoutPass,
-            pDescriptors->setLayoutMaterial,
-            pDescriptors->setLayoutNode
+            pDescriptors->setLayoutGlobal.layout,
+            pDescriptors->setLayoutPass.layout,
+            pDescriptors->setLayoutMaterial.layout,
+            pDescriptors->setLayoutNode.layout
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -61,10 +61,10 @@ static FBR_RESULT createPipeLayoutNodeMesh(const FbrVulkan *pVulkan,
                                            FbrPipeLayoutNodeTess *pPipeLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
-            pDescriptors->setLayoutGlobal,
-            pDescriptors->setLayoutPass,
-            pDescriptors->setLayoutMaterial,
-            pDescriptors->setLayoutNode
+            pDescriptors->setLayoutGlobal.layout,
+            pDescriptors->setLayoutPass.layout,
+            pDescriptors->setLayoutMaterial.layout,
+            pDescriptors->setLayoutNode.layout
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -87,8 +87,8 @@ static FBR_RESULT createPipeLayoutComposite(const FbrVulkan *pVulkan,
                                             FbrComputePipeLayoutComposite *pPipeLayout)
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
-            pDescriptors->setLayoutGlobal,
-            pDescriptors->setLayoutComposite,
+            pDescriptors->setLayoutGlobal.layout,
+            pDescriptors->setLayoutComposite.layout,
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

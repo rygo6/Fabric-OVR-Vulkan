@@ -152,7 +152,7 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
     uint32_t swapCount;
     FBR_VK_CHECK(vkGetSwapchainImagesKHR(pVulkan->device, pSwap->swapChain, &swapCount, NULL));
     if (swapCount != FBR_SWAP_COUNT) {
-        FBR_LOG_ERROR("Resulting swap count is not 2! Was planning on this always being 2. What device disallows 2!?");
+        FBR_LOG_ERROR("Resulting swap bindingCount is not 2! Was planning on this always being 2. What device disallows 2!?");
         return VK_ERROR_UNKNOWN;
     }
 

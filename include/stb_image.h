@@ -67,7 +67,7 @@ RECENT REVISION HISTORY:
       2.11  (2016-04-02) 16-bit PNGS; enable SSE2 in non-gcc x64
                          RGB-format JPEG; remove white matting in PSD;
                          allocate large structures on the stack;
-                         correct channel count for PNG & BMP
+                         correct channel bindingCount for PNG & BMP
       2.10  (2016-01-22) avoid warning introduced in 2.09
       2.09  (2016-01-16) 16-bit TGA; comments in PNM files; STBI_REALLOC_SIZED
 
@@ -179,7 +179,7 @@ RECENT REVISION HISTORY:
 //
 // Paletted PNG, BMP, GIF, and PIC images are automatically depalettized.
 //
-// To query the width, height and component count of an image without having to
+// To query the width, height and component bindingCount of an image without having to
 // decode the full file, you can use the stbi_info family of functions:
 //
 //   int x,y,n,ok;
@@ -2963,7 +2963,7 @@ static int stbi__parse_entropy_coded_data(stbi__jpeg *z)
                   }
                }
                // after all interleaved components, that's an interleaved MCU,
-               // so now count down the restart interval
+               // so now bindingCount down the restart interval
                if (--z->todo <= 0) {
                   if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
                   if (!STBI__RESTART(z->marker)) return 1;
@@ -3023,7 +3023,7 @@ static int stbi__parse_entropy_coded_data(stbi__jpeg *z)
                   }
                }
                // after all interleaved components, that's an interleaved MCU,
-               // so now count down the restart interval
+               // so now bindingCount down the restart interval
                if (--z->todo <= 0) {
                   if (z->code_bits < 24) stbi__grow_buffer_unsafe(z);
                   if (!STBI__RESTART(z->marker)) return 1;
@@ -3170,7 +3170,7 @@ static int stbi__process_scan_header(stbi__jpeg *z)
    int i;
    int Ls = stbi__get16be(z->s);
    z->scan_n = stbi__get8(z->s);
-   if (z->scan_n < 1 || z->scan_n > 4 || z->scan_n > (int) z->s->img_n) return stbi__err("bad SOS component count","Corrupt JPEG");
+   if (z->scan_n < 1 || z->scan_n > 4 || z->scan_n > (int) z->s->img_n) return stbi__err("bad SOS component bindingCount","Corrupt JPEG");
    if (Ls != 6+2*z->scan_n) return stbi__err("bad SOS len","Corrupt JPEG");
    for (i=0; i < z->scan_n; ++i) {
       int id = stbi__get8(z->s), which;
@@ -3237,7 +3237,7 @@ static int stbi__process_frame_header(stbi__jpeg *z, int scan)
    if (s->img_y > STBI_MAX_DIMENSIONS) return stbi__err("too large","Very large image (corrupt?)");
    if (s->img_x > STBI_MAX_DIMENSIONS) return stbi__err("too large","Very large image (corrupt?)");
    c = stbi__get8(s);
-   if (c != 3 && c != 1 && c != 4) return stbi__err("bad component count","Corrupt JPEG");
+   if (c != 3 && c != 1 && c != 4) return stbi__err("bad component bindingCount","Corrupt JPEG");
    s->img_n = c;
    for (i=0; i < c; ++i) {
       z->img_comp[i].data = NULL;
@@ -3704,7 +3704,7 @@ static void stbi__YCbCr_to_RGB_simd(stbi_uc *out, stbi_uc const *y, stbi_uc cons
       int16x8_t cb_const0 = vdupq_n_s16( - (short) ( 0.34414f*4096.0f+0.5f));
       int16x8_t cb_const1 = vdupq_n_s16(   (short) ( 1.77200f*4096.0f+0.5f));
 
-      for (; i+7 < count; i += 8) {
+      for (; i+7 < bindingCount; i += 8) {
          // load
          uint8x8_t y_bytes  = vld1_u8(y + i);
          uint8x8_t cr_bytes = vld1_u8(pcr + i);
@@ -5982,7 +5982,7 @@ static void *stbi__tga_load(stbi__context *s, int *x, int *y, int *comp, int req
       }
    }
 
-   // convert to target component count
+   // convert to target component bindingCount
    if (req_comp && req_comp != tga_comp)
       tga_data = stbi__convert_format(tga_data, tga_comp, req_comp, tga_width, tga_height);
 
@@ -6069,7 +6069,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
    // Read the number of channels (R, G, B, A, etc).
    channelCount = stbi__get16be(s);
    if (channelCount < 0 || channelCount > 16)
-      return stbi__errpuc("wrong channel count", "Unsupported number of channels in PSD image");
+      return stbi__errpuc("wrong channel bindingCount", "Unsupported number of channels in PSD image");
 
    // Read the rows and columns of the image.
    h = stbi__get32be(s);
@@ -6141,7 +6141,7 @@ static void *stbi__psd_load(stbi__context *s, int *x, int *y, int *comp, int req
       //     Else if n is 128, noop.
       // Endloop
 
-      // The RLE-compressed data is preceded by a 2-byte data count for each row in the data,
+      // The RLE-compressed data is preceded by a 2-byte data bindingCount for each row in the data,
       // which we're going to just skip.
       stbi__skip(s, h * channelCount * 2 );
 
@@ -6365,7 +6365,7 @@ static stbi_uc *stbi__pic_load_core(stbi__context *s,int width,int height,int *c
                      stbi_uc count,value[4];
 
                      count=stbi__get8(s);
-                     if (stbi__at_eof(s))   return stbi__errpuc("bad file","file too short (pure read count)");
+                     if (stbi__at_eof(s))   return stbi__errpuc("bad file","file too short (pure read bindingCount)");
 
                      if (count > left)
                         count = (stbi_uc) left;
@@ -6383,7 +6383,7 @@ static stbi_uc *stbi__pic_load_core(stbi__context *s,int width,int height,int *c
                int left=width;
                while (left>0) {
                   int count = stbi__get8(s), i;
-                  if (stbi__at_eof(s))  return stbi__errpuc("bad file","file too short (mixed read count)");
+                  if (stbi__at_eof(s))  return stbi__errpuc("bad file","file too short (mixed read bindingCount)");
 
                   if (count >= 128) { // Repeated
                      stbi_uc value[4];
@@ -7695,7 +7695,7 @@ STBIDEF int stbi_is_16_bit_from_callbacks(stbi_io_callbacks const *c, void *user
       2.12  (2016-04-02) fix typo in 2.11 PSD fix that caused crashes
       2.11  (2016-04-02) allocate large structures on the stack
                          remove white matting for transparent PSD
-                         fix reported channel count for PNG & BMP
+                         fix reported channel bindingCount for PNG & BMP
                          re-enable SSE2 in non-gcc 64-bit
                          support RGB-formatted JPEG
                          read 16-bit PNGs (only as 8-bit)
@@ -7730,7 +7730,7 @@ STBIDEF int stbi_is_16_bit_from_callbacks(stbi_io_callbacks const *c, void *user
       1.48  (2014-12-14) fix incorrectly-named assert()
       1.47  (2014-12-14) 1/2/4-bit PNG support, both direct and paletted (Omar Cornut & stb)
                          optimize PNG (ryg)
-                         fix bug in interlaced PNG with user-specified channel count (stb)
+                         fix bug in interlaced PNG with user-specified channel bindingCount (stb)
       1.46  (2014-08-26)
               fix broken tRNS chunk (colorkey-style transparency) in non-paletted PNG
       1.45  (2014-08-16)

@@ -6,8 +6,13 @@
 #include "fbr_swap.h"
 #include <vulkan/vulkan.h>
 
+typedef struct FbrSetLayout {
+    VkDescriptorSetLayout layout;
+    int bindingCount;
+} FbrSetLayout;
+
 #define FBR_DEFINE_DESCRIPTOR(name) \
-    typedef VkDescriptorSetLayout FbrSetLayout##name; \
+    typedef FbrSetLayout FbrSetLayout##name; \
     typedef VkDescriptorSet FbrSet##name; \
 
 #define FBR_GLOBAL_SET_INDEX 0
@@ -30,7 +35,6 @@ FBR_DEFINE_DESCRIPTOR(Composite)
 
 #define FBR_STRUCT_DESCRIPTOR(name) \
     FbrSetLayout##name setLayout##name; \
-    int setLayout##name##Count; \
     FbrSet##name set##name;
 
 typedef struct FbrDescriptors {
@@ -40,13 +44,16 @@ typedef struct FbrDescriptors {
     FBR_STRUCT_DESCRIPTOR(Object)
     FBR_STRUCT_DESCRIPTOR(Node)
     FBR_STRUCT_DESCRIPTOR(Composite)
-
 } FbrDescriptors;
 
-FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
-                              const FbrDescriptors *pDescriptors,
-                              const FbrCamera *pCamera,
-                              FbrSetGlobal *pSet);
+#define FBR_CREATE_DESCRIPTOR_PARAMS(name) \
+    const FbrVulkan *pVulkan, \
+    const FbrDescriptors *pDescriptors, \
+    FbrSet##name *pSet,
+
+FBR_RESULT fbrCreateSetGlobal(
+        FBR_CREATE_DESCRIPTOR_PARAMS(Global)
+        const FbrCamera *pCamera);
 
 FBR_RESULT fbrCreateSetPass(const FbrVulkan *pVulkan,
                             const FbrDescriptors *pDescriptors,
