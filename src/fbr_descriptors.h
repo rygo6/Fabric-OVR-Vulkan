@@ -30,8 +30,11 @@ FBR_DEFINE_DESCRIPTOR(Object)
 #define FBR_NODE_SET_INDEX 3
 FBR_DEFINE_DESCRIPTOR(Node)
 
-#define FBR_COMPOSITE_SET_INDEX 1
-FBR_DEFINE_DESCRIPTOR(Composite)
+#define FBR_COMPUTE_COMPOSITE_SET_INDEX 1
+FBR_DEFINE_DESCRIPTOR(ComputeComposite)
+
+#define FBR_MESH_COMPOSITE_SET_INDEX 1
+FBR_DEFINE_DESCRIPTOR(MeshComposite)
 
 #define FBR_STRUCT_DESCRIPTOR(name) \
     FbrSetLayout##name setLayout##name; \
@@ -43,7 +46,8 @@ typedef struct FbrDescriptors {
     FBR_STRUCT_DESCRIPTOR(Material)
     FBR_STRUCT_DESCRIPTOR(Object)
     FBR_STRUCT_DESCRIPTOR(Node)
-    FBR_STRUCT_DESCRIPTOR(Composite)
+    FBR_STRUCT_DESCRIPTOR(ComputeComposite)
+    FBR_STRUCT_DESCRIPTOR(MeshComposite)
 } FbrDescriptors;
 
 #define FBR_CREATE_DESCRIPTOR_PARAMS(name) \
@@ -81,14 +85,14 @@ FBR_RESULT fbrCreateSetNode(const FbrVulkan *pVulkan,
                             const FbrTexture *pDepthTexture,
                             FbrSetNode *pSet);
 
-FBR_RESULT fbrCreateSetComposite(const FbrVulkan *pVulkan,
-                                 const FbrDescriptors *pDescriptors,
-                                 VkImageView inputColorImageView,
-                                 VkImageView inputNormalImageView,
-                                 VkImageView inputGBufferImageView,
-                                 VkImageView inputDepthImageView,
-                                 VkImageView outputColorImageView,
-                                 FbrSetComposite *pSet);
+FBR_RESULT fbrCreateSetComputeComposite(const FbrVulkan *pVulkan,
+                                        const FbrDescriptors *pDescriptors,
+                                        VkImageView inputColorImageView,
+                                        VkImageView inputNormalImageView,
+                                        VkImageView inputGBufferImageView,
+                                        VkImageView inputDepthImageView,
+                                        VkImageView outputColorImageView,
+                                        FbrSetComputeComposite *pSet);
 
 FBR_RESULT fbrCreateDescriptors(const FbrVulkan *pVulkan,
                                 FbrDescriptors **ppAllocDescriptors);

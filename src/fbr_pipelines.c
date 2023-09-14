@@ -88,7 +88,7 @@ static FBR_RESULT createPipeLayoutComposite(const FbrVulkan *pVulkan,
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
             pDescriptors->setLayoutGlobal.layout,
-            pDescriptors->setLayoutComposite.layout,
+            pDescriptors->setLayoutComputeComposite.layout,
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

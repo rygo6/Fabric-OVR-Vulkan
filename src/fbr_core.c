@@ -569,7 +569,7 @@ static void childMainLoop(FbrApp *pApp)
 //
 //        // Set descriptor sets
 //        FbrSetComposite setComposite;
-//        fbrCreateSetComposite(pApp->pVulkan,
+//        fbrCreateSetComputeComposite(pApp->pVulkan,
 //                              pApp->pDescriptors->setLayoutComposite,
 //                              pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->imageView,
 //                              pApp->pFramebuffers[mainFrameBufferIndex]->pNormalTexture->imageView,

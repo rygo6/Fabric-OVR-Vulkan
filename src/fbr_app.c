@@ -106,7 +106,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 //        for (int i = 0; i < FBR_SWAP_COUNT; ++i) {
 //            pTargetTextures[i] = pApp->pSwap->pSwapImageViews[i];
 //        }
-//        fbrCreateSetComposite(pApp->pVulkan,
+//        fbrCreateSetComputeComposite(pApp->pVulkan,
 //                              pApp->pDescriptors->setLayoutComposite,
 //                              pSourceTextures,
 //                              pTargetTextures,
