@@ -4,40 +4,35 @@
 #include "fbr_texture.h"
 #include "fbr_macros.h"
 
-#define FBR_SET_LAYOUT_BEGIN(name) \
-static FBR_RESULT createSetLayout##name(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors) \
-{ \
-    FbrSetLayout *pSetLayout = &pDescriptors->setLayout##name; \
-    VkDescriptorSetLayoutBinding pBindings[] = {
+#define CREATE_SET_LAYOUT(name) \
+static FBR_RESULT createSetLayout##name(const FbrVulkan *pVulkan, FbrSetLayout##name *pSetLayout) \
 
-#define FBR_SET_LAYOUT_END \
-    }; \
-    FBR_ACK(createDescriptorSetLayout(pVulkan, \
-        COUNT(pBindings), \
-        pBindings, \
-        pSetLayout)); \
-    return FBR_SUCCESS; \
-}
+#define END_SET_LAYOUT \
+FBR_ACK(createDescriptorSetLayout(pVulkan, \
+    COUNT(pBindings), \
+    pBindings, \
+    pSetLayout)); \
+return FBR_SUCCESS;
 
-#define FBR_CREATE_DESCRIPTOR_BEGIN(name, ...) \
+#define CREATE_SET(name, ...) \
 FBR_RESULT fbrCreateSet##name( \
     const FbrVulkan *pVulkan, \
     const FbrDescriptors *pDescriptors, \
     __VA_ARGS__, \
-    FbrSet##name *pSet) \
-{ \
-FBR_ACK(allocateDescriptorSet(pVulkan, \
-                              &pDescriptors->setLayout##name, \
-                              pSet));
+    FbrSet##name *pSet)
 
-#define FBR_CREATE_DESCRIPTOR_END \
+#define BEGIN_SET(name) \
+    FBR_ACK(allocateDescriptorSet(pVulkan, \
+                                  &pDescriptors->setLayout##name, \
+                                  pSet));
+
+#define END_SET \
     vkUpdateDescriptorSets(pVulkan->device, \
         COUNT(pDescriptorWrites), \
         pDescriptorWrites, \
         0, \
         NULL); \
     return FBR_SUCCESS; \
-}
 
 static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                             int bindingsCount,
@@ -77,9 +72,10 @@ static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
-/// Global
-FBR_CREATE_DESCRIPTOR_BEGIN(Global,
-                             const FbrCamera *pCamera)
+CREATE_SET(Global,
+           const FbrCamera *pCamera)
+{
+    BEGIN_SET(Global)
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pCamera->pUBO->uniformBuffer,
             .offset = 0,
@@ -99,26 +95,34 @@ FBR_CREATE_DESCRIPTOR_BEGIN(Global,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(Global)
-                    {
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .descriptorCount = 1,
-                            // figure someway to selectively enable/disable these as needed?
-                            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                                          VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_COMPUTE_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT |
-                                          VK_SHADER_STAGE_MESH_BIT_EXT |
-                                          VK_SHADER_STAGE_TASK_BIT_EXT,
-                            .pImmutableSamplers = NULL,
-                    },
-FBR_SET_LAYOUT_END
+    END_SET
+}
+
+CREATE_SET_LAYOUT(Global)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    // figure someway to selectively enable/disable these as needed?
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_COMPUTE_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT |
+                                  VK_SHADER_STAGE_MESH_BIT_EXT |
+                                  VK_SHADER_STAGE_TASK_BIT_EXT,
+                    .pImmutableSamplers = NULL,
+            },
+    };
+    END_SET_LAYOUT
+}
 
 /// Pass
-FBR_CREATE_DESCRIPTOR_BEGIN(Pass,
-                            const FbrTexture *pNormalTexture)
+CREATE_SET(Pass,
+           const FbrTexture *pNormalTexture)
+{
+    BEGIN_SET(Pass)
     const VkDescriptorImageInfo normalImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pNormalTexture->imageView,
@@ -138,21 +142,28 @@ FBR_CREATE_DESCRIPTOR_BEGIN(Pass,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(Pass)
-                    {// normal
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-FBR_SET_LAYOUT_END
+    END_SET;
+}
 
-/// Material
-FBR_CREATE_DESCRIPTOR_BEGIN(Material,
-                            const FbrTexture *pTexture)
+CREATE_SET_LAYOUT(Pass)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {// normal
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+    };
+    END_SET_LAYOUT
+}
+
+CREATE_SET(Material,
+           const FbrTexture *pTexture)
+{
+    BEGIN_SET(Material)
     const VkDescriptorImageInfo imageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = pTexture->imageView,
@@ -172,20 +183,28 @@ FBR_CREATE_DESCRIPTOR_BEGIN(Material,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(Material)
-                    {
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-FBR_SET_LAYOUT_END
+    END_SET
+}
+
+CREATE_SET_LAYOUT(Material)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+    };
+    END_SET_LAYOUT;
+}
 
 /// Object
-FBR_CREATE_DESCRIPTOR_BEGIN(Object,
-                            const FbrTransform *pTransform)
+CREATE_SET(Object,
+           const FbrTransform *pTransform)
+{
+    BEGIN_SET(Object)
     const VkDescriptorBufferInfo bufferInfo = {
             .buffer = pTransform->pUBO->uniformBuffer,
             .offset = 0,
@@ -205,25 +224,32 @@ FBR_CREATE_DESCRIPTOR_BEGIN(Object,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(Object)
-                    {
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-FBR_SET_LAYOUT_END
+    END_SET
+}
 
-/// Node
-FBR_CREATE_DESCRIPTOR_BEGIN(Node,
-                            const FbrTransform *pTransform,
-                            const FbrCamera *pCamera,
-                            const FbrTexture *pColorTexture,
-                            const FbrTexture *pNormalTexture,
-                            const FbrTexture *pDepthTexture)
+CREATE_SET_LAYOUT(Object)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+    };
+    END_SET_LAYOUT
+}
+
+CREATE_SET(Node,
+            const FbrTransform *pTransform,
+            const FbrCamera *pCamera,
+            const FbrTexture *pColorTexture,
+            const FbrTexture *pNormalTexture,
+            const FbrTexture *pDepthTexture)
+{
+    BEGIN_SET(Node)
     const VkDescriptorBufferInfo transformBufferInfo = {
             .buffer = pTransform->pUBO->uniformBuffer,
             .offset = 0,
@@ -311,57 +337,65 @@ FBR_CREATE_DESCRIPTOR_BEGIN(Node,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(Node)
-                    {// transform ubo
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// camera rendered from ubo
-                            .binding = 1,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// color
-                            .binding = 2,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// normal
-                            .binding = 3,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// depth
-                            .binding = 4,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                          VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-FBR_SET_LAYOUT_END
+    END_SET
+}
+
+CREATE_SET_LAYOUT(Node)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {// transform ubo
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// camera rendered from ubo
+                    .binding = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// color
+                    .binding = 2,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// normal
+                    .binding = 3,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// depth
+                    .binding = 4,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                                  VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+    };
+    END_SET_LAYOUT
+}
 
 /// ComputeComposite
-FBR_CREATE_DESCRIPTOR_BEGIN(ComputeComposite,
-                            VkImageView inputColorImageView,
-                            VkImageView inputNormalImageView,
-                            VkImageView inputGBufferImageView,
-                            VkImageView inputDepthImageView,
-                            VkImageView outputColorImageView)
+CREATE_SET(ComputeComposite,
+           VkImageView inputColorImageView,
+           VkImageView inputNormalImageView,
+           VkImageView inputGBufferImageView,
+           VkImageView inputDepthImageView,
+           VkImageView outputColorImageView)
+{
+    BEGIN_SET(ComputeComposite)
     const VkDescriptorImageInfo inputColorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputColorImageView,
@@ -454,52 +488,58 @@ FBR_CREATE_DESCRIPTOR_BEGIN(ComputeComposite,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(ComputeComposite)
-                    {// input color
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// input normal
-                            .binding = 1,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// input depth
-                            .binding = 2,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// input node depth
-                            .binding = 3,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// output color
-                            .binding = 4,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    }
-FBR_SET_LAYOUT_END
+    END_SET
+}
 
+CREATE_SET_LAYOUT(ComputeComposite)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {// input color
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// input normal
+                    .binding = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// input depth
+                    .binding = 2,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// input node depth
+                    .binding = 3,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// output color
+                    .binding = 4,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            }
+    };
+    END_SET_LAYOUT
+}
 
-/// MeshComposite
-FBR_CREATE_DESCRIPTOR_BEGIN(MeshComposite,
-                            VkImageView inputColorImageView,
-                            VkImageView inputNormalImageView,
-                            VkImageView inputGBufferImageView,
-                            VkImageView inputDepthImageView)
+CREATE_SET(MeshComposite,
+           VkImageView inputColorImageView,
+           VkImageView inputNormalImageView,
+           VkImageView inputGBufferImageView,
+           VkImageView inputDepthImageView)
+{
+    BEGIN_SET(MeshComposite)
     const VkDescriptorImageInfo inputColorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputColorImageView,
@@ -574,46 +614,52 @@ FBR_CREATE_DESCRIPTOR_BEGIN(MeshComposite,
                     .pTexelBufferView = NULL,
             },
     };
-FBR_CREATE_DESCRIPTOR_END
-FBR_SET_LAYOUT_BEGIN(MeshComposite)
-                    {// input color
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// input normal
-                            .binding = 1,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// input depth
-                            .binding = 2,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-                    {// input node depth
-                            .binding = 3,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                            .pImmutableSamplers = NULL,
-                    },
-FBR_SET_LAYOUT_END
+    END_SET
+}
+
+CREATE_SET_LAYOUT(MeshComposite)
+{
+    const VkDescriptorSetLayoutBinding pBindings[] = {
+            {// input color
+                    .binding = 0,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// input normal
+                    .binding = 1,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// input depth
+                    .binding = 2,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+            {// input node depth
+                    .binding = 3,
+                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                    .pImmutableSamplers = NULL,
+            },
+    };
+    END_SET_LAYOUT
+}
 
 static FBR_RESULT createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDescriptors)
 {
-    createSetLayoutGlobal(pVulkan, pDescriptors);
-    createSetLayoutPass(pVulkan, pDescriptors);
-    createSetLayoutMaterial(pVulkan, pDescriptors);
-    createSetLayoutObject(pVulkan, pDescriptors);
-    createSetLayoutNode(pVulkan, pDescriptors);
-    createSetLayoutComputeComposite(pVulkan, pDescriptors);
+    createSetLayoutGlobal(pVulkan, &pDescriptors->setLayoutGlobal);
+    createSetLayoutPass(pVulkan, &pDescriptors->setLayoutPass);
+    createSetLayoutMaterial(pVulkan, &pDescriptors->setLayoutMaterial);
+    createSetLayoutObject(pVulkan, &pDescriptors->setLayoutObject);
+    createSetLayoutNode(pVulkan, &pDescriptors->setLayoutNode);
+    createSetLayoutComputeComposite(pVulkan, &pDescriptors->setLayoutComputeComposite);
     return FBR_SUCCESS;
 }
 
