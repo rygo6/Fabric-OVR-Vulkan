@@ -1,6 +1,6 @@
 #version 450
 
-#include "global_ubo.h"
+#include "global_ubo.glsl"
 
 layout (set = 3, binding = 1) uniform NodeUBO {
     mat4 view;

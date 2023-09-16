@@ -4,8 +4,9 @@
 /* https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/
 	"We recommend using up to 64 vertices and 126 primitives"
 */
-#include "node_mesh_constants.h"
-#include "global_ubo.h"
+#include "node_mesh_constants.glsl"
+#include "global_ubo.glsl"
+#include "node_mesh_ubo.glsl"
 
 layout(local_size_x = VERTEX_DIMENSION_COUNT, local_size_y = VERTEX_DIMENSION_COUNT, local_size_z = 1) in;
 layout(triangles, max_vertices = VERTEX_COUNT, max_primitives = PRIMITIVE_COUNT) out;

@@ -3,6 +3,11 @@
 #include "fbr_camera.h"
 #include "fbr_texture.h"
 #include "fbr_macros.h"
+#include "fbr_log.h"
+#include "stb_ds.h"
+
+VkDescriptorSetLayoutBinding *pLayoutBindingArray = NULL;
+VkWriteDescriptorSet *pDescriptorWriteArray = NULL;
 
 #define CREATE_SET_LAYOUT(name) \
 static FBR_RESULT createSetLayout##name(const FbrVulkan *pVulkan, FbrSetLayout##name *pSetLayout)
@@ -12,6 +17,14 @@ FBR_ACK(createDescriptorSetLayout(pVulkan, \
     COUNT(pBindings), \
     pBindings, \
     pSetLayout)); \
+return FBR_SUCCESS;
+
+#define END_PUSH_SET_LAYOUT \
+FBR_ACK(createDescriptorSetLayout(pVulkan, \
+                                  arrlen(pLayoutBindingArray), \
+                                  pLayoutBindingArray, \
+                                  pSetLayout)); \
+arrsetlen(pLayoutBindingArray, 0); \
 return FBR_SUCCESS;
 
 #define CREATE_SET(name, ...) \
@@ -34,6 +47,49 @@ FBR_RESULT fbrCreateSet##name( \
         NULL); \
     return FBR_SUCCESS;
 
+#define END_PUSH_SET \
+vkUpdateDescriptorSets(pVulkan->device, \
+    arrlen(pDescriptorWriteArray), \
+    pDescriptorWriteArray, \
+    0, \
+    NULL); \
+arrsetlen(pDescriptorWriteArray, 0); \
+return FBR_SUCCESS;
+
+static void pushDescriptorWrite(VkWriteDescriptorSet descriptorWrite, VkDescriptorSet *pSet)
+{
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = *pSet;
+    descriptorWrite.dstBinding = arrlen(pDescriptorWriteArray);
+    descriptorWrite.descriptorCount = descriptorWrite.descriptorCount == 0 ? 1 : descriptorWrite.descriptorCount;
+    FBR_LOG_DEBUG(descriptorWrite.dstBinding);
+    arrput(pDescriptorWriteArray, descriptorWrite);
+}
+
+static void pushLayoutBinding(VkDescriptorSetLayoutBinding binding)
+{
+    binding.binding = arrlen(pLayoutBindingArray);
+    binding.descriptorCount = binding.descriptorCount == 0 ? 1 : binding.descriptorCount;
+            arrput(pLayoutBindingArray, binding);
+}
+
+static void setDefaultDescriptorLayoutParams(int count, VkDescriptorSetLayoutBinding *pBindings)
+{
+    for (int i = 0; i < count; ++i) {
+        pBindings[i].binding = i;
+    }
+}
+
+static void setDefaultDescriptorParams(int count, VkWriteDescriptorSet *pDescriptorWrites, VkDescriptorSet *pSet)
+{
+    for (int i = 0; i < count; ++i) {
+        pDescriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        pDescriptorWrites[i].dstSet = *pSet;
+        pDescriptorWrites[i].dstBinding = i;
+        pDescriptorWrites[i].descriptorCount = 1;
+    }
+}
+
 static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                             int bindingsCount,
                                             const VkDescriptorSetLayoutBinding *pBindings,
@@ -51,7 +107,6 @@ static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                         &layoutInfo,
                                         NULL,
                                         &pSetLayout->layout));
-
     return FBR_SUCCESS;
 }
 
@@ -249,141 +304,80 @@ CREATE_SET(Node,
             const FbrTexture *pDepthTexture)
 {
     BEGIN_SET(Node)
-    const VkDescriptorBufferInfo transformBufferInfo = {
-            .buffer = pTransform->pUBO->uniformBuffer,
-            .offset = 0,
-            .range = sizeof(FbrTransform),
-    };
-    const VkDescriptorBufferInfo cameraBufferInfo = {
-            .buffer = pCamera->pUBO->uniformBuffer,
-            .offset = 0,
-            .range = sizeof(FbrCamera),
-    };
-    const VkDescriptorImageInfo colorImageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pColorTexture->imageView,
-            .sampler = pVulkan->linearSampler,
-    };
-    const VkDescriptorImageInfo normalImageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pNormalTexture->imageView,
-            .sampler = pVulkan->linearSampler,
-    };
-    const VkDescriptorImageInfo depthImageInfo = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = pDepthTexture->imageView,
-            .sampler = pVulkan->linearSampler,
-    };
-    const VkWriteDescriptorSet pDescriptorWrites[] = {
-            {// transform UBO
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImageInfo = NULL,
-                    .pBufferInfo = &transformBufferInfo,
-                    .pTexelBufferView = NULL,
+    // transform UBO
+    pushDescriptorWrite((VkWriteDescriptorSet) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pBufferInfo = &(VkDescriptorBufferInfo) {
+                    .buffer = pTransform->pUBO->uniformBuffer,
+                    .range = sizeof(FbrTransform),
+            }
+    }, pSet);
+    // camera UBO from which it was rendered
+    pushDescriptorWrite((VkWriteDescriptorSet) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pBufferInfo = &(VkDescriptorBufferInfo) {
+                    .buffer = pCamera->pUBO->uniformBuffer,
+                    .range = sizeof(FbrCamera),
             },
-            {// camera UBO from which it was rendered
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 1,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .pImageInfo = NULL,
-                    .pBufferInfo = &cameraBufferInfo,
-                    .pTexelBufferView = NULL,
+    }, pSet);
+    // rgb map
+    pushDescriptorWrite((VkWriteDescriptorSet) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &(VkDescriptorImageInfo) {
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .imageView = pColorTexture->imageView,
+                    .sampler = pVulkan->linearSampler,
             },
-            {// rgb map
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 2,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &colorImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
+    }, pSet);
+    // normal map
+    pushDescriptorWrite((VkWriteDescriptorSet) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &(VkDescriptorImageInfo) {
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .imageView = pNormalTexture->imageView,
+                    .sampler = pVulkan->linearSampler,
             },
-            {// normal map
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 3,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &normalImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
+    }, pSet);
+    // depth map
+    pushDescriptorWrite((VkWriteDescriptorSet) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &(VkDescriptorImageInfo) {
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .imageView = pDepthTexture->imageView,
+                    .sampler = pVulkan->linearSampler,
             },
-            {// depth map
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 4,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .pImageInfo = &depthImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
-            },
-    };
-    END_SET
+    }, pSet);
+    END_PUSH_SET
 }
 
 CREATE_SET_LAYOUT(Node)
 {
-    const VkDescriptorSetLayoutBinding pBindings[] = {
-            {// transform ubo
-                    .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            },
-            {// camera rendered from ubo
-                    .binding = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            },
-            {// color
-                    .binding = 2,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            },
-            {// normal
-                    .binding = 3,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            },
-            {// depth
-                    .binding = 4,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
-                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = NULL,
-            },
-    };
-    END_SET_LAYOUT
+    pushLayoutBinding((VkDescriptorSetLayoutBinding) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                          VK_SHADER_STAGE_FRAGMENT_BIT,
+    });
+    pushLayoutBinding((VkDescriptorSetLayoutBinding) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                          VK_SHADER_STAGE_FRAGMENT_BIT,
+    });
+    pushLayoutBinding((VkDescriptorSetLayoutBinding) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                          VK_SHADER_STAGE_FRAGMENT_BIT,
+    });
+    pushLayoutBinding((VkDescriptorSetLayoutBinding) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                          VK_SHADER_STAGE_FRAGMENT_BIT,
+    });
+    pushLayoutBinding((VkDescriptorSetLayoutBinding) {
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
+                          VK_SHADER_STAGE_FRAGMENT_BIT,
+    });
+    END_PUSH_SET_LAYOUT
 }
 
 /// ComputeComposite
@@ -533,12 +527,18 @@ CREATE_SET_LAYOUT(ComputeComposite)
 }
 
 CREATE_SET(MeshComposite,
+           FbrCamera *pNodeCamera,
            VkImageView inputColorImageView,
            VkImageView inputNormalImageView,
            VkImageView inputGBufferImageView,
            VkImageView inputDepthImageView)
 {
     BEGIN_SET(MeshComposite)
+    const VkDescriptorBufferInfo cameraBufferInfo = {
+            .buffer = pNodeCamera->pUBO->uniformBuffer,
+            .offset = 0,
+            .range = sizeof(FbrCamera),
+    };
     const VkDescriptorImageInfo inputColorImageInfo = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = inputColorImageView,
@@ -559,95 +559,70 @@ CREATE_SET(MeshComposite,
             .imageView = inputDepthImageView,
             .sampler = pVulkan->linearSampler,
     };
-    const VkWriteDescriptorSet pDescriptorWrites[] = {
+    VkWriteDescriptorSet pDescriptorWrites[] = {
+            {// camera UBO from which it was rendered
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .pBufferInfo = &cameraBufferInfo,
+            },
             // input color
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .pImageInfo = &inputColorImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
             },
             // input normal
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 1,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .pImageInfo = &inputNormalImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
             },
             // input g buffer
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 2,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .pImageInfo = &inputGBufferImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
             },
             // input depth
             {
                     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .pNext = NULL,
-                    .dstSet = *pSet,
-                    .dstBinding = 3,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .pImageInfo = &inputDepthImageInfo,
-                    .pBufferInfo = NULL,
-                    .pTexelBufferView = NULL,
             },
     };
+    setDefaultDescriptorParams(COUNT(pDescriptorWrites), pDescriptorWrites, pSet);
     END_SET
 }
 
 CREATE_SET_LAYOUT(MeshComposite)
 {
-    const VkDescriptorSetLayoutBinding pBindings[] = {
+    VkDescriptorSetLayoutBinding pBindings[] = {
+            {// camera rendered from ubo
+                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .descriptorCount = 1,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
+            },
             {// input color
-                    .binding = 0,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                    .pImmutableSamplers = NULL,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
             {// input normal
-                    .binding = 1,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                    .pImmutableSamplers = NULL,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
             {// input depth
-                    .binding = 2,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                    .pImmutableSamplers = NULL,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
             {// input node depth
-                    .binding = 3,
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                    .pImmutableSamplers = NULL,
+                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
     };
+    setDefaultDescriptorLayoutParams(COUNT(pBindings), pBindings);
     END_SET_LAYOUT
 }
 
@@ -667,6 +642,10 @@ FBR_RESULT fbrCreateDescriptors(const FbrVulkan *pVulkan,
 {
     *ppAllocDescriptors = calloc(1, sizeof(FbrDescriptors));
     FbrDescriptors *pDescriptors_Std = *ppAllocDescriptors;
+
+    arrsetcap(pLayoutBindingArray, 16);
+    arrsetcap(pDescriptorWriteArray, 16);
+
     createSetLayouts(pVulkan, pDescriptors_Std);
     return FBR_SUCCESS;
 }

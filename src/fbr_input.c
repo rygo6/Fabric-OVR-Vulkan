@@ -1,8 +1,5 @@
 #include "fbr_input.h"
 #include "fbr_log.h"
-
-#define STB_DS_IMPLEMENTATION
-
 #include "stb_ds.h"
 
 FbrInputEvent inputEvents[FBR_INPUT_BUFFER_COUNT];

@@ -1,19 +1,9 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 
-#include "node_mesh_constants.h"
-#include "global_ubo.h"
-
-layout (set = 1, binding = 1) uniform SourceUBO {
-	mat4 view;
-	mat4 proj;
-	mat4 model;
-} sourceUBO;
-
-layout (set = 1, binding = 2) uniform sampler2D sourceColor;
-layout (set = 1, binding = 3) uniform sampler2D sourceCormal;
-layout (set = 1, binding = 4) uniform sampler2D sourceGBuffer;
-layout (set = 1, binding = 5) uniform sampler2D sourceDepth;
+#include "node_mesh_constants.glsl"
+#include "global_ubo.glsl"
+#include "node_mesh_ubo.glsl"
 
 void main()
 {

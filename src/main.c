@@ -7,6 +7,9 @@
 #include <windows.h>
 //#include <processthreadsapi.h>
 
+#define STB_DS_IMPLEMENTATION
+#include "stb_ds.h"
+
 // https://forums.developer.nvidia.com/t/windows-vk-ext-global-priority/196010/2
 BOOL SetPrivilege(
         HANDLE hToken,          // access token handle
