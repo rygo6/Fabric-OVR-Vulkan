@@ -111,7 +111,8 @@ VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocN
                          &pNode->pIndexUBO));
     fbrMemCopyMappedUBO(pNode->pIndexUBO, nodeIndices, FBR_NODE_INDEX_BUFFER_SIZE);
 
-    fbrCreateIPCBuffer(&pNode->pCameraIPCBuffer, sizeof(FbrCameraBuffer));
+    pNode->pRenderingNodeCameraIPCBuffer = calloc(1, sizeof(FbrNodeCameraIPCBuffer));
+    fbrCreateIPCBuffer(&pNode->pCameraIPCBuffer, sizeof(FbrNodeCameraIPCBuffer));
 
     fbrCreateCamera(pVulkan, &pNode->pCamera);
 }

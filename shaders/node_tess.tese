@@ -1,9 +1,6 @@
 #version 450
 
-layout (set = 0, binding = 0) uniform GlobalUBO {
-    mat4 view;
-    mat4 proj;
-} globalUBO;
+#include "global_ubo.h"
 
 layout(set = 3, binding = 0) uniform ObjectUBO {
     mat4 model;

@@ -5,7 +5,7 @@
 #include "fbr_macros.h"
 
 #define CREATE_SET_LAYOUT(name) \
-static FBR_RESULT createSetLayout##name(const FbrVulkan *pVulkan, FbrSetLayout##name *pSetLayout) \
+static FBR_RESULT createSetLayout##name(const FbrVulkan *pVulkan, FbrSetLayout##name *pSetLayout)
 
 #define END_SET_LAYOUT \
 FBR_ACK(createDescriptorSetLayout(pVulkan, \
@@ -32,7 +32,7 @@ FBR_RESULT fbrCreateSet##name( \
         pDescriptorWrites, \
         0, \
         NULL); \
-    return FBR_SUCCESS; \
+    return FBR_SUCCESS;
 
 static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
                                             int bindingsCount,
@@ -118,7 +118,6 @@ CREATE_SET_LAYOUT(Global)
     END_SET_LAYOUT
 }
 
-/// Pass
 CREATE_SET(Pass,
            const FbrTexture *pNormalTexture)
 {

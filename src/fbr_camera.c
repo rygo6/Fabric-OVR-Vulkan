@@ -35,7 +35,7 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
             fbrUpdateTransformUBO(pCamera->pTransform);
 
-            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
+//            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
             glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
             break;
         }
@@ -47,7 +47,7 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
             fbrUpdateTransformUBO(pCamera->pTransform);
 
-            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
+//            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
             glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
             break;
         }
@@ -69,7 +69,8 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
 {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
-    pCamera->bufferData.screenSize = (uvec2) {pVulkan->screenWidth, pVulkan->screenHeight };
+    pCamera->bufferData.width = pVulkan->screenWidth;
+    pCamera->bufferData.height = pVulkan->screenHeight;
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(180), GLM_YUP);
@@ -89,7 +90,8 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
 {
     *ppAllocCameraState = calloc(1, sizeof(FbrCamera));
     FbrCamera *pCamera = *ppAllocCameraState;
-    pCamera->bufferData.screenSize = (uvec2) {pVulkan->screenWidth, pVulkan->screenHeight };
+    pCamera->bufferData.width = pVulkan->screenWidth;
+    pCamera->bufferData.height = pVulkan->screenHeight;
     fbrCreateTransform(pVulkan, &pCamera->pTransform);
     glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);

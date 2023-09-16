@@ -50,12 +50,6 @@ typedef struct FbrDescriptors {
     FBR_STRUCT_DESCRIPTOR(MeshComposite)
 } FbrDescriptors;
 
-#define FBR_CREATE_DESCRIPTOR_PARAMS(name) \
-    const FbrVulkan *pVulkan, \
-    const FbrDescriptors *pDescriptors, \
-    FbrSet##name *pSet, \
-
-
 FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
                               const FbrDescriptors *pDescriptors,
                               const FbrCamera *pCamera,

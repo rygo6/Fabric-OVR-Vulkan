@@ -14,14 +14,13 @@
 #define FBR_NODE_INDEX_BUFFER_SIZE (sizeof(uint16_t) * FBR_NODE_INDEX_COUNT)
 #define FBR_NODE_FRAMEBUFFER_COUNT 2
 
-//typedef struct FbrNodeVertex {
-//    vec2 pos;
-//    vec2 texCoord;
-//} FbrNodeVertex;
-
-//typedef struct FbrNodeState {
-//    uint8_t timelineSwitch;
-//} FbrNodeState;
+typedef struct FbrNodeCameraIPCBuffer {
+    mat4 view;
+    mat4 proj;
+    mat4 model;
+    uint32_t width;
+    uint32_t height;
+} FbrNodeCameraIPCBuffer;
 
 typedef struct FbrNode {
     FbrTransform *pTransform;
@@ -35,6 +34,7 @@ typedef struct FbrNode {
     FbrIPCRingBuffer *pProducerIPC;
     FbrIPCRingBuffer *pReceiverIPC;
 
+    FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer;
     FbrIPCBuffer *pCameraIPCBuffer;
 
 //#ifdef WIN32

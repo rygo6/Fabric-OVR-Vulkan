@@ -11,16 +11,11 @@
 #define FBR_CAMERA_FAR_DEPTH 100.0f
 #define FBR_CAMERA_FOV 45
 
-typedef struct uvec2 {
-    uint32_t x;
-    uint32_t y;
-} uvec2;
-
 typedef struct FbrCameraBuffer {
     mat4 view;
     mat4 proj;
-    mat4 trs; // currenty only used in IPC... move out to new cameraipc struct
-    uvec2 screenSize; // should probably be pulled out to app IPC and globalUBO struct
+    uint32_t width;
+    uint32_t height;
 } FbrCameraBuffer;
 
 typedef struct FbrCamera {
