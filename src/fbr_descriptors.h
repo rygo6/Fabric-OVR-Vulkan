@@ -36,18 +36,29 @@ FBR_DEFINE_DESCRIPTOR(ComputeComposite)
 #define FBR_MESH_COMPOSITE_SET_INDEX 1
 FBR_DEFINE_DESCRIPTOR(MeshComposite)
 
-#define FBR_STRUCT_DESCRIPTOR(name) \
-    FbrSetLayout##name setLayout##name; \
-    FbrSet##name set##name;
+#define FBR_STRUCT_DESCRIPTOR(name) FbrSetLayout##name setLayout##name;
 
 typedef struct FbrDescriptors {
     FBR_STRUCT_DESCRIPTOR(Global)
+    FbrSetGlobal setGlobal;
+
     FBR_STRUCT_DESCRIPTOR(Pass)
+    FbrSetPass setPass;
+
     FBR_STRUCT_DESCRIPTOR(Material)
+    FbrSetMaterial setMaterial;
+
     FBR_STRUCT_DESCRIPTOR(Object)
+    FbrSetObject setObject;
+
     FBR_STRUCT_DESCRIPTOR(Node)
+    FbrSetNode setNode;
+
     FBR_STRUCT_DESCRIPTOR(ComputeComposite)
+    FbrSetComputeComposite setComputeComposite;
+
     FBR_STRUCT_DESCRIPTOR(MeshComposite)
+    FbrSetMeshComposite setMeshComposites[2];
 } FbrDescriptors;
 
 FBR_RESULT fbrCreateSetGlobal(const FbrVulkan *pVulkan,
@@ -87,6 +98,15 @@ FBR_RESULT fbrCreateSetComputeComposite(const FbrVulkan *pVulkan,
                                         VkImageView inputDepthImageView,
                                         VkImageView outputColorImageView,
                                         FbrSetComputeComposite *pSet);
+
+FBR_RESULT fbrCreateSetMeshComposite(const FbrVulkan *pVulkan,
+                                     const FbrDescriptors *pDescriptors,
+                                     const FbrCamera *pNodeCamera,
+                                     VkImageView inputColorImageView,
+                                     VkImageView inputNormalImageView,
+                                     VkImageView inputGBufferImageView,
+                                     VkImageView inputDepthImageView,
+                                     FbrSetComputeComposite *pSet);
 
 FBR_RESULT fbrCreateDescriptors(const FbrVulkan *pVulkan,
                                 FbrDescriptors **ppAllocDescriptors);

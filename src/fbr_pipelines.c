@@ -62,9 +62,7 @@ static FBR_RESULT createPipeLayoutNodeMesh(const FbrVulkan *pVulkan,
 {
     const VkDescriptorSetLayout pSetLayouts[] = {
             pDescriptors->setLayoutGlobal.layout,
-            pDescriptors->setLayoutPass.layout,
-            pDescriptors->setLayoutMaterial.layout,
-            pDescriptors->setLayoutNode.layout
+            pDescriptors->setLayoutMeshComposite.layout,
     };
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -78,7 +76,6 @@ static FBR_RESULT createPipeLayoutNodeMesh(const FbrVulkan *pVulkan,
                                    &pipelineLayoutInfo,
                                    FBR_ALLOCATOR,
                                    pPipeLayout));
-
     return FBR_SUCCESS;
 }
 
@@ -538,7 +535,6 @@ FBR_RESULT createGraphicsPipeNodeMesh(const FbrVulkan *pVulkan,
     vkDestroyShaderModule(pVulkan->device, taskShaderModule, FBR_ALLOCATOR);
     vkDestroyShaderModule(pVulkan->device, meshShaderModule, FBR_ALLOCATOR);
     vkDestroyShaderModule(pVulkan->device, fragShaderModule, FBR_ALLOCATOR);
-
     return FBR_SUCCESS;
 }
 

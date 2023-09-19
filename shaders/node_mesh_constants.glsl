@@ -9,4 +9,4 @@
 #define VERTEX_COUNT 64 // 8 * 8
 #define PRIMITIVE_COUNT 98 // 7 * 2 * 2
 #define HALF_PRIMITIVE_COUNT 49
-#define SCALE 2
+#define SCALE 1

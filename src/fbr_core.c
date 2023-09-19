@@ -347,10 +347,10 @@ static void childMainLoop(FbrApp *pApp)
 
         timelineSwitch = (timelineSwitch + 1) % 2;
 
-//        exitCounter++;
-//        if (exitCounter > 10) {
-//            _exit(0);
-//        }
+        exitCounter++;
+        if (exitCounter > 10) {
+            _exit(0);
+        }
     }
 }
 
@@ -767,8 +767,6 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
             glm_mat4_copy(pRenderingNodeCameraIPCBuffer->model, pTestNode->pCamera->pTransform->uboData.model);
             pTestNode->pCamera->bufferData.width = pRenderingNodeCameraIPCBuffer->width;
             pTestNode->pCamera->bufferData.height = pRenderingNodeCameraIPCBuffer->height;
-
-            // Update the parents GPU data for the child camera
             fbrUpdateCameraUBO(pTestNode->pCamera);
 
             // Update camera min/max projection
@@ -778,7 +776,8 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
             float viewDistanceToCenter = -viewPosition[2];
             float offset = 0.5f;
             float nearZ = viewDistanceToCenter - offset;
-            float farZ = viewDistanceToCenter + offset;
+//            float farZ = viewDistanceToCenter + offset;
+            float farZ = viewDistanceToCenter;
             if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
                 nearZ = FBR_CAMERA_NEAR_DEPTH;
             }
@@ -849,33 +848,32 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                          pApp->pTestQuadMesh);
 
 
-        if (pTestNode != NULL) {
-            vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
-                              VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pPipelines->graphicsPipeNodeTess);
-            vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->graphicsPipeLayoutNodeTess,
-                                    FBR_GLOBAL_SET_INDEX,
-                                    1,
-                                    &pDescriptors->setGlobal,
-                                    0,
-                                    NULL);
-            vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pPipelines->graphicsPipeLayoutNodeTess,
-                                    FBR_NODE_SET_INDEX,
-                                    1,
-                                    &pApp->pCompMaterialSets[testNodeTimelineSwitch],
-                                    0,
-                                    NULL);
-            recordNodeRenderPass(pVulkan,
-                                 pTestNode,
-                                 testNodeTimelineSwitch);
-//            uint64_t childWaitValue = pTestNode->pChildSemaphore->waitValue;
-//            FBR_LOG_DEBUG("Displaying: ", testNodeTimelineSwitch, childWaitValue);
-        }
+        // Tesselation Node
+        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pPipelines->graphicsPipeNodeTess);
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutNodeTess,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                0,
+                                NULL);
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutNodeTess,
+                                FBR_NODE_SET_INDEX,
+                                1,
+                                &pApp->pCompMaterialSets[testNodeTimelineSwitch],
+                                0,
+                                NULL);
+        recordNodeRenderPass(pVulkan,
+                             pTestNode,
+                             testNodeTimelineSwitch);
 
+
+        // Mesh Shader Node
         vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
                           pPipelines->graphicsPipeNodeMesh);
@@ -885,6 +883,14 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                                 FBR_GLOBAL_SET_INDEX,
                                 1,
                                 &pDescriptors->setGlobal,
+                                0,
+                                NULL);
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutNodeMesh,
+                                FBR_MESH_COMPOSITE_SET_INDEX,
+                                1,
+                                &pDescriptors->setMeshComposites[testNodeTimelineSwitch],
                                 0,
                                 NULL);
 

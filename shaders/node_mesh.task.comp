@@ -7,6 +7,18 @@
 
 void main()
 {
+//	float alphaValue = texture(nodeColor, outUV).a;
+//	float depthValue = texture(nodeDepth, outUV).r;
+//
+//	// Calculate clip space coordinates
+//	vec4 clipPos = vec4(outUV * 2.0 - 1.0, depthValue, 1.0);
+//	// Convert clip space coordinates to eye space coordinates
+//	vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
+//	// Divide by w component to obtain normalized device coordinates
+//	vec3 ndcPos = eyePos.xyz / eyePos.w;
+//	// Convert NDC coordinates to world space coordinates
+//	vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
+
 	uint xGroups = globalUBO.width / (QUAD_DIMENSION_COUNT * SCALE);
 	uint yGroups = globalUBO.height / (QUAD_DIMENSION_COUNT * SCALE);
 	EmitMeshTasksEXT(xGroups, yGroups, 1);

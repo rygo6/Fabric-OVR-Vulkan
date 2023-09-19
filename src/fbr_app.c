@@ -95,6 +95,15 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                              pApp->pTestNode->pFramebuffers[i]->pNormalTexture,
                              pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
                              &pApp->pCompMaterialSets[i]);
+
+            fbrCreateSetMeshComposite(pApp->pVulkan,
+                             pApp->pDescriptors,
+                             pApp->pTestNode->pCamera,
+                             pApp->pTestNode->pFramebuffers[i]->pColorTexture->imageView,
+                             pApp->pTestNode->pFramebuffers[i]->pNormalTexture->imageView,
+                             pApp->pTestNode->pFramebuffers[i]->pGBufferTexture->imageView,
+                             pApp->pTestNode->pFramebuffers[i]->pDepthTexture->imageView,
+                             &pApp->pDescriptors->setMeshComposites[i]);
         }
 
 

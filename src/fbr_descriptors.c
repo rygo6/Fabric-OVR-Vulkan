@@ -6,6 +6,7 @@
 #include "fbr_log.h"
 #include "stb_ds.h"
 
+// TODO rewrite descriptors using push scheme
 VkDescriptorSetLayoutBinding *pLayoutBindingArray = NULL;
 VkWriteDescriptorSet *pDescriptorWriteArray = NULL;
 
@@ -56,16 +57,6 @@ vkUpdateDescriptorSets(pVulkan->device, \
 arrsetlen(pDescriptorWriteArray, 0); \
 return FBR_SUCCESS;
 
-static void pushDescriptorWrite(VkWriteDescriptorSet descriptorWrite, VkDescriptorSet *pSet)
-{
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrite.dstSet = *pSet;
-    descriptorWrite.dstBinding = arrlen(pDescriptorWriteArray);
-    descriptorWrite.descriptorCount = descriptorWrite.descriptorCount == 0 ? 1 : descriptorWrite.descriptorCount;
-    FBR_LOG_DEBUG(descriptorWrite.dstBinding);
-    arrput(pDescriptorWriteArray, descriptorWrite);
-}
-
 static void pushLayoutBinding(VkDescriptorSetLayoutBinding binding)
 {
     binding.binding = arrlen(pLayoutBindingArray);
@@ -110,6 +101,16 @@ static FBR_RESULT createDescriptorSetLayout(const FbrVulkan *pVulkan,
     return FBR_SUCCESS;
 }
 
+static FBR_RESULT createPushedDescriptorSetLayout(const FbrVulkan *pVulkan, FbrSetLayout *pSetLayout)
+{
+    FBR_ACK(createDescriptorSetLayout(pVulkan,
+                                      arrlen(pLayoutBindingArray),
+                                      pLayoutBindingArray,
+                                      pSetLayout));
+    arrsetlen(pLayoutBindingArray, 0);
+    return FBR_SUCCESS;
+}
+
 static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
                                         const FbrSetLayout *pSetLayout,
                                         VkDescriptorSet *pDescriptorSet)
@@ -125,6 +126,26 @@ static FBR_RESULT allocateDescriptorSet(const FbrVulkan *pVulkan,
                                      &allocInfo,
                                      pDescriptorSet));
     return FBR_SUCCESS;
+}
+
+static void pushDescriptorWrite(VkWriteDescriptorSet descriptorWrite, VkDescriptorSet *pSet)
+{
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = *pSet;
+    descriptorWrite.dstBinding = arrlen(pDescriptorWriteArray);
+    descriptorWrite.descriptorCount = descriptorWrite.descriptorCount == 0 ? 1 : descriptorWrite.descriptorCount;
+    FBR_LOG_DEBUG(descriptorWrite.dstBinding);
+    arrput(pDescriptorWriteArray, descriptorWrite);
+}
+
+static void writePushedDescriptors(const FbrVulkan *pVulkan)
+{
+    vkUpdateDescriptorSets(pVulkan->device,
+                           arrlen(pDescriptorWriteArray),
+                           pDescriptorWriteArray,
+                           0,
+                           NULL);
+    arrsetlen(pDescriptorWriteArray, 0);
 }
 
 CREATE_SET(Global,
@@ -296,14 +317,16 @@ CREATE_SET_LAYOUT(Object)
     END_SET_LAYOUT
 }
 
-CREATE_SET(Node,
-            const FbrTransform *pTransform,
-            const FbrCamera *pCamera,
-            const FbrTexture *pColorTexture,
-            const FbrTexture *pNormalTexture,
-            const FbrTexture *pDepthTexture)
+FBR_RESULT fbrCreateSetNode(const FbrVulkan *pVulkan,
+                            const FbrDescriptors *pDescriptors,
+                            const FbrTransform *pTransform,
+                            const FbrCamera *pCamera,
+                            const FbrTexture *pColorTexture,
+                            const FbrTexture *pNormalTexture,
+                            const FbrTexture *pDepthTexture,
+                            FbrSetNode *pSet)
 {
-    BEGIN_SET(Node)
+    FBR_ACK(allocateDescriptorSet(pVulkan, &pDescriptors->setLayoutNode, pSet));
     // transform UBO
     pushDescriptorWrite((VkWriteDescriptorSet) {
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -347,10 +370,11 @@ CREATE_SET(Node,
                     .sampler = pVulkan->linearSampler,
             },
     }, pSet);
-    END_PUSH_SET
+    writePushedDescriptors(pVulkan);
+    return FBR_SUCCESS;
 }
 
-CREATE_SET_LAYOUT(Node)
+static FBR_RESULT createSetLayoutNode(const FbrVulkan *pVulkan, FbrSetLayoutNode *pSetLayout)
 {
     pushLayoutBinding((VkDescriptorSetLayoutBinding) {
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -377,7 +401,8 @@ CREATE_SET_LAYOUT(Node)
             .stageFlags = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT |
                           VK_SHADER_STAGE_FRAGMENT_BIT,
     });
-    END_PUSH_SET_LAYOUT
+    FBR_ACK(createPushedDescriptorSetLayout(pVulkan, pSetLayout));
+    return FBR_SUCCESS;
 }
 
 /// ComputeComposite
@@ -526,12 +551,14 @@ CREATE_SET_LAYOUT(ComputeComposite)
     END_SET_LAYOUT
 }
 
-CREATE_SET(MeshComposite,
-           FbrCamera *pNodeCamera,
-           VkImageView inputColorImageView,
-           VkImageView inputNormalImageView,
-           VkImageView inputGBufferImageView,
-           VkImageView inputDepthImageView)
+FBR_RESULT fbrCreateSetMeshComposite(const FbrVulkan *pVulkan,
+                                     const FbrDescriptors *pDescriptors,
+                                     const FbrCamera *pNodeCamera,
+                                     VkImageView inputColorImageView,
+                                     VkImageView inputNormalImageView,
+                                     VkImageView inputGBufferImageView,
+                                     VkImageView inputDepthImageView,
+                                     FbrSetComputeComposite *pSet)
 {
     BEGIN_SET(MeshComposite)
     const VkDescriptorBufferInfo cameraBufferInfo = {
@@ -601,22 +628,22 @@ CREATE_SET_LAYOUT(MeshComposite)
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
-            {// input color
+            {// color
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
-            {// input normal
+            {// normal
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
-            {// input depth
+            {// gbuffer
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
             },
-            {// input node depth
+            {// depth
                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .descriptorCount = 1,
                     .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT,
@@ -634,6 +661,7 @@ static FBR_RESULT createSetLayouts(const FbrVulkan *pVulkan, FbrDescriptors *pDe
     createSetLayoutObject(pVulkan, &pDescriptors->setLayoutObject);
     createSetLayoutNode(pVulkan, &pDescriptors->setLayoutNode);
     createSetLayoutComputeComposite(pVulkan, &pDescriptors->setLayoutComputeComposite);
+    createSetLayoutMeshComposite(pVulkan, &pDescriptors->setLayoutMeshComposite);
     return FBR_SUCCESS;
 }
 
