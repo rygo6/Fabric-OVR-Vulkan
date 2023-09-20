@@ -28,6 +28,7 @@ void main()
 	const vec4 colorValue = texture(nodeColor, invUv);
 	const float depthValue = texture(nodeDepth, invUv).r;
 
+	// TODO GET RID OF MATH
 	// Calculate clip space coordinates
 	vec4 clipPos = vec4(invUv * 2.0 - 1.0, depthValue, 1.0);
 	// Convert clip space coordinates to eye space coordinates
@@ -37,12 +38,14 @@ void main()
 	// Convert NDC coordinates to world space coordinates
 	vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
+//	if (colorValue.a == 0)
+//			return;
 
 //	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(coord, 1, 1);
-//	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = globalUBO.proj * globalUBO.view * worldPos;
-	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = colorValue.a > 0 ?
-		globalUBO.proj * globalUBO.view * worldPos :
-		vec4(coord, 1, 1);
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = globalUBO.proj * globalUBO.view * worldPos;
+//	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = colorValue.a > 0 ?
+//		globalUBO.proj * globalUBO.view * worldPos :
+//		vec4(coord, 1, 1);
 
 //	vertexOutput[gl_LocalInvocationIndex].color = vec4(float(gl_GlobalInvocationID.x) / 1920, float(gl_GlobalInvocationID.y) / 1080, 0.0, 1.0);
 	vertexOutput[gl_LocalInvocationIndex].color = colorValue;

@@ -348,7 +348,7 @@ static void childMainLoop(FbrApp *pApp)
         timelineSwitch = (timelineSwitch + 1) % 2;
 
         exitCounter++;
-        if (exitCounter > 10) {
+        if (exitCounter > 2) {
             _exit(0);
         }
     }
@@ -769,25 +769,20 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
             pTestNode->pCamera->bufferData.height = pRenderingNodeCameraIPCBuffer->height;
             fbrUpdateCameraUBO(pTestNode->pCamera);
 
+            // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
+
             // Update camera min/max projection
-            float distanceToCenter = glm_vec3_distance(pTestNode->pTransform->pos, pCamera->pTransform->pos);
             vec3 viewPosition;
             glm_mat4_mulv3(pCamera->bufferData.view, pTestNode->pTransform->pos, 1, viewPosition);
             float viewDistanceToCenter = -viewPosition[2];
             float offset = 0.5f;
             float nearZ = viewDistanceToCenter - offset;
-//            float farZ = viewDistanceToCenter + offset;
-            float farZ = viewDistanceToCenter;
+            float farZ = viewDistanceToCenter + offset;
             if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
                 nearZ = FBR_CAMERA_NEAR_DEPTH;
             }
             glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, pRenderingNodeCameraIPCBuffer->proj);
-
-            FBR_LOG_DEBUG(distanceToCenter, viewDistanceToCenter, nearZ, farZ);
-
-            // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
             glm_mat4_copy(pCamera->bufferData.view, pRenderingNodeCameraIPCBuffer->view);
-            glm_mat4_copy(pCamera->bufferData.proj, pRenderingNodeCameraIPCBuffer->proj);
             glm_mat4_copy(pCamera->pTransform->uboData.model, pRenderingNodeCameraIPCBuffer->model);
             pRenderingNodeCameraIPCBuffer->width = pCamera->bufferData.width;
             pRenderingNodeCameraIPCBuffer->height = pCamera->bufferData.height;
@@ -849,28 +844,28 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
 
 
         // Tesselation Node
-        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
-                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          pPipelines->graphicsPipeNodeTess);
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutNodeTess,
-                                FBR_GLOBAL_SET_INDEX,
-                                1,
-                                &pDescriptors->setGlobal,
-                                0,
-                                NULL);
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutNodeTess,
-                                FBR_NODE_SET_INDEX,
-                                1,
-                                &pApp->pCompMaterialSets[testNodeTimelineSwitch],
-                                0,
-                                NULL);
-        recordNodeRenderPass(pVulkan,
-                             pTestNode,
-                             testNodeTimelineSwitch);
+//        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
+//                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                          pPipelines->graphicsPipeNodeTess);
+//        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->graphicsPipeLayoutNodeTess,
+//                                FBR_GLOBAL_SET_INDEX,
+//                                1,
+//                                &pDescriptors->setGlobal,
+//                                0,
+//                                NULL);
+//        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->graphicsPipeLayoutNodeTess,
+//                                FBR_NODE_SET_INDEX,
+//                                1,
+//                                &pApp->pCompMaterialSets[testNodeTimelineSwitch],
+//                                0,
+//                                NULL);
+//        recordNodeRenderPass(pVulkan,
+//                             pTestNode,
+//                             testNodeTimelineSwitch);
 
 
         // Mesh Shader Node
