@@ -19,8 +19,6 @@ void main()
 {
 	SetMeshOutputsEXT(VERTEX_COUNT, PRIMITIVE_COUNT);
 
-	const float zOffset = gl_GlobalInvocationID.x * .00001;
-	const mat4 mvp = globalUBO.proj * globalUBO.view;
 	const vec2 screenSize = vec2(globalUBO.width, globalUBO.height);
 	const vec2 uv = ((gl_GlobalInvocationID.xy - gl_WorkGroupID.xy) * SCALE) / screenSize;
 	const vec2 invUv = vec2(uv.x, 1 - uv.y);
@@ -38,16 +36,7 @@ void main()
 	// Convert NDC coordinates to world space coordinates
 	vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
 
-//	if (colorValue.a == 0)
-//			return;
-
-//	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = vec4(coord, 1, 1);
 	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = globalUBO.proj * globalUBO.view * worldPos;
-//	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = colorValue.a > 0 ?
-//		globalUBO.proj * globalUBO.view * worldPos :
-//		vec4(coord, 1, 1);
-
-//	vertexOutput[gl_LocalInvocationIndex].color = vec4(float(gl_GlobalInvocationID.x) / 1920, float(gl_GlobalInvocationID.y) / 1080, 0.0, 1.0);
 	vertexOutput[gl_LocalInvocationIndex].color = colorValue;
 
 	if (gl_LocalInvocationID.x < VERTEX_DIMENSION_COUNT - 1 && gl_LocalInvocationID.y < VERTEX_DIMENSION_COUNT - 1) {

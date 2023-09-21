@@ -7,17 +7,15 @@
 
 void main()
 {
-//	float alphaValue = texture(nodeColor, outUV).a;
-//	float depthValue = texture(nodeDepth, outUV).r;
-//
-//	// Calculate clip space coordinates
-//	vec4 clipPos = vec4(outUV * 2.0 - 1.0, depthValue, 1.0);
-//	// Convert clip space coordinates to eye space coordinates
-//	vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
-//	// Divide by w component to obtain normalized device coordinates
-//	vec3 ndcPos = eyePos.xyz / eyePos.w;
-//	// Convert NDC coordinates to world space coordinates
-//	vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
+//	const float zOffset = gl_GlobalInvocationID.x * .00001;
+//	const mat4 mvp = globalUBO.proj * globalUBO.view;
+//	const vec2 screenSize = vec2(globalUBO.width, globalUBO.height);
+//	const vec2 uv = ((gl_GlobalInvocationID.xy - gl_WorkGroupID.xy) * SCALE) / screenSize;
+//	const vec2 invUv = vec2(uv.x, 1 - uv.y);
+//	const vec2 coord = vec2(1, -1) * (uv * 2 - 1);
+//	const vec4 colorValue = texture(nodeColor, invUv);
+//	const float depthValue = texture(nodeDepth, invUv).r;
+
 
 	uint xGroups = globalUBO.width / (QUAD_DIMENSION_COUNT * SCALE);
 	uint yGroups = globalUBO.height / (QUAD_DIMENSION_COUNT * SCALE);

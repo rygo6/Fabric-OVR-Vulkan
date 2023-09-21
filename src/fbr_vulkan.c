@@ -664,7 +664,7 @@ static void createSurface(const FbrApp *pApp, FbrVulkan *pVulkan) {
 }
 
 static void createTextureSampler(FbrVulkan *pVulkan){
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.maxSamplerAnisotropy);
 
     VkSamplerCreateInfo linearSamplerInfo = {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -674,7 +674,7 @@ static void createTextureSampler(FbrVulkan *pVulkan){
             .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy,
+            .maxAnisotropy = pVulkan->physicalDeviceProperties.properties.limits.maxSamplerAnisotropy,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = VK_FALSE,
             .compareEnable = VK_FALSE,
@@ -694,7 +694,7 @@ static void createTextureSampler(FbrVulkan *pVulkan){
             .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
             .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = pVulkan->physicalDeviceProperties.limits.maxSamplerAnisotropy,
+            .maxAnisotropy = pVulkan->physicalDeviceProperties.properties.limits.maxSamplerAnisotropy,
             .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
             .unnormalizedCoordinates = VK_FALSE,
             .compareEnable = VK_FALSE,
@@ -735,17 +735,34 @@ static void initVulkan(const FbrApp *pApp, FbrVulkan *pVulkan)
     vkGetDeviceQueue(pVulkan->device, pVulkan->graphicsQueueFamilyIndex, 0, &pVulkan->graphicsQueue);
     vkGetDeviceQueue(pVulkan->device, pVulkan->computeQueueFamilyIndex, 0, &pVulkan->computeQueue);
 
-    vkGetPhysicalDeviceProperties(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
 
-    if (!pVulkan->physicalDeviceProperties.limits.timestampComputeAndGraphics) {
+    pVulkan->physicalDeviceMeshShaderProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT;
+    pVulkan->physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+    pVulkan->physicalDeviceProperties.pNext = &pVulkan->physicalDeviceMeshShaderProperties;
+    vkGetPhysicalDeviceProperties2(pVulkan->physicalDevice, &pVulkan->physicalDeviceProperties);
+
+    if (!pVulkan->physicalDeviceProperties.properties.limits.timestampComputeAndGraphics) {
         FBR_LOG_ERROR("Does Not support timestampComputeAndGraphics!");
     }
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.timestampPeriod);
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[0]);
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[1]);
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupSize[2]);
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxComputeWorkGroupInvocations);
-    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.limits.maxTessellationGenerationLevel);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.timestampPeriod);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.maxComputeWorkGroupSize[0]);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.maxComputeWorkGroupSize[1]);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.maxComputeWorkGroupSize[2]);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.maxComputeWorkGroupInvocations);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceProperties.properties.limits.maxTessellationGenerationLevel);
+
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxTaskPayloadSize);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxTaskPayloadAndSharedMemorySize);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxMeshOutputPrimitives);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxMeshOutputVertices);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxMeshWorkGroupInvocations);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxTaskWorkGroupInvocations);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxPreferredMeshWorkGroupInvocations);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.maxPreferredTaskWorkGroupInvocations);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.prefersLocalInvocationPrimitiveOutput);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.prefersLocalInvocationVertexOutput);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.prefersCompactPrimitiveOutput);
+    FBR_LOG_DEBUG(pVulkan->physicalDeviceMeshShaderProperties.prefersCompactVertexOutput);
 
     const VkQueryPoolCreateInfo queryPoolCreateInfo =  {
         .sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,

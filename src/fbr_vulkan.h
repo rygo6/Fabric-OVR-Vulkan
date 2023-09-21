@@ -95,7 +95,8 @@ typedef struct FbrVulkan {
     VkSampler linearSampler;
     VkSampler nearestSampler;
 
-    VkPhysicalDeviceProperties  physicalDeviceProperties;
+    VkPhysicalDeviceMeshShaderPropertiesEXT  physicalDeviceMeshShaderProperties;
+    VkPhysicalDeviceProperties2  physicalDeviceProperties;
     VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
     VkQueryPool queryPool;
 
