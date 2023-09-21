@@ -17,6 +17,8 @@
 typedef struct FbrNodeCameraIPCBuffer {
     mat4 view;
     mat4 proj;
+    mat4 invView;
+    mat4 invProj;
     mat4 model;
     uint32_t width;
     uint32_t height;

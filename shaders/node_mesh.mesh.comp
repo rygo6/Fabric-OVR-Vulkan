@@ -26,15 +26,12 @@ void main()
 	const vec4 colorValue = texture(nodeColor, invUv);
 	const float depthValue = texture(nodeDepth, invUv).r;
 
-	// TODO GET RID OF MATH
-	// Calculate clip space coordinates
+	// this should not be sampling this with invuv... need ot transform the texture quad first in global proj somehow
+	// and really should write worldpos to buffer
 	vec4 clipPos = vec4(invUv * 2.0 - 1.0, depthValue, 1.0);
-	// Convert clip space coordinates to eye space coordinates
-	vec4 eyePos = inverse(nodeUBO.proj) * clipPos;
-	// Divide by w component to obtain normalized device coordinates
+	vec4 eyePos = nodeUBO.invProj * clipPos;
 	vec3 ndcPos = eyePos.xyz / eyePos.w;
-	// Convert NDC coordinates to world space coordinates
-	vec4 worldPos = inverse(nodeUBO.view) * vec4(ndcPos, 1.0);
+	vec4 worldPos = nodeUBO.invView * vec4(ndcPos, 1.0);
 
 	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = globalUBO.proj * globalUBO.view * worldPos;
 	vertexOutput[gl_LocalInvocationIndex].color = colorValue;

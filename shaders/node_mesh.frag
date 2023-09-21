@@ -9,7 +9,7 @@ layout(location = 0) out vec4 outFragColor;
 
 void main()
 {
-    if (vertexInput.color.a < .99)
-        discard;
+//    if (vertexInput.color.a < .99)
+//        discard;
     outFragColor = vertexInput.color;
 }

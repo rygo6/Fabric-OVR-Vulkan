@@ -14,6 +14,8 @@
 typedef struct FbrCameraBuffer {
     mat4 view;
     mat4 proj;
+    mat4 invView;
+    mat4 invProj;
     uint32_t width;
     uint32_t height;
 } FbrCameraBuffer;

@@ -257,7 +257,9 @@ static void childMainLoop(FbrApp *pApp)
         // Receive camera transform over CPU IPC from parent
         FbrNodeCameraIPCBuffer *pCameraIPCBuffer = pApp->pNodeParent->pCameraIPCBuffer->pBuffer;
         glm_mat4_copy(pCameraIPCBuffer->view, pCamera->bufferData.view);
+        glm_mat4_copy(pCameraIPCBuffer->invView, pCamera->bufferData.invView);
         glm_mat4_copy(pCameraIPCBuffer->proj, pCamera->bufferData.proj);
+        glm_mat4_copy(pCameraIPCBuffer->invProj, pCamera->bufferData.invProj);
         glm_mat4_copy(pCameraIPCBuffer->model, pCamera->pTransform->uboData.model);
         pCamera->bufferData.width = pCameraIPCBuffer->width;
         pCamera->bufferData.height = pCameraIPCBuffer->height;
@@ -347,10 +349,10 @@ static void childMainLoop(FbrApp *pApp)
 
         timelineSwitch = (timelineSwitch + 1) % 2;
 
-        exitCounter++;
-        if (exitCounter > 2) {
-            _exit(0);
-        }
+//        exitCounter++;
+//        if (exitCounter > 2) {
+//            _exit(0);
+//        }
     }
 }
 
@@ -762,8 +764,10 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
 
             // Copy the camera transform which child just used to render to the node camera
             FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer = pTestNode->pRenderingNodeCameraIPCBuffer;
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->view, pTestNode->pCamera->bufferData.view);
             glm_mat4_copy(pRenderingNodeCameraIPCBuffer->proj, pTestNode->pCamera->bufferData.proj);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invProj, pTestNode->pCamera->bufferData.invProj);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->view, pTestNode->pCamera->bufferData.view);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invView, pTestNode->pCamera->bufferData.invView);
             glm_mat4_copy(pRenderingNodeCameraIPCBuffer->model, pTestNode->pCamera->pTransform->uboData.model);
             pTestNode->pCamera->bufferData.width = pRenderingNodeCameraIPCBuffer->width;
             pTestNode->pCamera->bufferData.height = pRenderingNodeCameraIPCBuffer->height;
@@ -782,7 +786,9 @@ static void parentMainLoopTessellation(FbrApp *pApp) {
                 nearZ = FBR_CAMERA_NEAR_DEPTH;
             }
             glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, pRenderingNodeCameraIPCBuffer->proj);
+            glm_mat4_inv(pRenderingNodeCameraIPCBuffer->proj, pRenderingNodeCameraIPCBuffer->invProj);
             glm_mat4_copy(pCamera->bufferData.view, pRenderingNodeCameraIPCBuffer->view);
+            glm_mat4_copy(pCamera->bufferData.invView, pRenderingNodeCameraIPCBuffer->invView);
             glm_mat4_copy(pCamera->pTransform->uboData.model, pRenderingNodeCameraIPCBuffer->model);
             pRenderingNodeCameraIPCBuffer->width = pCamera->bufferData.width;
             pRenderingNodeCameraIPCBuffer->height = pCamera->bufferData.height;

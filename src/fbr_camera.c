@@ -7,6 +7,7 @@
 
 void fbrUpdateCameraUBO(FbrCamera *pCamera)
 {
+    fbrUpdateTransformUBO(pCamera->pTransform);
     memcpy(pCamera->pUBO->pUniformBufferMapped, &pCamera->bufferData, sizeof(FbrCameraBuffer));
 }
 
@@ -32,11 +33,8 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
 
             glm_quat_rotatev(pCamera->pTransform->rot, deltaPos, deltaPos);
             glm_vec3_add(pCamera->pTransform->pos, deltaPos, pCamera->pTransform->pos);
-
-            fbrUpdateTransformUBO(pCamera->pTransform);
-
-//            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
             glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
+            glm_mat4_inv(pCamera->bufferData.view, pCamera->bufferData.invView);
             break;
         }
         case FBR_MOUSE_POS_INPUT: {
@@ -44,11 +42,8 @@ void fbrUpdateCamera(FbrCamera *pCamera, const FbrInputEvent *pInputEvent, const
             versor rotQ;
             glm_quatv(rotQ, glm_rad(yRot), GLM_YUP);
             glm_quat_mul(pCamera->pTransform->rot, rotQ, pCamera->pTransform->rot);
-
-            fbrUpdateTransformUBO(pCamera->pTransform);
-
-//            glm_mat4_copy(pCamera->pTransform->uboData.model, pCamera->bufferData.trs);
             glm_quat_look(pCamera->pTransform->pos, pCamera->pTransform->rot, pCamera->bufferData.view);
+            glm_mat4_inv(pCamera->bufferData.view, pCamera->bufferData.invView);
             break;
         }
         case FBR_MOUSE_BUTTON_INPUT: {
@@ -75,6 +70,7 @@ FBR_RESULT fbrImportCamera(const FbrVulkan *pVulkan,
     glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(180), GLM_YUP);
     glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
+    glm_mat4_inv(pCamera->bufferData.proj, pCamera->bufferData.invProj);
     fbrImportUBO(pVulkan,
                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -96,6 +92,7 @@ FBR_RESULT fbrCreateCamera(const FbrVulkan *pVulkan,
     glm_vec3_copy((vec3){0, 0, -2}, pCamera->pTransform->pos);
     glm_quatv(pCamera->pTransform->rot, glm_rad(-180), GLM_YUP);
     glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, FBR_CAMERA_NEAR_DEPTH, FBR_CAMERA_FAR_DEPTH, pCamera->bufferData.proj);
+    glm_mat4_inv(pCamera->bufferData.proj, pCamera->bufferData.invProj);
     FBR_ACK(fbrCreateUBO(pVulkan,
                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
