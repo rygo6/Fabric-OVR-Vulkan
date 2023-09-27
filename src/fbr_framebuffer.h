@@ -66,12 +66,14 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                           HANDLE colorExternalMemory,
                           HANDLE normalExternalMemory,
+                          HANDLE gbufferExternalMemory,
                           HANDLE depthExternalMemory,
                           VkFormat colorFormat,
                           VkExtent2D extent,
                           FbrFramebuffer **ppAllocFramebuffer);
 
-void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan, FbrFramebuffer *pFramebuffer);
+void fbrDestroyFrameBuffer(const FbrVulkan *pVulkan,
+                           FbrFramebuffer *pFramebuffer);
 
 // IPC
 

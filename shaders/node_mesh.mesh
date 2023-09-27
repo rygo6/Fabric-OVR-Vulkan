@@ -9,11 +9,104 @@
 #include "node_mesh_ubo.glsl"
 
 layout(local_size_x = VERTEX_DIMENSION_COUNT, local_size_y = VERTEX_DIMENSION_COUNT, local_size_z = 1) in;
+//layout(local_size_x = 2, local_size_y = 2, local_size_z = 1) in;
 layout(triangles, max_vertices = VERTEX_COUNT, max_primitives = PRIMITIVE_COUNT) out;
 
 layout(location = 0) out VertexOutput {
 	vec4 color;
 } vertexOutput[];
+
+#define quadsize 0.5
+const vec4[] quadVerts = {
+	vec4( -quadsize, quadsize, 0, 1),
+	vec4( quadsize, quadsize, 0, 1),
+	vec4( -quadsize, -quadsize, 0, 1),
+	vec4( quadsize, -quadsize, 0, 1),
+};
+
+
+mat4 removeTranslation(mat4 value) {
+	value[3] = vec4(0.0, 0.0, 0.0, value[3].w); // Set the fourth column to (0, 0, 0, w)
+	return value;
+}
+
+vec2 getNormalizedCoordinates(vec2 point, vec2 v0, vec2 v1, vec2 v2, vec2 v3) {
+    // Calculate vectors from the point to each of the four vertices
+    vec2 e0 = v0 - point;
+    vec2 e1 = v1 - point;
+    vec2 e2 = v2 - point;
+    vec2 e3 = v3 - point;
+
+    // Calculate the dot products of the vectors with themselves
+    float dot00 = dot(e0, e0);
+    float dot01 = dot(e0, e1);
+    float dot02 = dot(e0, e2);
+    float dot03 = dot(e0, e3);
+    float dot11 = dot(e1, e1);
+    float dot12 = dot(e1, e2);
+    float dot13 = dot(e1, e3);
+
+    // Calculate the denominator of the interpolation equation
+    float denominator = 1.0 / (dot00 * dot11 - dot01 * dot01);
+
+    // Calculate the barycentric coordinates
+    float u = (dot11 * dot03 - dot01 * dot13) * denominator;
+    float v = (dot00 * dot13 - dot01 * dot03) * denominator;
+
+    // Check if the point is inside the quadrilateral
+    if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0) {
+        // Point is inside the quadrilateral, return the normalized coordinates
+        return vec2(u, v);
+    } else {
+        // Point is outside the quadrilateral
+        return vec2(-1.0, -1.0); // or some other sentinel value to indicate outside
+    }
+}
+
+// https://jcgt.org/published/0011/03/04/paper-lowres.pdf
+// THIS CAN BE OPTIMIZED
+float Area(vec2 a, vec2 b) { return(a.x*b.y)-(a.y*b.x); }
+vec4 BarycentricWeights(vec2 p, vec4 gpos0, vec4 gpos1, vec4 gpos2, vec4 gpos3) {
+	// From pseudocode in [Hormann and Tarini 2004]
+	float w[4] = { gpos0.w, gpos1.w, gpos2.w, gpos3.w };
+	float r[4], t[4], u[4];
+	vec2 v[4] = { vec2(gpos0)/w[0], vec2(gpos1)/w[1], vec2(gpos2)/w[2], vec2(gpos3)/w[3] }, s[4];
+	for (int i = 0; i < 4; i++) {
+		s[i] = v[i]-p;
+		r[i] = length(s[i])*sign(w[i]);
+	}
+	for (int i = 0; i < 4; i++) {
+		float A = Area(s[i], s[(i+1)%4]);
+		float D = dot(s[i],s[(i+1)%4]);
+		t[i] = (r[i]*r[(i+1)%4]-D)/A;
+	}
+	for (int i = 0; i < 4; i++)
+	u[i] = (t[(i+3)%4]+t[i])/r[i];
+	return vec4(u[0],u[1],u[2],u[3])/(u[0]+u[1]+u[2]+u[3]);
+}
+//vec2 UV(vec2 fragCoord, vec4 vp, vec4 gpos0, vec4 gpos1, vec4 gpos2, vec4 gpos3, vec4 guv0, vec4 guv1, vec4 guv2, vec4 guv3) {
+//	// Set normalized dev coords; compute barycentric weights.
+//	dvec2 ndc = dvec2(2*(fragCoord.x-vp[0])/vp[2]-1,
+//					  2*(fragCoord.y-vp[1])/vp[3]-1);
+//	vec4 wt = BarycentricWeights(ndc);
+//	// Do persp div; return uvs.
+//	float f0 = wt[0]/gpos0.w, f1 = wt[1]/gpos1.w,
+//	f2 = wt[2]/gpos2.w, f3 = wt[3]/gpos3.w;
+//	return (f0*guv0+f1*guv1+f2*guv2+f3*guv3)/(f0+f1+f2+f3);
+//}
+vec2 UV(vec2 ndc, vec4 gpos0, vec4 gpos1, vec4 gpos2, vec4 gpos3, vec2 guv0, vec2 guv1, vec2 guv2, vec2 guv3) {
+	vec4 wt = BarycentricWeights(ndc, gpos0, gpos1, gpos2, gpos3);
+	// Do persp div; return uvs.
+	float f0 = wt[0]/gpos0.w, f1 = wt[1]/gpos1.w, f2 = wt[2]/gpos2.w, f3 = wt[3]/gpos3.w;
+	return (f0*guv0+f1*guv1+f2*guv2+f3*guv3)/(f0+f1+f2+f3);
+}
+
+vec4 nodeQuadWorldPoint(vec4 clipPos)
+{
+	vec4 viewPos = nodeUBO.invProj * clipPos;
+	vec4 worldPos = nodeUBO.invView * viewPos;
+	return worldPos;
+}
 
 void main()
 {
@@ -22,19 +115,52 @@ void main()
 	const vec2 screenSize = vec2(globalUBO.width, globalUBO.height);
 	const vec2 uv = ((gl_GlobalInvocationID.xy - gl_WorkGroupID.xy) * SCALE) / screenSize;
 	const vec2 invUv = vec2(uv.x, 1 - uv.y);
-	const vec2 coord = vec2(1, -1) * (uv * 2 - 1);
-	const vec4 colorValue = texture(nodeColor, invUv);
-	const float depthValue = texture(nodeDepth, invUv).r;
+	const vec2 ndc = vec2((1, -1) * (uv * 2 - 1));
 
-	// this should not be sampling this with invuv... need ot transform the texture quad first in global proj somehow
-	// and really should write worldpos to buffer
-	vec4 clipPos = vec4(invUv * 2.0 - 1.0, depthValue, 1.0);
-	vec4 eyePos = nodeUBO.invProj * clipPos;
-	vec3 ndcPos = eyePos.xyz / eyePos.w;
-	vec4 worldPos = nodeUBO.invView * vec4(ndcPos, 1.0);
+	const vec4 nodeOriginClipPos = nodeUBO.proj * nodeUBO.view * vec4(0, 0, 0, 1);
+	const vec4 ulWorldPos = nodeQuadWorldPoint(vec4(-nodeOriginClipPos.w, nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 urWorldPos = nodeQuadWorldPoint(vec4(nodeOriginClipPos.w, nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 llWorldPos = nodeQuadWorldPoint(vec4(-nodeOriginClipPos.w, -nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 lrWorldPos = nodeQuadWorldPoint(vec4(nodeOriginClipPos.w, -nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 ulClipPos = globalUBO.proj * globalUBO.view * ulWorldPos;
+	const vec4 urClipPos = globalUBO.proj * globalUBO.view * urWorldPos;
+	const vec4 llClipPos = globalUBO.proj * globalUBO.view * llWorldPos;
+	const vec4 lrClipPos = globalUBO.proj * globalUBO.view * lrWorldPos;
+	const vec3 ulNDC = ulClipPos.xyz / ulClipPos.w;
+	const vec3 urNDC = urClipPos.xyz / urClipPos.w;
+	const vec3 llNDC = llClipPos.xyz / llClipPos.w;
+	const vec3 lrNDC = lrClipPos.xyz / lrClipPos.w;
+	const vec2 ulUV = vec2(0, 1);
+	const vec2 urUV = vec2(1, 1);
+	const vec2 llUV = vec2(0, 0);
+	const vec2 lrUV = vec2(1, 0);
 
-	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = globalUBO.proj * globalUBO.view * worldPos;
-	vertexOutput[gl_LocalInvocationIndex].color = colorValue;
+	const vec2 inQuadUv = UV(ndc, ulClipPos, urClipPos, lrClipPos, llClipPos, ulUV, urUV, lrUV, llUV);
+
+	const vec4 colorValue = texture(nodeColor, inQuadUv);
+	const vec4 gbufferValue = texture(nodeGBuffer, inQuadUv);
+
+//	const float depthValue = texture(nodeDepth, invUv).r;
+//	vec4 clipPos = vec4(invUv * 2.0 - 1.0, depthValue, 1.0);
+//	vec4 eyePos = nodeUBO.invProj * clipPos;
+//	vec3 ndcPos = eyePos.xyz / eyePos.w;
+//	vec4 worldPos = nodeUBO.invView * vec4(ndcPos, 1.0);
+
+	const vec4 originGlobalNodeView = globalUBO.proj * globalUBO.view * vec4(0, 0, 0, 1);
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = colorValue.a > 0 ?
+																globalUBO.proj * globalUBO.view * gbufferValue :
+																vec4(ndc, 1, 1);
+
+	// debug corners
+	if (distance(ulNDC.xy, ndc) < .05 ||
+        distance(urNDC.xy, ndc) < .05 ||
+        distance(llNDC.xy, ndc) < .05 ||
+        distance(lrNDC.xy, ndc) < .05) {
+		vertexOutput[gl_LocalInvocationIndex].color = vec4(1, 0, 0, 1);
+	} else {
+		vertexOutput[gl_LocalInvocationIndex].color = colorValue;
+	}
+
 
 	if (gl_LocalInvocationID.x < VERTEX_DIMENSION_COUNT - 1 && gl_LocalInvocationID.y < VERTEX_DIMENSION_COUNT - 1) {
 		const uint yOffset = gl_LocalInvocationID.y * VERTEX_DIMENSION_COUNT;

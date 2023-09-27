@@ -38,6 +38,8 @@ typedef struct FbrIPCParamImportNodeParent {
     HANDLE colorFramebuffer1ExternalHandle;
     HANDLE normalFramebuffer0ExternalHandle;
     HANDLE normalFramebuffer1ExternalHandle;
+    HANDLE gbufferFramebuffer0ExternalHandle;
+    HANDLE gbufferFramebuffer1ExternalHandle;
     HANDLE depthFramebuffer0ExternalHandle;
     HANDLE depthFramebuffer1ExternalHandle;
     HANDLE vertexUBO0ExternalHandle;

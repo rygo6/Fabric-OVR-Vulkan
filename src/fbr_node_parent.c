@@ -122,20 +122,24 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
 
     FBR_LOG_DEBUG(pParam->colorFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG(pParam->normalFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->gbufferFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG(pParam->depthFramebuffer0ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
                          pParam->colorFramebuffer0ExternalHandle,
                          pParam->normalFramebuffer0ExternalHandle,
+                         pParam->gbufferFramebuffer0ExternalHandle,
                          pParam->depthFramebuffer0ExternalHandle,
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pApp->pFramebuffers[0]);
     FBR_LOG_DEBUG(pParam->colorFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG(pParam->normalFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
+    FBR_LOG_DEBUG(pParam->gbufferFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     FBR_LOG_DEBUG(pParam->depthFramebuffer1ExternalHandle, pParam->framebufferWidth, pParam->framebufferHeight);
     fbrImportFrameBuffer(pVulkan,
                          pParam->colorFramebuffer1ExternalHandle,
                          pParam->normalFramebuffer1ExternalHandle,
+                         pParam->gbufferFramebuffer1ExternalHandle,
                          pParam->depthFramebuffer1ExternalHandle,
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},

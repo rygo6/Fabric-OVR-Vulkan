@@ -716,10 +716,12 @@ void fbrCreateFrameBuffer(const FbrVulkan *pVulkan,
 void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
                           HANDLE colorExternalMemory,
                           HANDLE normalExternalMemory,
+                          HANDLE gbufferExternalMemory,
                           HANDLE depthExternalMemory,
                           VkFormat colorFormat,
                           VkExtent2D extent,
-                          FbrFramebuffer **ppAllocFramebuffer) {
+                          FbrFramebuffer **ppAllocFramebuffer)
+{
     *ppAllocFramebuffer = calloc(1, sizeof(FbrFramebuffer));
     FbrFramebuffer *pFramebuffer = *ppAllocFramebuffer;
     pFramebuffer->samples = VK_SAMPLE_COUNT_1_BIT;
@@ -745,14 +747,14 @@ void fbrImportFrameBuffer(const FbrVulkan *pVulkan,
     initialImportColorLayoutTransition(pVulkan, pFramebuffer->pNormalTexture);
 
     // GBuffer
-    fbrCreateTexture(pVulkan,
+    fbrImportTexture(pVulkan,
                      FBR_G_BUFFER_FORMAT,
                      extent,
                      FBR_G_BUFFER_USAGE,
                      VK_IMAGE_ASPECT_COLOR_BIT,
-                     false,
+                     gbufferExternalMemory,
                      &pFramebuffer->pGBufferTexture);
-    initialLayoutTransition(pVulkan, pFramebuffer->pGBufferTexture, VK_IMAGE_ASPECT_COLOR_BIT);
+    initialImportColorLayoutTransition(pVulkan, pFramebuffer->pGBufferTexture);
 
     // depth
     fbrImportTexture(pVulkan,

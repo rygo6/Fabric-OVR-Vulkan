@@ -20,4 +20,5 @@ void main()
 	uint xGroups = globalUBO.width / (QUAD_DIMENSION_COUNT * SCALE);
 	uint yGroups = globalUBO.height / (QUAD_DIMENSION_COUNT * SCALE);
 	EmitMeshTasksEXT(xGroups, yGroups, 1);
+//	EmitMeshTasksEXT(1, 1, 1);
 }

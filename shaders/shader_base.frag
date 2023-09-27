@@ -3,12 +3,7 @@
 #define FRAME_WIDTH 1920
 #define FRAME_HEIGHT 1080
 
-layout(set = 0, binding = 0) uniform GlobalUBO {
-    mat4 view;
-    mat4 proj;
-    int width;
-    int height;
-} globalUBO;
+#include "global_ubo.glsl"
 
 //layout(set = 1, binding = 0) uniform sampler2D normal;
 
@@ -29,20 +24,19 @@ layout(location = 2) out vec4 outGBuffer;
 void main()
 {
     float depth = gl_FragCoord.z;
-    vec2 normalizedFragCoord = vec2(gl_FragCoord.x / FRAME_WIDTH, gl_FragCoord.y / FRAME_HEIGHT);
+    vec2 normalizedFragCoord = vec2(gl_FragCoord.x / globalUBO.width, gl_FragCoord.y / globalUBO.height);
     vec4 clipPos = vec4(normalizedFragCoord * 2.0 - 1.0,  depth, 1.0);
-    vec4 eyePos = inverse(globalUBO.proj) * clipPos;
+    vec4 eyePos = globalUBO.invProj * clipPos;
     vec3 ndcPos = eyePos.xyz / eyePos.w;
-    vec4 worldPos = inverse(globalUBO.view) * vec4(ndcPos, 1.0);
+    vec4 worldPos = globalUBO.invView * vec4(ndcPos, 1.0);
 
     outColor = texture(texSampler, inUV);
-//    outColor = vec4(inWorldPos, 1.0);
-//    outColor = vec4(worldPos.xyz, 1);
+//    outColor = worldPos;
 
     // Is this right?! https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/subpasses/gbuffer.frag
     vec3 N = normalize(inNormal);
     N.y = -N.y;
     outNormal = vec4(N, 1.0);
 
-    outGBuffer = vec4(0,0,0,0);
+    outGBuffer = worldPos;
 }
