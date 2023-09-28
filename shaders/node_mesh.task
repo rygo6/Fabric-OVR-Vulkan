@@ -5,20 +5,32 @@
 #include "global_ubo.glsl"
 #include "node_mesh_ubo.glsl"
 
+taskPayloadSharedEXT MeshTaskPayload payload;
+
+vec4 nodeQuadWorldPoint(vec4 clipPos)
+{
+	vec4 viewPos = nodeUBO.invProj * clipPos;
+	vec4 worldPos = nodeUBO.invView * viewPos;
+	return worldPos;
+}
+
 void main()
 {
-//	const float zOffset = gl_GlobalInvocationID.x * .00001;
-//	const mat4 mvp = globalUBO.proj * globalUBO.view;
-//	const vec2 screenSize = vec2(globalUBO.width, globalUBO.height);
-//	const vec2 uv = ((gl_GlobalInvocationID.xy - gl_WorkGroupID.xy) * SCALE) / screenSize;
-//	const vec2 invUv = vec2(uv.x, 1 - uv.y);
-//	const vec2 coord = vec2(1, -1) * (uv * 2 - 1);
-//	const vec4 colorValue = texture(nodeColor, invUv);
-//	const float depthValue = texture(nodeDepth, invUv).r;
-
+	const vec4 nodeOriginClipPos = nodeUBO.proj * nodeUBO.view * vec4(0, 0, 0, 1);
+	const vec4 ulWorldPos = nodeQuadWorldPoint(vec4(-nodeOriginClipPos.w, nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 urWorldPos = nodeQuadWorldPoint(vec4(nodeOriginClipPos.w, nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 lrWorldPos = nodeQuadWorldPoint(vec4(nodeOriginClipPos.w, -nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	const vec4 llWorldPos = nodeQuadWorldPoint(vec4(-nodeOriginClipPos.w, -nodeOriginClipPos.w, nodeOriginClipPos.z, nodeOriginClipPos.w));
+	payload.ulClipPos = globalUBO.proj * globalUBO.view * ulWorldPos;
+	payload.urClipPos = globalUBO.proj * globalUBO.view * urWorldPos;
+	payload.lrClipPos = globalUBO.proj * globalUBO.view * lrWorldPos;
+	payload.llClipPos = globalUBO.proj * globalUBO.view * llWorldPos;
+	payload.ulNDC = payload.ulClipPos.xyz / payload.ulClipPos.w;
+	payload.urNDC = payload.urClipPos.xyz / payload.urClipPos.w;
+	payload.lrNDC = payload.lrClipPos.xyz / payload.lrClipPos.w;
+	payload.llNDC = payload.llClipPos.xyz / payload.llClipPos.w;
 
 	uint xGroups = globalUBO.width / (QUAD_DIMENSION_COUNT * SCALE);
 	uint yGroups = globalUBO.height / (QUAD_DIMENSION_COUNT * SCALE);
 	EmitMeshTasksEXT(xGroups, yGroups, 1);
-//	EmitMeshTasksEXT(1, 1, 1);
 }

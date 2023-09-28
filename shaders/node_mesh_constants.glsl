@@ -20,3 +20,9 @@
 //#define HALF_PRIMITIVE_COUNT 9
 
 #define SCALE 1
+
+struct MeshTaskPayload
+{
+    vec4 ulClipPos, urClipPos, lrClipPos, llClipPos;
+    vec3 ulNDC, urNDC, lrNDC, llNDC;
+};
