@@ -19,7 +19,7 @@
 //#define PRIMITIVE_COUNT 18 // 3 * 3 * 2
 //#define HALF_PRIMITIVE_COUNT 9
 
-#define SCALE 1
+#define SCALE 4
 
 struct MeshTaskPayload
 {

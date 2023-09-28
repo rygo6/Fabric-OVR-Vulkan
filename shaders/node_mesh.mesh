@@ -11,24 +11,13 @@
 layout(local_size_x = VERTEX_DIMENSION_COUNT, local_size_y = VERTEX_DIMENSION_COUNT, local_size_z = 1) in;
 layout(triangles, max_vertices = VERTEX_COUNT, max_primitives = PRIMITIVE_COUNT) out;
 
+layout (set = 1, binding = 3) uniform sampler2D nodeGBuffer;
+
 layout(location = 0) out VertexOutput {
-	vec4 color;
+	vec2 uv;
 } vertexOutput[];
 
 taskPayloadSharedEXT MeshTaskPayload payload;
-
-#define quadsize 0.5
-const vec4[] quadVerts = {
-	vec4( -quadsize, quadsize, 0, 1),
-	vec4( quadsize, quadsize, 0, 1),
-	vec4( -quadsize, -quadsize, 0, 1),
-	vec4( quadsize, -quadsize, 0, 1),
-};
-
-mat4 removeTranslation(mat4 value) {
-	value[3] = vec4(0.0, 0.0, 0.0, value[3].w); // Set the fourth column to (0, 0, 0, w)
-	return value;
-}
 
 vec4 ulClipPos, urClipPos, lrClipPos, llClipPos;
 vec3 ulNDC, urNDC, lrNDC, llNDC;
@@ -68,16 +57,13 @@ void main()
 	const vec2 uv = ((gl_GlobalInvocationID.xy - gl_WorkGroupID.xy) * SCALE) / screenSize;
 	const vec2 invUv = vec2(uv.x, 1 - uv.y);
 	const vec2 ndc = vec2((1, -1) * (uv * 2 - 1));
-
 	const vec2 inQuadUv = barycentricQuadUV(ndc);
-
-	const vec4 colorValue = texture(nodeColor, inQuadUv);
 	const vec4 gbufferValue = texture(nodeGBuffer, inQuadUv);
 
-	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = colorValue.a > 0 ?
+	vertexOutput[gl_LocalInvocationIndex].uv = inQuadUv;
+	gl_MeshVerticesEXT[gl_LocalInvocationIndex].gl_Position = dot(gbufferValue, gbufferValue) > 0 ?
 																globalUBO.proj * globalUBO.view * gbufferValue :
 																vec4(ndc, 1, 1);
-	vertexOutput[gl_LocalInvocationIndex].color = colorValue;
 
 	if (gl_LocalInvocationID.x < VERTEX_DIMENSION_COUNT - 1 && gl_LocalInvocationID.y < VERTEX_DIMENSION_COUNT - 1) {
 		const uint yOffset = gl_LocalInvocationID.y * VERTEX_DIMENSION_COUNT;
