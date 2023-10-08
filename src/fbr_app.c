@@ -209,25 +209,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                         DUPLICATE_SAME_ACCESS);
         FBR_LOG_DEBUG("export", depthTex1DupHandle);
 
-        HANDLE vert0DupHandle;
-        DuplicateHandle(GetCurrentProcess(),
-                        pApp->pTestNode->pVertexUBOs[0]->externalMemory,
-                        pApp->pTestNode->pProcess->pi.hProcess,
-                        &vert0DupHandle,
-                        0,
-                        false,
-                        DUPLICATE_SAME_ACCESS);
-        FBR_LOG_DEBUG("export", vert0DupHandle);
-        HANDLE vert1DupHandle;
-        DuplicateHandle(GetCurrentProcess(),
-                        pApp->pTestNode->pVertexUBOs[1]->externalMemory,
-                        pApp->pTestNode->pProcess->pi.hProcess,
-                        &vert1DupHandle,
-                        0,
-                        false,
-                        DUPLICATE_SAME_ACCESS);
-        FBR_LOG_DEBUG("export", vert1DupHandle);
-
         HANDLE parentSemDupHandle;
         DuplicateHandle(GetCurrentProcess(),
                         pApp->pVulkan->pMainTimelineSemaphore->externalHandle,
@@ -260,8 +241,6 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
                 .gbufferFramebuffer1ExternalHandle = gbuffer1DupHandle,
                 .depthFramebuffer0ExternalHandle = depthTex0DupHandle,
                 .depthFramebuffer1ExternalHandle = depthTex1DupHandle,
-                .vertexUBO0ExternalHandle = vert0DupHandle,
-                .vertexUBO1ExternalHandle = vert1DupHandle,
                 .parentSemaphoreExternalHandle = parentSemDupHandle,
                 .childSemaphoreExternalHandle = childSemDupHandle,
         };

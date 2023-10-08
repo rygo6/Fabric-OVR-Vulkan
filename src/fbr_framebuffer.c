@@ -550,17 +550,17 @@ void fbrAcquireFramebufferFromExternalAttachToGraphicsRead(const FbrVulkan *pVul
                     .image = pFramebuffer->pNormalTexture->image,
                     FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
             },
-//            { add gbuffer
-//                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-//                    .srcAccessMask = 0,
-//                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-//                    .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ,
-//                    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-//                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-//                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-//                    .image = pFramebuffer->pGBufferTexture->image,
-//                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-//            },
+            {
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                    .srcAccessMask = 0,
+                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                    .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL,
+                    .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                    .image = pFramebuffer->pGBufferTexture->image,
+                    FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+            },
     };
     vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,

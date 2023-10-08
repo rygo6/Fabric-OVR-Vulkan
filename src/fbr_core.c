@@ -62,6 +62,7 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuf
     pClearValues[2].color = (VkClearColorValue ){{0.0f, 0.0f, 0.0f, 0.0f}};
     pClearValues[3].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
 
+    // probably no point to imageless framebuffer
     const VkImageView pAttachments[] = {
             pFramebuffer->pColorTexture->imageView,
             pFramebuffer->pNormalTexture->imageView,
@@ -91,14 +92,6 @@ static void recordRenderMesh(const FbrVulkan *pVulkan, const FbrMesh *pMesh) {
     vkCmdBindVertexBuffers(pVulkan->graphicsCommandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(pVulkan->graphicsCommandBuffer, pMesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdDrawIndexed(pVulkan->graphicsCommandBuffer, pMesh->indexCount, 1, 0, 0, 0);
-}
-
-static void recordNodeRenderPass(const FbrVulkan *pVulkan, const FbrNode *pNode, int timelineSwitch) {
-    VkBuffer vertexBuffers[] = {pNode->pVertexUBOs[timelineSwitch]->uniformBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(pVulkan->graphicsCommandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(pVulkan->graphicsCommandBuffer, pNode->pIndexUBO->uniformBuffer, 0, VK_INDEX_TYPE_UINT16);
-    vkCmdDrawIndexed(pVulkan->graphicsCommandBuffer, FBR_NODE_INDEX_COUNT, 1, 0, 0, 0);
 }
 
 static void submitQueue(const FbrVulkan *pVulkan, FbrTimelineSemaphore *pSemaphore) {
@@ -322,8 +315,6 @@ static void childMainLoop(FbrApp *pApp)
         // end framebuffer pass
         vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
 
-        fbrUpdateNodeParentMesh(pVulkan, pCamera, timelineSwitch, pApp->pNodeParent);
-
         fbrReleaseFramebufferFromGraphicsAttachToExternalRead(pVulkan, pApp->pFramebuffers[timelineSwitch]);
 
         FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->graphicsCommandBuffer));
@@ -342,11 +333,6 @@ static void childMainLoop(FbrApp *pApp)
         };
         FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &releaseSemaphoreWaitInfo, UINT64_MAX));\
 
-        // for some reason this fixes a bug with validation layers thinking the graphicsQueue hasn't finished wait on timeline should be enough!!!
-        if (pVulkan->enableValidationLayers) {
-            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->graphicsQueue));
-        }
-
         timelineSwitch = (timelineSwitch + 1) % 2;
 
 //        exitCounter++;
@@ -354,6 +340,306 @@ static void childMainLoop(FbrApp *pApp)
 //            _exit(0);
 //        }
     }
+}
+
+static void parentMainLoop(FbrApp *pApp) {
+    FbrVulkan *pVulkan = pApp->pVulkan;
+    FbrSwap *pSwap = pApp->pSwap;
+    FbrTimelineSemaphore *pMainTimelineSemaphore = pVulkan->pMainTimelineSemaphore;
+    FbrTime *pTime = pApp->pTime;
+    FbrCamera *pCamera = pApp->pCamera;
+    FbrPipelines *pPipelines = pApp->pPipelines;
+    FbrDescriptors *pDescriptors = pApp->pDescriptors;
+    FbrNode *pTestNode = pApp->pTestNode;
+
+    uint64_t priorChildTimeline = 0;
+    uint8_t testNodeTimelineSwitch = 1;
+    uint8_t mainFrameBufferIndex = 0;
+
+    VkExtent2D extents = pSwap->extent;
+
+    while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
+//        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
+
+        updateTime(pTime);
+
+        processInputFrame(pApp);
+
+        beginFrameCommandBuffer(pVulkan, extents);
+
+        fbrUpdateCameraUBO(pCamera);
+
+        // -------------------------------------------------------------------------------------------------------------
+        // Retrieve semaphore timeline value of child node to see if rendering is complete
+        //TODO is reading the semaphore slower than just sharing CPU memory?
+        vkGetSemaphoreCounterValue(pVulkan->device,
+                                   pTestNode->pChildSemaphore->semaphore,
+                                   &pTestNode->pChildSemaphore->waitValue);
+        if (priorChildTimeline != pTestNode->pChildSemaphore->waitValue) {
+            priorChildTimeline = pTestNode->pChildSemaphore->waitValue;
+            testNodeTimelineSwitch = (testNodeTimelineSwitch + 1) % 2;
+
+            // Acquire Child Framebuffer Ownership
+            fbrAcquireFramebufferFromExternalAttachToGraphicsRead(pVulkan,pTestNode->pFramebuffers[testNodeTimelineSwitch]);
+
+            // Copy the camera transform which child just used to render to the node camera
+            FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer = pTestNode->pRenderingNodeCameraIPCBuffer;
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->proj, pTestNode->pCamera->bufferData.proj);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invProj, pTestNode->pCamera->bufferData.invProj);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->view, pTestNode->pCamera->bufferData.view);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invView, pTestNode->pCamera->bufferData.invView);
+            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->model, pTestNode->pCamera->pTransform->uboData.model);
+            pTestNode->pCamera->bufferData.width = pRenderingNodeCameraIPCBuffer->width;
+            pTestNode->pCamera->bufferData.height = pRenderingNodeCameraIPCBuffer->height;
+            fbrUpdateCameraUBO(pTestNode->pCamera);
+
+            // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
+
+            // Update camera min/max projection
+            vec3 viewPosition;
+            glm_mat4_mulv3(pCamera->bufferData.view, pTestNode->pTransform->pos, 1, viewPosition);
+            float viewDistanceToCenter = -viewPosition[2];
+            float offset = 0.5f;
+            float nearZ = viewDistanceToCenter - offset;
+            float farZ = viewDistanceToCenter + offset;
+            if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
+                nearZ = FBR_CAMERA_NEAR_DEPTH;
+            }
+            glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, pRenderingNodeCameraIPCBuffer->proj);
+            glm_mat4_inv(pRenderingNodeCameraIPCBuffer->proj, pRenderingNodeCameraIPCBuffer->invProj);
+            glm_mat4_copy(pCamera->bufferData.view, pRenderingNodeCameraIPCBuffer->view);
+            glm_mat4_copy(pCamera->bufferData.invView, pRenderingNodeCameraIPCBuffer->invView);
+            glm_mat4_copy(pCamera->pTransform->uboData.model, pRenderingNodeCameraIPCBuffer->model);
+            pRenderingNodeCameraIPCBuffer->width = pCamera->bufferData.width;
+            pRenderingNodeCameraIPCBuffer->height = pCamera->bufferData.height;
+            memcpy( pTestNode->pCameraIPCBuffer->pBuffer, pRenderingNodeCameraIPCBuffer, sizeof(FbrNodeCameraIPCBuffer));
+        }
+
+//        fbrUpdateTransformUBO(pApp->pTestQuadTransform);
+//        fbrUpdateTransformUBO(pTestNode->pTransform);
+
+        // Begin Parent Render Pass
+        beginRenderPassImageless(pVulkan,
+                                 pApp->pFramebuffers[mainFrameBufferIndex],
+                                 pVulkan->renderPass,
+                                 (VkClearColorValue ){{0.1f, 0.2f, 0.3f, 0.0f}});
+
+        // Begin Render Commands
+        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pPipelines->graphicsPipeStandard);
+        // Global
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutStandard,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                0,
+                                NULL);
+//        // Pass
+//        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+//                                pPipelines->graphicsPipeLayoutStandard,
+//                                FBR_PASS_SET_INDEX,
+//                                1,
+//                                &pDescriptors->setPass,
+//                                0,
+//                                NULL);
+        // Material
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutStandard,
+                                FBR_MATERIAL_SET_INDEX,
+                                1,
+                                &pApp->testQuadMaterialSet,
+                                0,
+                                NULL);
+
+        //cube 1
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutStandard,
+                                FBR_OBJECT_SET_INDEX,
+                                1,
+                                &pApp->testQuadObjectSet,
+                                0,
+                                NULL);
+        recordRenderMesh(pVulkan,
+                         pApp->pTestQuadMesh);
+
+
+        // Mesh Shader Node
+        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pPipelines->graphicsPipeNodeMesh);
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutNodeMesh,
+                                FBR_GLOBAL_SET_INDEX,
+                                1,
+                                &pDescriptors->setGlobal,
+                                0,
+                                NULL);
+        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pPipelines->graphicsPipeLayoutNodeMesh,
+                                FBR_MESH_COMPOSITE_SET_INDEX,
+                                1,
+                                &pDescriptors->setMeshComposites[testNodeTimelineSwitch],
+                                0,
+                                NULL);
+
+
+        const int queryCount = 2;
+        vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, queryCount);
+        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 0);
+        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
+        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
+
+        vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
+        // End of Graphics Commands
+
+        // Transfer and blit to swap and transfer back
+        uint32_t swapIndex;
+        FBR_ACK_EXIT(vkAcquireNextImageKHR(pVulkan->device,
+                                           pSwap->swapChain,
+                                           UINT64_MAX,
+                                           pSwap->acquireCompleteSemaphore,
+                                           VK_NULL_HANDLE,
+                                           &swapIndex));
+        const VkImageMemoryBarrier pTransitionBlitBarrier[] = {
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pSwap->pSwapImages[swapIndex],
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+        };
+        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT ,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pTransitionBlitBarrier);
+        const VkImageBlit imageBlit = {
+                .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .srcSubresource.mipLevel = 0,
+                .srcSubresource.layerCount = 1,
+                .srcSubresource.baseArrayLayer = 0,
+                .srcOffsets[1].x = extents.width,
+                .srcOffsets[1].y = extents.height,
+                .srcOffsets[1].z = 1,
+                .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .dstSubresource.mipLevel = 0,
+                .dstSubresource.layerCount = 1,
+                .dstSubresource.baseArrayLayer = 0,
+                .dstOffsets[1].x = extents.width,
+                .dstOffsets[1].y = extents.height,
+                .dstOffsets[1].z = 1,
+        };
+        vkCmdBlitImage(pVulkan->graphicsCommandBuffer,
+                       pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
+                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       pSwap->pSwapImages[swapIndex],
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       1,
+                       &imageBlit,
+                       VK_FILTER_NEAREST);
+        const VkImageMemoryBarrier pTransitionPresentBarrier[] = {
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+                {
+                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                        .srcAccessMask = 0,
+                        .dstAccessMask = 0,
+                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
+                        .image = pSwap->pSwapImages[swapIndex],
+                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
+                },
+        };
+        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT,
+                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT ,
+                             0,
+                             0, NULL,
+                             0, NULL,
+                             2, pTransitionPresentBarrier);
+        // end transfer and blit to swap and transfer back
+
+        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->graphicsCommandBuffer));
+        // End Command Buffer
+
+        submitQueueAndPresent(pVulkan, pSwap, pMainTimelineSemaphore, swapIndex);
+
+        // Wait!
+        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                .pNext = NULL,
+                .flags = 0,
+                .semaphoreCount = 1,
+                .pSemaphores = &pMainTimelineSemaphore->semaphore,
+                .pValues = &pMainTimelineSemaphore->waitValue,
+        };
+        FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
+
+        uint64_t timestamps[queryCount];
+        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, queryCount, sizeof(uint64_t) * queryCount, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
+        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
+        FBR_LOG_MESSAGE("Task/Mesh: ", ms);
+
+        mainFrameBufferIndex = !mainFrameBufferIndex;
+    }
+}
+
+static void setHighPriority(){
+    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
+#define THREAD_PRIORITY_MOST_URGENT 15
+    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
+    SetPriorityClass(GetCurrentThread(), REALTIME_PRIORITY_CLASS);
+}
+
+void fbrMainLoop(FbrApp *pApp) {
+    FBR_LOG_DEBUG("mainloop starting!");
+
+    if (!pApp->isChild) {
+        setHighPriority();
+        parentMainLoop(pApp);
+    } else {
+        childMainLoop(pApp);
+    }
+
+    vkQueueWaitIdle(pApp->pVulkan->graphicsQueue);
+    vkDeviceWaitIdle(pApp->pVulkan->device);
 }
 
 //static void parentMainLoopComputeSSDM(FbrApp *pApp) {
@@ -721,344 +1007,3 @@ static void childMainLoop(FbrApp *pApp)
 //        mainFrameBufferIndex = !mainFrameBufferIndex;
 //    }
 //}
-
-static void parentMainLoopTessellation(FbrApp *pApp) {
-    FbrVulkan *pVulkan = pApp->pVulkan;
-    FbrSwap *pSwap = pApp->pSwap;
-    FbrTimelineSemaphore *pMainTimelineSemaphore = pVulkan->pMainTimelineSemaphore;
-    FbrTime *pTime = pApp->pTime;
-    FbrCamera *pCamera = pApp->pCamera;
-    FbrPipelines *pPipelines = pApp->pPipelines;
-    FbrDescriptors *pDescriptors = pApp->pDescriptors;
-    FbrNode *pTestNode = pApp->pTestNode;
-
-    uint64_t priorChildTimeline = 0;
-    uint8_t testNodeTimelineSwitch = 1;
-    uint8_t mainFrameBufferIndex = 0;
-
-    VkExtent2D extents = pSwap->extent;
-
-    while (!glfwWindowShouldClose(pApp->pWindow) && !pApp->exiting) {
-//        FBR_LOG_DEBUG("Parent FPS", 1.0f / pTime->deltaTime);
-
-        updateTime(pTime);
-
-        processInputFrame(pApp);
-
-        beginFrameCommandBuffer(pVulkan, extents);
-
-        fbrUpdateCameraUBO(pCamera);
-
-        // -------------------------------------------------------------------------------------------------------------
-        // Retrieve semaphore timeline value of child node to see if rendering is complete
-        //TODO is reading the semaphore slower than just sharing CPU memory?
-        vkGetSemaphoreCounterValue(pVulkan->device,
-                                   pTestNode->pChildSemaphore->semaphore,
-                                   &pTestNode->pChildSemaphore->waitValue);
-        if (priorChildTimeline != pTestNode->pChildSemaphore->waitValue) {
-            priorChildTimeline = pTestNode->pChildSemaphore->waitValue;
-            testNodeTimelineSwitch = (testNodeTimelineSwitch + 1) % 2;
-
-            // Acquire Child Framebuffer Ownership
-            fbrAcquireFramebufferFromExternalAttachToGraphicsRead(pVulkan,pTestNode->pFramebuffers[testNodeTimelineSwitch]);
-
-            // Copy the camera transform which child just used to render to the node camera
-            FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer = pTestNode->pRenderingNodeCameraIPCBuffer;
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->proj, pTestNode->pCamera->bufferData.proj);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invProj, pTestNode->pCamera->bufferData.invProj);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->view, pTestNode->pCamera->bufferData.view);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invView, pTestNode->pCamera->bufferData.invView);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->model, pTestNode->pCamera->pTransform->uboData.model);
-            pTestNode->pCamera->bufferData.width = pRenderingNodeCameraIPCBuffer->width;
-            pTestNode->pCamera->bufferData.height = pRenderingNodeCameraIPCBuffer->height;
-            fbrUpdateCameraUBO(pTestNode->pCamera);
-
-            // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
-
-            // Update camera min/max projection
-            vec3 viewPosition;
-            glm_mat4_mulv3(pCamera->bufferData.view, pTestNode->pTransform->pos, 1, viewPosition);
-            float viewDistanceToCenter = -viewPosition[2];
-            float offset = 0.5f;
-            float nearZ = viewDistanceToCenter - offset;
-            float farZ = viewDistanceToCenter + offset;
-            if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
-                nearZ = FBR_CAMERA_NEAR_DEPTH;
-            }
-            glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, pRenderingNodeCameraIPCBuffer->proj);
-            glm_mat4_inv(pRenderingNodeCameraIPCBuffer->proj, pRenderingNodeCameraIPCBuffer->invProj);
-            glm_mat4_copy(pCamera->bufferData.view, pRenderingNodeCameraIPCBuffer->view);
-            glm_mat4_copy(pCamera->bufferData.invView, pRenderingNodeCameraIPCBuffer->invView);
-            glm_mat4_copy(pCamera->pTransform->uboData.model, pRenderingNodeCameraIPCBuffer->model);
-            pRenderingNodeCameraIPCBuffer->width = pCamera->bufferData.width;
-            pRenderingNodeCameraIPCBuffer->height = pCamera->bufferData.height;
-            memcpy( pTestNode->pCameraIPCBuffer->pBuffer, pRenderingNodeCameraIPCBuffer, sizeof(FbrNodeCameraIPCBuffer));
-        }
-
-//        fbrUpdateTransformUBO(pApp->pTestQuadTransform);
-//        fbrUpdateTransformUBO(pTestNode->pTransform);
-
-        // Begin Parent Render Pass
-        beginRenderPassImageless(pVulkan,
-                                 pApp->pFramebuffers[mainFrameBufferIndex],
-                                 pVulkan->renderPass,
-                                 (VkClearColorValue ){{0.1f, 0.2f, 0.3f, 0.0f}});
-
-        // Begin Render Commands
-        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
-                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          pPipelines->graphicsPipeStandard);
-        // Global
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutStandard,
-                                FBR_GLOBAL_SET_INDEX,
-                                1,
-                                &pDescriptors->setGlobal,
-                                0,
-                                NULL);
-//        // Pass
-//        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->graphicsPipeLayoutStandard,
-//                                FBR_PASS_SET_INDEX,
-//                                1,
-//                                &pDescriptors->setPass,
-//                                0,
-//                                NULL);
-        // Material
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutStandard,
-                                FBR_MATERIAL_SET_INDEX,
-                                1,
-                                &pApp->testQuadMaterialSet,
-                                0,
-                                NULL);
-
-        //cube 1
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutStandard,
-                                FBR_OBJECT_SET_INDEX,
-                                1,
-                                &pApp->testQuadObjectSet,
-                                0,
-                                NULL);
-        recordRenderMesh(pVulkan,
-                         pApp->pTestQuadMesh);
-
-
-        // Tesselation Node
-//        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
-//                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                          pPipelines->graphicsPipeNodeTess);
-//        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->graphicsPipeLayoutNodeTess,
-//                                FBR_GLOBAL_SET_INDEX,
-//                                1,
-//                                &pDescriptors->setGlobal,
-//                                0,
-//                                NULL);
-//        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-//                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-//                                pPipelines->graphicsPipeLayoutNodeTess,
-//                                FBR_NODE_SET_INDEX,
-//                                1,
-//                                &pApp->pCompMaterialSets[testNodeTimelineSwitch],
-//                                0,
-//                                NULL);
-//        recordNodeRenderPass(pVulkan,
-//                             pTestNode,
-//                             testNodeTimelineSwitch);
-
-
-        // Mesh Shader Node
-        vkCmdBindPipeline(pVulkan->graphicsCommandBuffer,
-                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          pPipelines->graphicsPipeNodeMesh);
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutNodeMesh,
-                                FBR_GLOBAL_SET_INDEX,
-                                1,
-                                &pDescriptors->setGlobal,
-                                0,
-                                NULL);
-        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pPipelines->graphicsPipeLayoutNodeMesh,
-                                FBR_MESH_COMPOSITE_SET_INDEX,
-                                1,
-                                &pDescriptors->setMeshComposites[testNodeTimelineSwitch],
-                                0,
-                                NULL);
-
-//        const int queryCount = 6;
-//        vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, queryCount);
-//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 0);
-//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
-//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,  pVulkan->queryPool, 2);
-//        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
-//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 3);
-//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT,  pVulkan->queryPool, 4);
-//        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,  pVulkan->queryPool, 5);
-
-        const int queryCount = 2;
-        vkResetQueryPool(pVulkan->device, pVulkan->queryPool, 0, queryCount);
-        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 0);
-        pVulkan->functions.cmdDrawMeshTasks(pVulkan->graphicsCommandBuffer, 1, 1, 1);
-        vkCmdWriteTimestamp(pVulkan->graphicsCommandBuffer, VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT,  pVulkan->queryPool, 1);
-
-        vkCmdEndRenderPass(pVulkan->graphicsCommandBuffer);
-        // End of Graphics Commands
-
-        // Transfer and blit to swap and transfer back
-        uint32_t swapIndex;
-        FBR_ACK_EXIT(vkAcquireNextImageKHR(pVulkan->device,
-                                           pSwap->swapChain,
-                                           UINT64_MAX,
-                                           pSwap->acquireCompleteSemaphore,
-                                           VK_NULL_HANDLE,
-                                           &swapIndex));
-        const VkImageMemoryBarrier pTransitionBlitBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pSwap->pSwapImages[swapIndex],
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-        };
-        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT ,
-                             0,
-                             0, NULL,
-                             0, NULL,
-                             2, pTransitionBlitBarrier);
-        const VkImageBlit imageBlit = {
-                .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .srcSubresource.mipLevel = 0,
-                .srcSubresource.layerCount = 1,
-                .srcSubresource.baseArrayLayer = 0,
-                .srcOffsets[1].x = extents.width,
-                .srcOffsets[1].y = extents.height,
-                .srcOffsets[1].z = 1,
-                .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .dstSubresource.mipLevel = 0,
-                .dstSubresource.layerCount = 1,
-                .dstSubresource.baseArrayLayer = 0,
-                .dstOffsets[1].x = extents.width,
-                .dstOffsets[1].y = extents.height,
-                .dstOffsets[1].z = 1,
-        };
-        vkCmdBlitImage(pVulkan->graphicsCommandBuffer,
-                       pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
-                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       pSwap->pSwapImages[swapIndex],
-                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                       1,
-                       &imageBlit,
-                       VK_FILTER_NEAREST);
-        const VkImageMemoryBarrier pTransitionPresentBarrier[] = {
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pApp->pFramebuffers[mainFrameBufferIndex]->pColorTexture->image,
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-                {
-                        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                        .srcAccessMask = 0,
-                        .dstAccessMask = 0,
-                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                        .srcQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .dstQueueFamilyIndex = pVulkan->graphicsQueueFamilyIndex,
-                        .image = pSwap->pSwapImages[swapIndex],
-                        FBR_DEFAULT_COLOR_SUBRESOURCE_RANGE
-                },
-        };
-        vkCmdPipelineBarrier(pVulkan->graphicsCommandBuffer,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT ,
-                             0,
-                             0, NULL,
-                             0, NULL,
-                             2, pTransitionPresentBarrier);
-        // end transfer and blit to swap and transfer back
-
-        FBR_ACK_EXIT(vkEndCommandBuffer(pVulkan->graphicsCommandBuffer));
-        // End Command Buffer
-
-        submitQueueAndPresent(pVulkan, pSwap, pMainTimelineSemaphore, swapIndex);
-
-        // Wait!
-        const VkSemaphoreWaitInfo semaphoreWaitInfo = {
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                .pNext = NULL,
-                .flags = 0,
-                .semaphoreCount = 1,
-                .pSemaphores = &pMainTimelineSemaphore->semaphore,
-                .pValues = &pMainTimelineSemaphore->waitValue,
-        };
-        FBR_ACK_EXIT(vkWaitSemaphores(pVulkan->device, &semaphoreWaitInfo, UINT64_MAX));
-
-        uint64_t timestamps[queryCount];
-        vkGetQueryPoolResults(pVulkan->device, pVulkan->queryPool, 0, queryCount, sizeof(uint64_t) * queryCount, timestamps, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
-        float ms = (float)(timestamps[1] - timestamps[0]) / 1000000.0f;
-        FBR_LOG_MESSAGE("Task/Mesh: ", ms);
-
-        mainFrameBufferIndex = !mainFrameBufferIndex;
-
-        // for some reason this fixes a bug with validation layers thinking the graphicsQueue hasnt finished
-        // wait on timeline should be enough!!
-        if (pVulkan->enableValidationLayers) {
-            FBR_ACK_EXIT(vkQueueWaitIdle(pVulkan->graphicsQueue));
-        }
-    }
-}
-
-static void setHighPriority(){
-    // ovr example does this, is it good? https://github.com/ValveSoftware/virtual_display/blob/da13899ea6b4c0e4167ed97c77c6d433718489b1/virtual_display/virtual_display.cpp
-#define THREAD_PRIORITY_MOST_URGENT 15
-    SetThreadPriority( GetCurrentThread(), THREAD_PRIORITY_MOST_URGENT );
-    SetPriorityClass(GetCurrentThread(), REALTIME_PRIORITY_CLASS);
-}
-
-void fbrMainLoop(FbrApp *pApp) {
-    FBR_LOG_DEBUG("mainloop starting!");
-
-    if (!pApp->isChild) {
-        setHighPriority();
-//        parentMainLoopComputeSSDM(pApp);
-        parentMainLoopTessellation(pApp);
-    } else {
-        childMainLoop(pApp);
-    }
-
-    vkQueueWaitIdle(pApp->pVulkan->graphicsQueue);
-    vkDeviceWaitIdle(pApp->pVulkan->device);
-}

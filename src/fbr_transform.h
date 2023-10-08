@@ -36,4 +36,6 @@ void fbrTransformForward(FbrTransform *pTransform, vec3 dest);
 
 VkResult fbrCreateTransform(const FbrVulkan *pVulkan, FbrTransform **ppAllocTransform);
 
+void fbrDestroyTransform(const FbrVulkan *pVulkan, FbrTransform *pTransform);
+
 #endif //FABRIC_TRANSFORM_H

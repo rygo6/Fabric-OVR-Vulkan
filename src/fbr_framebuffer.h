@@ -18,7 +18,6 @@
 #define FBR_DEPTH_BUFFER_FORMAT VK_FORMAT_D32_SFLOAT
 
 typedef struct FbrFramebuffer {
-    uint32_t count;
     FbrTexture *pColorTexture;
     FbrTexture *pNormalTexture;
     FbrTexture *pGBufferTexture;

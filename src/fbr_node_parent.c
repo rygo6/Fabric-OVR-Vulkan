@@ -7,100 +7,17 @@
 #include "fbr_log.h"
 #include "fbr_swap.h"
 
-const Vertex nodeVertices2[FBR_NODE_VERTEX_COUNT] = {
-        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f,  -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f,  0.5f, 0.0f},  {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-        {{-0.5f, 0.5f, 0.0f},  {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-void fbrUpdateNodeParentMesh(const FbrVulkan *pVulkan, FbrCamera *pCamera, int timelineSwitch, FbrNodeParent *pNode)
-{
-    mat4 viewProj;
-    glm_mat4_mul(pCamera->bufferData.proj, pCamera->bufferData.view, viewProj);
-    mat4 mvp;
-    glm_mat4_mul(viewProj, pNode->pTransform->uboData.model, mvp);
-
-    vec4 viewport = {0.0f, 0.0f, 1.0f, 1.0f};
-
-    float offsetFromCenter = 0.5f;
-
-    vec3 up = {0.0f, 1.0f, 0.0f};
-    glm_quat_rotatev(pCamera->pTransform->rot, up, up);
-    glm_vec3_scale(up, offsetFromCenter, up);
-
-    vec3 right = {1.0f, 0.0f, 0.0f};
-    glm_quat_rotatev(pCamera->pTransform->rot, right, right);
-    glm_vec3_scale(right, offsetFromCenter, right);
-
-    vec3 forward = {0.0f, 0.0f, 1.0f};
-    glm_quat_rotatev(pCamera->pTransform->rot, forward, forward);
-
-    vec3 ll;
-    glm_vec3_sub(GLM_VEC3_ZERO, up,ll);
-    glm_vec3_sub(ll, right,ll);
-    glm_vec3_copy(ll, pNode->nodeVerticesBuffer[0].pos);
-    vec3 llScreen;
-    glm_project(ll, mvp, viewport, llScreen);
-    glm_vec2_copy(llScreen, pNode->nodeVerticesBuffer[0].uv);
-    glm_vec3_copy(forward, pNode->nodeVerticesBuffer[0].normal);
-
-    vec3 lr;
-    glm_vec3_sub(GLM_VEC3_ZERO, up,lr);
-    glm_vec3_add(lr, right,lr);
-    glm_vec3_copy(lr, pNode->nodeVerticesBuffer[1].pos);
-    vec3 lrScreen;
-    glm_project(lr, mvp, viewport, lrScreen);
-    glm_vec2_copy(lrScreen, pNode->nodeVerticesBuffer[1].uv);
-    glm_vec3_copy(forward, pNode->nodeVerticesBuffer[1].normal);
-
-    vec3 ur;
-    glm_vec3_add(GLM_VEC3_ZERO, up,ur);
-    glm_vec3_add(ur, right,ur);
-    glm_vec3_copy(ur, pNode->nodeVerticesBuffer[2].pos);
-    vec3 urScreen;
-    glm_project(ur, mvp, viewport, urScreen);
-    glm_vec2_copy(urScreen, pNode->nodeVerticesBuffer[2].uv);
-    glm_vec3_copy(forward, pNode->nodeVerticesBuffer[2].normal);
-
-    vec3 ul;
-    glm_vec3_add(GLM_VEC3_ZERO, up,ul);
-    glm_vec3_sub(ul, right,ul);
-    glm_vec3_copy(ul, pNode->nodeVerticesBuffer[3].pos);
-    vec3 ulScreen;
-    glm_project(ul, mvp, viewport, ulScreen);
-    glm_vec2_copy(ulScreen, pNode->nodeVerticesBuffer[3].uv);
-    glm_vec3_copy(forward, pNode->nodeVerticesBuffer[3].normal);
-
-    memcpy(pNode->pVertexUBOs[timelineSwitch]->pUniformBufferMapped, pNode->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
-
-//    VkMappedMemoryRange memoryRange = {
-//            .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-//            .pNext = NULL,
-//            .offset = 0,
-//            .size = FBR_NODE_VERTEX_BUFFER_SIZE,
-//            .memory = pNode->pVertexUBOs[timelineSwitch]->uniformBufferMemory
-//    };
-//    vkFlushMappedMemoryRanges(pVulkan->device, 1, &memoryRange);
-}
-
 void fbrCreateNodeParent(const FbrVulkan *pVulkan, FbrNodeParent **ppAllocNodeParent) {
     *ppAllocNodeParent = calloc(1, sizeof(FbrNodeParent));
     FbrNodeParent *pNodeParent = *ppAllocNodeParent;
     fbrCreateReceiverIPCRingBuffer(&pNodeParent->pReceiverIPC);
-
     fbrCreateTransform(pVulkan, &pNodeParent->pTransform);
-
-    memcpy(pNodeParent->nodeVerticesBuffer, nodeVertices2, FBR_NODE_VERTEX_BUFFER_SIZE);
 }
 
 void fbrDestroyNodeParent(const FbrVulkan *pVulkan, FbrNodeParent *pNodeParent) {
-    // Should I be destroy imported things???
-//    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[0]);
-//    fbrDestroyFrameBuffer(pVulkan, pNodeParent->pFramebuffers[1]);
+    fbrDestroyTransform(pVulkan, pNodeParent->pTransform);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pParentSemaphore);
     fbrDestroyTimelineSemaphore(pVulkan, pNodeParent->pChildSemaphore);
-//    fbrDestroyCamera(pVulkan, pNodeParent->pCamera);
     fbrDestroyIPCRingBuffer(pNodeParent->pReceiverIPC);
     fbrDestroyIPCBuffer(pNodeParent->pCameraIPCBuffer);
 }
@@ -113,10 +30,6 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
 
     FBR_LOG_MESSAGE("Importing Node Parent");
 
-//    FBR_LOG_DEBUG("Importing Camera.", pParam->cameraExternalHandle);
-//    fbrImportCamera(pVulkan,
-//                    pParam->cameraExternalHandle,
-//                    &pNodeParent->pCamera);
     fbrImportIPCBuffer(&pNodeParent->pCameraIPCBuffer,
                        sizeof(FbrCameraBuffer));
 
@@ -144,24 +57,6 @@ void fbrIPCTargetImportNodeParent(FbrApp *pApp, FbrIPCParamImportNodeParent *pPa
                          swapFormat,
                          (VkExtent2D) {pParam->framebufferWidth, pParam->framebufferHeight},
                          &pApp->pFramebuffers[1]);
-
-    FBR_LOG_DEBUG(pParam->vertexUBO0ExternalHandle);
-    fbrImportUBO(pVulkan,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 FBR_NODE_VERTEX_BUFFER_SIZE,
-                 pParam->vertexUBO0ExternalHandle,
-                 &pNodeParent->pVertexUBOs[0]);
-    fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[0], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
-
-    FBR_LOG_DEBUG(pParam->vertexUBO1ExternalHandle);
-    fbrImportUBO(pVulkan,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                 FBR_NODE_VERTEX_BUFFER_SIZE,
-                 pParam->vertexUBO1ExternalHandle,
-                 &pNodeParent->pVertexUBOs[1]);
-    fbrMemCopyMappedUBO(pNodeParent->pVertexUBOs[1], pNodeParent->nodeVerticesBuffer, FBR_NODE_VERTEX_BUFFER_SIZE);
 
     FBR_LOG_DEBUG(pParam->parentSemaphoreExternalHandle);
     fbrImportTimelineSemaphore(pVulkan,

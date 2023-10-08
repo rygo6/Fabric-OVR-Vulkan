@@ -8,10 +8,6 @@
 #include "fbr_buffer.h"
 #include "fbr_camera.h"
 
-#define FBR_NODE_VERTEX_COUNT 4
-#define FBR_NODE_VERTEX_BUFFER_SIZE (sizeof(Vertex) * FBR_NODE_VERTEX_COUNT)
-#define FBR_NODE_INDEX_COUNT 4
-#define FBR_NODE_INDEX_BUFFER_SIZE (sizeof(uint16_t) * FBR_NODE_INDEX_COUNT)
 #define FBR_NODE_FRAMEBUFFER_COUNT 2
 
 typedef struct FbrNodeCameraIPCBuffer {
@@ -39,19 +35,9 @@ typedef struct FbrNode {
     FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer;
     FbrIPCBuffer *pCameraIPCBuffer;
 
-//#ifdef WIN32
-//    HANDLE nodeStateExternalHandle;
-//#endif
-//    FbrNodeState *pNodeState;
-
     FbrTimelineSemaphore *pChildSemaphore;
 
     FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
-    FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
-
-    FbrUniformBufferObject *pIndexUBO;
-
-    Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
 
 } FbrNode;
 

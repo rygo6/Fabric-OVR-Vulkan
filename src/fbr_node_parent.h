@@ -10,16 +10,10 @@ typedef struct FbrNodeParent {
 
     FbrIPCRingBuffer *pReceiverIPC;
 
-//    FbrFramebuffer *pFramebuffers[FBR_NODE_FRAMEBUFFER_COUNT];
-    FbrUniformBufferObject *pVertexUBOs[FBR_NODE_FRAMEBUFFER_COUNT];
-
     FbrTimelineSemaphore *pParentSemaphore;
     FbrTimelineSemaphore *pChildSemaphore;
-//    FbrCamera *pCamera;
 
     FbrIPCBuffer *pCameraIPCBuffer;
-
-    Vertex nodeVerticesBuffer[FBR_NODE_VERTEX_COUNT];
 
 } FbrNodeParent;
 
@@ -42,9 +36,6 @@ typedef struct FbrIPCParamImportNodeParent {
     HANDLE gbufferFramebuffer1ExternalHandle;
     HANDLE depthFramebuffer0ExternalHandle;
     HANDLE depthFramebuffer1ExternalHandle;
-    HANDLE vertexUBO0ExternalHandle;
-    HANDLE vertexUBO1ExternalHandle;
-//    HANDLE cameraExternalHandle;
     HANDLE parentSemaphoreExternalHandle;
     HANDLE childSemaphoreExternalHandle;
 } FbrIPCParamImportNodeParent;

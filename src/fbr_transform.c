@@ -42,7 +42,8 @@ VkResult fbrCreateTransform(const FbrVulkan *pVulkan, FbrTransform **ppAllocTran
     fbrUpdateTransformUBO(pTransform);
 }
 
-VkResult fbrDestroyTransform(const FbrVulkan *pVulkan, FbrTransform *pTransform) {
+void fbrDestroyTransform(const FbrVulkan *pVulkan, FbrTransform *pTransform)
+{
     fbrDestroyUBO(pVulkan, pTransform->pUBO);
     free(pTransform);
 }
