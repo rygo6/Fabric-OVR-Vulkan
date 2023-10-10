@@ -90,7 +90,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
             fbrCreateSetNode(pApp->pVulkan,
                              pApp->pDescriptors,
                              pApp->pTestNode->pTransform,
-                             pApp->pTestNode->pCamera,
+                             pApp->pTestNode->pCompositingCamera,
                              pApp->pTestNode->pFramebuffers[i]->pColorTexture,
                              pApp->pTestNode->pFramebuffers[i]->pNormalTexture,
                              pApp->pTestNode->pFramebuffers[i]->pDepthTexture,
@@ -98,7 +98,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
 
             fbrCreateSetMeshComposite(pApp->pVulkan,
                              pApp->pDescriptors,
-                             pApp->pTestNode->pCamera,
+                             pApp->pTestNode->pCompositingCamera,
                              pApp->pTestNode->pFramebuffers[i]->pColorTexture->imageView,
                              pApp->pTestNode->pFramebuffers[i]->pNormalTexture->imageView,
                              pApp->pTestNode->pFramebuffers[i]->pGBufferTexture->imageView,
@@ -125,7 +125,7 @@ static void initEntities(FbrApp *pApp, long long externalTextureTest) {
         // todo below can go into create node
 //        HANDLE camDupHandle;
 //        DuplicateHandle(GetCurrentProcess(),
-//                        pApp->pCamera->pUBO->externalMemory,
+//                        pApp->pCompositingCamera->pUBO->externalMemory,
 //                        pApp->pTestNode->pProcess->pi.hProcess,
 //                        &camDupHandle,
 //                        0,

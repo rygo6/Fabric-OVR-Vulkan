@@ -10,7 +10,7 @@
 
 #define FBR_NODE_FRAMEBUFFER_COUNT 2
 
-typedef struct FbrNodeCameraIPCBuffer {
+typedef struct FbrNodeCamera {
     mat4 view;
     mat4 proj;
     mat4 invView;
@@ -18,21 +18,24 @@ typedef struct FbrNodeCameraIPCBuffer {
     mat4 model;
     uint32_t width;
     uint32_t height;
-} FbrNodeCameraIPCBuffer;
+} FbrNodeCamera;
 
 typedef struct FbrNode {
     FbrTransform *pTransform;
 
-    FbrCamera *pCamera;
-
     char *pName;
+
+    float size;
 
     FbrProcess *pProcess;
 
     FbrIPCRingBuffer *pProducerIPC;
     FbrIPCRingBuffer *pReceiverIPC;
 
-    FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer;
+    // Camera which compositor is using
+    FbrCamera *pCompositingCamera;
+    // Buffer which the node is using to render
+    FbrNodeCamera *pRenderingCameraBuffer;
     FbrIPCBuffer *pCameraIPCBuffer;
 
     FbrTimelineSemaphore *pChildSemaphore;
@@ -41,9 +44,11 @@ typedef struct FbrNode {
 
 } FbrNode;
 
-void fbrUpdateNodeMesh(const FbrVulkan *pVulkan, FbrCameraBuffer camUboData, versor camRot, int timelineSwitch, FbrNode *pNode);
+void fbrNodeUpdateCameraIPCFromCamera(const FbrVulkan *pVulkan, FbrNode *pNode, FbrCamera *pFromCamera);
 
-VkResult fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
+void fbrNodeUpdateCompositingCameraFromRenderingCamera(FbrNode *pNode);
+
+FBR_RESULT fbrCreateNode(const FbrApp *pApp, const char *pName, FbrNode **ppAllocNode);
 
 void fbrDestroyNode(const FbrVulkan *pVulkan, FbrNode *pNode);
 

@@ -225,7 +225,7 @@ static void createTexture(const FbrVulkan *pVulkan,
                           VkMemoryPropertyFlags properties,
                           FbrTexture *pTexture) {
 
-    VkImageCreateInfo imageCreateInfo = {
+    const VkImageCreateInfo imageCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .imageType = VK_IMAGE_TYPE_2D,
             .extent.width = extent.width,
@@ -240,8 +240,7 @@ static void createTexture(const FbrVulkan *pVulkan,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
-
-    FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, NULL, &pTexture->image));
+    FBR_VK_CHECK(vkCreateImage(pVulkan->device, &imageCreateInfo, FBR_ALLOCATOR, &pTexture->image));
 
     VkMemoryRequirements memRequirements = {};
     uint32_t memTypeIndex;
@@ -301,6 +300,7 @@ static void createTextureFromFile(const FbrVulkan *pVulkan, FbrTexture *pTexture
 
     VkExtent2D extent = {width, height};
 
+    // TODO this staging buffer needs to be recycled
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     fbrCreateStagingBuffer(pVulkan,
@@ -423,11 +423,7 @@ void fbrDestroyTexture(const FbrVulkan *pVulkan, FbrTexture *pTexture) {
         CloseHandle(pTexture->externalMemory);
 
     vkDestroyImage(pVulkan->device, pTexture->image, NULL);
-
-    if (pTexture->deviceMemory != NULL)
-        vkFreeMemory(pVulkan->device, pTexture->deviceMemory, NULL);
-
+    vkFreeMemory(pVulkan->device, pTexture->deviceMemory, NULL);
     vkDestroyImageView(pVulkan->device, pTexture->imageView, NULL);
-
     free(pTexture);
 }

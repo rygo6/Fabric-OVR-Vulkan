@@ -248,7 +248,7 @@ static void childMainLoop(FbrApp *pApp)
         beginFrameCommandBuffer(pVulkan, pApp->pFramebuffers[timelineSwitch]->pColorTexture->extent);
 
         // Receive camera transform over CPU IPC from parent
-        FbrNodeCameraIPCBuffer *pCameraIPCBuffer = pApp->pNodeParent->pCameraIPCBuffer->pBuffer;
+        FbrNodeCamera *pCameraIPCBuffer = pApp->pNodeParent->pCameraIPCBuffer->pBuffer;
         glm_mat4_copy(pCameraIPCBuffer->view, pCamera->bufferData.view);
         glm_mat4_copy(pCameraIPCBuffer->invView, pCamera->bufferData.invView);
         glm_mat4_copy(pCameraIPCBuffer->proj, pCamera->bufferData.proj);
@@ -379,44 +379,10 @@ static void parentMainLoop(FbrApp *pApp) {
             priorChildTimeline = pTestNode->pChildSemaphore->waitValue;
             testNodeTimelineSwitch = (testNodeTimelineSwitch + 1) % 2;
 
-            // Acquire Child Framebuffer Ownership
             fbrAcquireFramebufferFromExternalAttachToGraphicsRead(pVulkan,pTestNode->pFramebuffers[testNodeTimelineSwitch]);
-
-            // Copy the camera transform which child just used to render to the node camera
-            FbrNodeCameraIPCBuffer *pRenderingNodeCameraIPCBuffer = pTestNode->pRenderingNodeCameraIPCBuffer;
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->proj, pTestNode->pCamera->bufferData.proj);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invProj, pTestNode->pCamera->bufferData.invProj);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->view, pTestNode->pCamera->bufferData.view);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->invView, pTestNode->pCamera->bufferData.invView);
-            glm_mat4_copy(pRenderingNodeCameraIPCBuffer->model, pTestNode->pCamera->pTransform->uboData.model);
-            pTestNode->pCamera->bufferData.width = pRenderingNodeCameraIPCBuffer->width;
-            pTestNode->pCamera->bufferData.height = pRenderingNodeCameraIPCBuffer->height;
-            fbrUpdateCameraUBO(pTestNode->pCamera);
-
-            // Copy the current parent camera transform to the CPU IPC for the child to use to render next frame
-
-            // Update camera min/max projection
-            vec3 viewPosition;
-            glm_mat4_mulv3(pCamera->bufferData.view, pTestNode->pTransform->pos, 1, viewPosition);
-            float viewDistanceToCenter = -viewPosition[2];
-            float offset = 0.5f;
-            float nearZ = viewDistanceToCenter - offset;
-            float farZ = viewDistanceToCenter + offset;
-            if (nearZ < FBR_CAMERA_NEAR_DEPTH) {
-                nearZ = FBR_CAMERA_NEAR_DEPTH;
-            }
-            glm_perspective(FBR_CAMERA_FOV, pVulkan->screenFOV, nearZ, farZ, pRenderingNodeCameraIPCBuffer->proj);
-            glm_mat4_inv(pRenderingNodeCameraIPCBuffer->proj, pRenderingNodeCameraIPCBuffer->invProj);
-            glm_mat4_copy(pCamera->bufferData.view, pRenderingNodeCameraIPCBuffer->view);
-            glm_mat4_copy(pCamera->bufferData.invView, pRenderingNodeCameraIPCBuffer->invView);
-            glm_mat4_copy(pCamera->pTransform->uboData.model, pRenderingNodeCameraIPCBuffer->model);
-            pRenderingNodeCameraIPCBuffer->width = pCamera->bufferData.width;
-            pRenderingNodeCameraIPCBuffer->height = pCamera->bufferData.height;
-            memcpy( pTestNode->pCameraIPCBuffer->pBuffer, pRenderingNodeCameraIPCBuffer, sizeof(FbrNodeCameraIPCBuffer));
+            fbrNodeUpdateCompositingCameraFromRenderingCamera(pTestNode);
+            fbrNodeUpdateCameraIPCFromCamera(pVulkan, pTestNode, pCamera);
         }
-
-//        fbrUpdateTransformUBO(pApp->pTestQuadTransform);
-//        fbrUpdateTransformUBO(pTestNode->pTransform);
 
         // Begin Parent Render Pass
         beginRenderPassImageless(pVulkan,
@@ -437,7 +403,7 @@ static void parentMainLoop(FbrApp *pApp) {
                                 &pDescriptors->setGlobal,
                                 0,
                                 NULL);
-//        // Pass
+        // Pass
 //        vkCmdBindDescriptorSets(pVulkan->graphicsCommandBuffer,
 //                                VK_PIPELINE_BIND_POINT_GRAPHICS,
 //                                pPipelines->graphicsPipeLayoutStandard,
@@ -647,7 +613,7 @@ void fbrMainLoop(FbrApp *pApp) {
 //    FbrSwap *pSwap = pApp->pSwap;
 //    FbrTimelineSemaphore *pMainTimelineSemaphore = pVulkan->pMainTimelineSemaphore;
 //    FbrTime *pTime = pApp->pTime;
-//    FbrCamera *pCamera = pApp->pCamera;
+//    FbrCamera *pCompositingCamera = pApp->pCompositingCamera;
 //    FbrPipelines *pPipelines = pApp->pPipelines;
 //    FbrDescriptors *pDescriptors = pApp->pDescriptors;
 //    FbrNode *pTestNode = pApp->pTestNode;
@@ -667,7 +633,7 @@ void fbrMainLoop(FbrApp *pApp) {
 //
 //        beginFrameCommandBuffer(pVulkan, extents);
 //
-//        fbrUpdateCameraUBO(pCamera);
+//        fbrUpdateCameraUBO(pCompositingCamera);
 //
 //        fbrTransitionFramebufferFromIgnoredReadToGraphicsAttach(pVulkan, pApp->pFramebuffers[mainFrameBufferIndex]);
 //
@@ -686,9 +652,9 @@ void fbrMainLoop(FbrApp *pApp) {
 //                                                                  pTestNode->pFramebuffers[testNodeTimelineSwitch]);
 //
 //            // camera ipc to parent camera ubo, then update camera ipc to latest parent ubo
-//            memcpy(&pTestNode->pCamera->bufferData, pTestNode->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
-//            fbrUpdateCameraUBO(pTestNode->pCamera);
-//            memcpy( pTestNode->pCameraIPCBuffer->pBuffer, &pCamera->bufferData, sizeof(FbrCameraBuffer));
+//            memcpy(&pTestNode->pCompositingCamera->bufferData, pTestNode->pCameraIPCBuffer->pBuffer, sizeof(FbrCameraBuffer));
+//            fbrUpdateCameraUBO(pTestNode->pCompositingCamera);
+//            memcpy( pTestNode->pCameraIPCBuffer->pBuffer, &pCompositingCamera->bufferData, sizeof(FbrCameraBuffer));
 //        }
 //
 //        // Begin Parent Render Pass

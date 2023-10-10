@@ -439,7 +439,7 @@ FBR_RESULT fbrCreateSetMeshComposite(const FbrVulkan *pVulkan,
             .pImageInfo = &(VkDescriptorImageInfo) {
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                     .imageView = inputDepthImageView,
-                    .sampler = pVulkan->nearestSampler,
+                    .sampler = pVulkan->linearSampler,
             },
     }, pSet);
     writePushedDescriptors(pVulkan);
