@@ -9,8 +9,8 @@ taskPayloadSharedEXT MeshTaskPayload payload;
 
 vec4 nodeQuadWorldPoint(vec4 clipPos)
 {
-	vec4 viewPos = nodeUBO.invProj * clipPos;
-	vec4 worldPos = nodeUBO.invView * viewPos;
+//	vec4 viewPos = nodeUBO.invProj * clipPos;
+	vec4 worldPos = nodeUBO.invView * nodeUBO.invProj * clipPos;
 	return worldPos;
 }
 

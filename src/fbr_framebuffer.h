@@ -41,6 +41,9 @@ void fbrCreateFrameBufferFromImage(const FbrVulkan *pVulkan,
 void fbrReleaseFramebufferFromGraphicsAttachToExternalRead(const FbrVulkan *pVulkan,
                                                            const FbrFramebuffer *pFramebuffer);
 
+void fbrAcquireFramebufferFromExternalAttachToComputeRead(const FbrVulkan *pVulkan,
+                                                          const FbrFramebuffer *pFramebuffer);
+
 void fbrAcquireFramebufferFromExternalToGraphicsAttach(const FbrVulkan *pVulkan,
                                                        const FbrFramebuffer *pFramebuffer);
 
