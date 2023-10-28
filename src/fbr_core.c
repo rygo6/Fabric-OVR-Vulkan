@@ -63,20 +63,20 @@ static void beginRenderPassImageless(const FbrVulkan *pVulkan, const FbrFramebuf
     pClearValues[3].depthStencil = (VkClearDepthStencilValue) {1.0f, 0 };
 
     // probably no point to imageless framebuffer
-    const VkImageView pAttachments[] = {
-            pFramebuffer->pColorTexture->imageView,
-            pFramebuffer->pNormalTexture->imageView,
-            pFramebuffer->pGBufferTexture->imageView,
-            pFramebuffer->pDepthTexture->imageView
-    };
-    const VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
-            .attachmentCount = COUNT(pAttachments),
-            .pAttachments = pAttachments
-    };
+//    const VkImageView pAttachments[] = {
+//            pFramebuffer->pColorTexture->imageView,
+//            pFramebuffer->pNormalTexture->imageView,
+//            pFramebuffer->pGBufferTexture->imageView,
+//            pFramebuffer->pDepthTexture->imageView
+//    };
+//    const VkRenderPassAttachmentBeginInfo renderPassAttachmentBeginInfo = {
+//            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
+//            .attachmentCount = COUNT(pAttachments),
+//            .pAttachments = pAttachments
+//    };
     const VkRenderPassBeginInfo vkRenderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .pNext = &renderPassAttachmentBeginInfo,
+//            .pNext = &renderPassAttachmentBeginInfo,
             .renderPass = renderPass,
             .framebuffer = pFramebuffer->framebuffer,
             .renderArea.extent = pFramebuffer->pColorTexture->extent,

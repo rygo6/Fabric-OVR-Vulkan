@@ -55,59 +55,67 @@ static VkResult createFramebuffer(const FbrVulkan *pVulkan,
                                   FbrFramebuffer *pFrameBuffer,
                                   VkExtent2D extent)
 {
-    VkFormat colorFormat = FBR_COLOR_BUFFER_FORMAT;
-    VkFormat normalFormat = FBR_NORMAL_BUFFER_FORMAT;
-    VkFormat gBufferFormat = FBR_G_BUFFER_FORMAT;
-    VkFormat depthFormat = FBR_DEPTH_BUFFER_FORMAT;
-    const VkFramebufferAttachmentImageInfo pFramebufferAttachmentImageInfos[] = {
-            {
-                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-                    .width = extent.width,
-                    .height = extent.height,
-                    .layerCount = 1,
-                    .usage = FBR_COLOR_BUFFER_USAGE,
-                    .pViewFormats = &colorFormat,
-                    .viewFormatCount = 1,
-            },
-            {
-                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-                    .width = extent.width,
-                    .height = extent.height,
-                    .layerCount = 1,
-                    .usage = FBR_NORMAL_BUFFER_USAGE,
-                    .pViewFormats = &normalFormat,
-                    .viewFormatCount = 1,
-            },
-            {
-                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-                    .width = extent.width,
-                    .height = extent.height,
-                    .layerCount = 1,
-                    .usage = FBR_G_BUFFER_USAGE,
-                    .pViewFormats = &gBufferFormat,
-                    .viewFormatCount = 1,
-            },
-            {
-                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
-                    .width = extent.width,
-                    .height = extent.height,
-                    .layerCount = 1,
-                    .usage = FBR_DEPTH_BUFFER_USAGE,
-                    .pViewFormats = &depthFormat,
-                    .viewFormatCount = 1,
-            }
+//    VkFormat colorFormat = FBR_COLOR_BUFFER_FORMAT;
+//    VkFormat normalFormat = FBR_NORMAL_BUFFER_FORMAT;
+//    VkFormat gBufferFormat = FBR_G_BUFFER_FORMAT;
+//    VkFormat depthFormat = FBR_DEPTH_BUFFER_FORMAT;
+//    const VkFramebufferAttachmentImageInfo pFramebufferAttachmentImageInfos[] = {
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+//                    .width = extent.width,
+//                    .height = extent.height,
+//                    .layerCount = 1,
+//                    .usage = FBR_COLOR_BUFFER_USAGE,
+//                    .pViewFormats = &colorFormat,
+//                    .viewFormatCount = 1,
+//            },
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+//                    .width = extent.width,
+//                    .height = extent.height,
+//                    .layerCount = 1,
+//                    .usage = FBR_NORMAL_BUFFER_USAGE,
+//                    .pViewFormats = &normalFormat,
+//                    .viewFormatCount = 1,
+//            },
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+//                    .width = extent.width,
+//                    .height = extent.height,
+//                    .layerCount = 1,
+//                    .usage = FBR_G_BUFFER_USAGE,
+//                    .pViewFormats = &gBufferFormat,
+//                    .viewFormatCount = 1,
+//            },
+//            {
+//                    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO,
+//                    .width = extent.width,
+//                    .height = extent.height,
+//                    .layerCount = 1,
+//                    .usage = FBR_DEPTH_BUFFER_USAGE,
+//                    .pViewFormats = &depthFormat,
+//                    .viewFormatCount = 1,
+//            }
+//    };
+//    const VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
+//            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
+//            .attachmentImageInfoCount = COUNT(pFramebufferAttachmentImageInfos),
+//            .pAttachmentImageInfos = pFramebufferAttachmentImageInfos,
+//    };
+    const VkImageView pAttachments[] = {
+            pFrameBuffer->pColorTexture->imageView,
+            pFrameBuffer->pNormalTexture->imageView,
+            pFrameBuffer->pGBufferTexture->imageView,
+            pFrameBuffer->pDepthTexture->imageView,
     };
-    const VkFramebufferAttachmentsCreateInfo framebufferAttachmentsCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO,
-            .attachmentImageInfoCount = COUNT(pFramebufferAttachmentImageInfos),
-            .pAttachmentImageInfos = pFramebufferAttachmentImageInfos,
-    };
+
     const VkFramebufferCreateInfo framebufferCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .pNext = &framebufferAttachmentsCreateInfo,
+//            .pNext = &framebufferAttachmentsCreateInfo,
+//            .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
             .renderPass = pVulkan->renderPass,
-            .flags = VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT,
-            .attachmentCount = COUNT(pFramebufferAttachmentImageInfos),
+            .attachmentCount = COUNT(pAttachments),
+            .pAttachments = pAttachments,
             .width = extent.width,
             .height = extent.height,
             .layers = 1,
