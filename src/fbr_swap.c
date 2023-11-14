@@ -109,12 +109,12 @@ static FBR_RESULT createSwapChain(const FbrVulkan *pVulkan, FbrSwap *pSwap)
 //        printf("Vulkan swapchain does not support VK_IMAGE_USAGE_TRANSFER_DST_BIT. Some operations may not be supported.\n");
 //    }
 
-    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT)) {
-        FBR_LOG_DEBUG("Swap support VK_IMAGE_USAGE_STORAGE_BIT adding!");
-        pSwap->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-    } else {
-        FBR_LOG_ERROR("Vulkan Swap does not support VK_IMAGE_USAGE_STORAGE_BIT!");
-    }
+//    if ((capabilities.supportedUsageFlags & VK_IMAGE_USAGE_STORAGE_BIT)) {
+//        FBR_LOG_DEBUG("Swap support VK_IMAGE_USAGE_STORAGE_BIT adding!");
+//        pSwap->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+//    } else {
+//        FBR_LOG_ERROR("Vulkan Swap does not support VK_IMAGE_USAGE_STORAGE_BIT!");
+//    }
 
     VkSurfaceTransformFlagsKHR preTransform;
     if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
